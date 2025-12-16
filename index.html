@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Isometric 3D Editor</title>
+    <!-- Fonts & Icons -->
+    <link rel="icon" type="image/png" href="/pixelIsometric/favicon-96x96.png" sizes="96x96" />
+    <!-- Google Fonts - Press Start 2P -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!-- Custom Font -->
+    <style>
+        @font-face {
+            font-family: 'Inter';
+            src: url('fonts/inter-normal.woff2') format('woff2');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'Inter';
+            src: url('fonts/inter-bold.woff2') format('woff2');
+            font-weight: bold;
+            font-style: normal;
+            font-display: swap;
+        }
+    </style>
+    <!-- CSS for stacked icons -->
+    
+    <!-- Local Font Awesome Implementation -->
+    <link rel="stylesheet" href="fonts/fontawesome-free-6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/right-panel.css">
+    <link rel="stylesheet" href="css/settings.css">
+    <link rel="stylesheet" href="css/modal.css">
+    <link rel="stylesheet" href="css/tutorials.css">
+       
+</head>
+
+<body>
+    <div id="container">
+        <div id="scene-container"></div>
+        <div id="sidebar">
+            <div class="sidebar-header">
+                <h2>Isometric Editor</h2>
+                <div class="global-actions">
+                    <button class="icon-button" title="Settings"><i class="fas fa-cog"></i></button>
+                    <button class="icon-button" title="Save"><i class="fas fa-save"></i></button>
+                    <button class="icon-button" title="Load"><i class="fas fa-folder-open"></i></button>
+                </div>
+            </div>
+            <div class="panel-container">
+                <div class="tab-rail">
+                    <button class="tab-button active" data-panel="objects-panel">
+                        <i class="fas fa-cube" title="Objects"></i>
+                    </button>
+                    <button class="tab-button" data-panel="movement-panel">
+                        <i class="fas fa-arrows-alt" title="Movement"></i>
+                    </button>
+                    <button class="tab-button" data-panel="camera-panel">
+                        <i class="fas fa-camera" title="Camera"></i>
+                    </button>
+                    <button class="tab-button" data-panel="scene-panel">
+                        <i class="fas fa-image" title="Scene"></i>
+                    </button>
+                    <button class="tab-button" data-panel="properties-panel">
+                        <i class="fas fa-sliders-h" title="Properties"></i>
+                    </button>
+                    <button class="tab-button" data-panel="layers-panel">
+                        <i class="fas fa-layer-group" title="Layers"></i>
+                    </button>
+                </div>
+                <div class="panel-content-wrapper">
+                    <div id="objects-panel" class="control-group panel-section">
+                                <div class="panel-header">
+                                    <div class="panel-title">
+                                        <h3>Objects</h3>
+                                    </div>
+                                    <div class="panel-actions">
+                                        <button class="toggle-btn"><i class="fas fa-minus"></i></button>
+                                    </div>
+                                </div>
+                        <div class="panel-content button-group">
+                            <button id="add-cube" class="icon-button" title="Add Cube"><i class="fas fa-cube"></i></button>
+                            <button id="add-sphere" class="icon-button" title="Add Sphere"><i class="fas fa-circle"></i></button>
+                            <button id="add-cylinder" class="icon-button" title="Add Cylinder"><i class="fas fa-cylinder"></i></button>
+                            <button id="add-ramp" class="icon-button" title="Add Ramp"><i class="fas fa-sort-up"></i></button>
+                            <button id="clear-scene" class="icon-button" title="Clear Scene"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <div id="movement-panel" class="control-group panel-section">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <h3>Object Movement</h3>
+                            </div>
+                            <div class="panel-actions">
+                                <button class="toggle-btn"><i class="fas fa-minus"></i></button>
+                            </div>
+                        </div>
+                        <div class="panel-content">
+                            <div>
+                                <label for="object-select">Select Object:</label>
+                                <select id="object-select">
+                                    <option value="">None</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Move:</label>
+                                <div class="button-group">
+                                    <button id="move-left" style="flex: 1;">↖</button>
+                                    <button id="move-up" style="flex: 1;">↑</button>
+                                    <button id="move-right-up" style="flex: 1;">↗</button>
+                                </div>
+                                <div class="button-group">
+                                    <button id="move-left-down" style="flex: 1;">↙</button>
+                                    <button id="move-down" style="flex: 1;">↓</button>
+                                    <button id="move-right" style="flex: 1;">↘</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="camera-panel" class="control-group panel-section">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <h3>Camera</h3>
+                            </div>
+                            <div class="panel-actions">
+                                <button class="toggle-btn"><i class="fas fa-minus"></i></button>
+                            </div>
+                        </div>
+                        <div class="panel-content button-group">
+                            <button id="reset-camera" class="icon-button" title="Reset Camera"><i class="fas fa-sync-alt"></i></button>
+                            <button id="rotate-cw" class="icon-button" title="Rotate Clockwise"><i class="fas fa-undo"></i></button>
+                            <button id="rotate-ccw" class="icon-button" title="Rotate Counter-Clockwise"><i class="fas fa-redo"></i></button>
+                            <div>
+                                <label for="camera-position">Position:</label>
+                                <input type="text" id="camera-position" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="scene-panel" class="control-group panel-section">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <h3>Scene</h3>
+                            </div>
+                            <div class="panel-actions">
+                                <button class="toggle-btn"><i class="fas fa-minus"></i></button>
+                            </div>
+                        </div>
+                        <div class="panel-content">
+                            <!-- Background Color Section -->
+                            <div>
+                                <label for="background-color">Background Color:</label>
+                                <input type="color" id="background-color" value="#808080">
+                            </div>
+
+                            <!-- Gradient Background Section -->
+                            <div>
+                                <label>Gradient Background:</label>
+                                <div class="button-group">
+                                    <input type="color" id="gradient-color1" value="#ff7e5f" style="flex: 1;">
+                                    <input type="color" id="gradient-color2" value="#feb47b" style="flex: 1;">
+                                </div>
+                                <div class="button-group">
+                                    <button id="apply-gradient-vertical" style="flex: 1;">Vertical</button>
+                                    <button id="apply-gradient-horizontal" style="flex: 1;">Horizontal</button>
+                                </div>
+                            </div>
+
+                            <!-- Background Image Section -->
+                            <div>
+                                <label for="background-image-url">Background Image URL:</label>
+                                <input type="text" id="background-image-url" placeholder="https://example.com/image.jpg">
+                                <button id="apply-image-background">Apply Image</button>
+                            </div>
+
+                            <!-- Theme Selection -->
+                            <div>
+                                <label for="theme-selector">Themes:</label>
+                                <select id="theme-selector">
+                                    <option value="default">Default</option>
+                                    <option value="dark">Dark</option>
+                                    <option value="light">Light</option>
+                                    <option value="blue">Blue</option>
+                                    <option value="green">Green</option>
+                                    <option value="sky">Sky</option>
+                                    <option value="space">Space</option>
+                                    <option value="sunset">Sunset Gradient</option>
+                                    <option value="ocean">Ocean Gradient</option>
+                                    <option value="forest">Forest Gradient</option>
+                                </select>
+                                <div class="button-group">
+                                    <button id="apply-theme" style="flex: 1;">Apply Theme</button>
+                                    <button id="cycle-themes" style="flex: 1;">Cycle Themes</button>
+                                </div>
+                            </div>
+
+                            <!-- Brightness Adjustment -->
+                            <div>
+                                <label for="brightness-adjust">Brightness:</label>
+                                <input type="range" id="brightness-adjust" min="0.1" max="2.0" step="0.1" value="1.0">
+                                <span id="brightness-value">1.0</span>
+                                <button id="adjust-brightness">Adjust Brightness</button>
+                            </div>
+
+                            <!-- Scene Effects Section -->
+                            <div>
+                                <label>Scene Effects:</label>
+                                <div class="button-group">
+                                    <button id="toggle-grid">Toggle Grid</button>
+                                    <button id="toggle-axes">Toggle Axes</button>
+                                </div>
+                            </div>
+
+                            <!-- Fog Controls -->
+                            <div>
+                                <label>Fog Settings:</label>
+                                <input type="color" id="fog-color" value="#cccccc">
+                                <div>
+                                    <label for="fog-near">Near:</label>
+                                    <input type="range" id="fog-near" min="1" max="50" step="1" value="10">
+                                    <span id="fog-near-value">10</span>
+                                </div>
+                                <div>
+                                    <label for="fog-far">Far:</label>
+                                    <input type="range" id="fog-far" min="50" max="200" step="10" value="100">
+                                    <span id="fog-far-value">100</span>
+                                </div>
+                                <div class="button-group">
+                                    <button id="apply-fog" style="flex: 1;">Apply Fog</button>
+                                    <button id="remove-fog" style="flex: 1;">Remove Fog</button>
+                                </div>
+                            </div>
+
+                            <!-- Reset Options -->
+                            <div>
+                                <button id="reset-background">Reset Background</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div  id="properties-panel" class="control-group panel-section">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <h3>Object Properties</h3>
+                            </div>
+                            <div class="panel-actions">
+                                <button class="toggle-btn"><i class="fas fa-minus"></i></button>
+                            </div>
+                        </div>
+                        <div class="panel-content">
+                            <div>
+                                <label for="object-color">Color:</label>
+                                <input type="color" id="object-color">
+                            </div>
+                            <div>
+                                <label for="object-scale-x">Scale X:</label>
+                                <input type="range" id="object-scale-x" min="1" max="5" step="1" value="1">
+                                <span id="object-scale-x-value">1</span>
+                            </div>
+                            <div>
+                                <label for="object-scale-y">Scale Y:</label>
+                                <input type="range" id="object-scale-y" min="1" max="5" step="1" value="1">
+                                <span id="object-scale-y-value">1</span>
+                            </div>
+                            <div>
+                                <label for="object-scale-z">Scale Z:</label>
+                                <input type="range" id="object-scale-z" min="1" max="5" step="1" value="1">
+                                <span id="object-scale-z-value">1</span>
+                            </div>
+                            <div>
+                                <label for="object-rotation-y">Rotation Y (90° steps):</label>
+                                <input type="range" id="object-rotation-y" min="0" max="360" step="90" value="0">
+                                <span id="object-rotation-y-value">0°</span>
+                            </div>
+                            <div>
+                                <label for="object-zindex">Z-Index (Render Order):</label>
+                                <input type="range" id="object-zindex" min="0" max="100" step="1" value="0">
+                                <span id="object-zindex-value">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="layers-panel" class="control-group panel-section">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <h3>Layers</h3>
+                    </div>
+                    <div class="panel-actions">
+                        <button class="toggle-btn"><i class="fas fa-minus"></i></button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div>
+                        <label for="layer-name">Layer Name:</label>
+                        <input type="text" id="layer-name" placeholder="New layer name">
+                    </div>
+                    <button id="add-layer">Add Layer</button>
+                    <div id="layers-list">
+                        <!-- Layer items will be added here dynamically -->
+                    </div>
+                    <div>
+                        <label for="current-layer">Current Layer:</label>
+                        <select id="current-layer">
+                            <option value="1">Layer 1</option>
+                        </select>
+                    </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="info">Isometric 3D Editor</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <script type="module" src="js/app.js?v=1"></script>
+</body>
+
+</html>

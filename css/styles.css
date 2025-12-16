@@ -1,0 +1,618 @@
+:root {
+    /* COLOR SYSTEM - Professional Dark Theme */
+    --bg-darkest: #0f0f1b;       /* Deep background */
+    --bg-dark: #1a1a2e;          /* Primary surface */
+    --bg-medium: #16213e;        /* Secondary surface */
+    --bg-light: #1e293b;         /* Tertiary surface */
+
+    /* ACCENT COLORS - Cyberpunk/Terminal Inspired */
+    --accent-primary: #00ff41;   /* Terminal Green */
+    --accent-secondary: #ff006e; /* Neon Pink */
+    --accent-tertiary: #00d9ff;  /* Cyan */
+
+    /* TEXT & BORDERS */
+    --text-primary: #e0e7ff;     /* Primary text */
+    --text-secondary: #94a3b8;   /* Secondary text */
+    --border-color: #2d3748;     /* Border color */
+
+    /* LAYOUT DIMENSIONS */
+    --header-height: 48px;
+    --icon-rail-width: 48px;
+    --tools-width: 320px;
+    --side-panel-width: 350px;
+    --border-glow: rgba(0, 255, 65, 0.3);
+
+    /* TILE SYSTEM */
+    --tile-dim: 32;
+    --pixel-size: 16px;
+    --canvas-size: 512px;
+}
+
+
+
+
+/* Base Styles */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', 'Inter', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    overflow: hidden;
+    background-color: var(--bg-darkest);
+    color: var(--text-primary);
+}
+
+#container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+}
+
+#scene-container {
+    flex: 1;
+    position: relative;
+    background-color: var(--bg-medium);
+    border-right: 1px solid var(--border-color);
+}
+
+#sidebar {
+    width: 350px;
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    padding: 15px;
+    overflow-y: auto;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.5);
+    border-left: 1px solid var(--border-glow);
+
+    display: flex;
+    flex-direction: column;
+}
+
+/* Info Display */
+#info {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: rgba(10, 10, 27, 0.8);
+    color: var(--accent-primary);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    border: 1px solid var(--border-glow);
+    z-index: 1000;
+}
+
+/* Button Styles */
+button {
+    background-color: var(--bg-medium);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 8px 12px;
+    margin: 5px 0;
+    cursor: pointer;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+button:hover {
+    background-color: var(--bg-light);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+button:active {
+    background-color: var(--accent-primary);
+    color: var(--bg-darkest);
+    transform: translateY(1px);
+}
+
+.icon-button {
+    width: auto;
+    padding: 4px;
+    min-width: 20px;
+    background-color: var(--bg-medium);
+    border: 1px solid var(--border-color);
+}
+
+.icon-button:hover {
+    background-color: var(--bg-light);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+/* Layer Item Styles - Professional and Cool */
+.layer-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding: 4px 6px;
+    background-color: var(--bg-medium);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+    cursor: default;
+}
+
+.layer-item:hover {
+    background-color: var(--bg-light);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 5px var(--border-glow);
+}
+
+.layer-item input[type="text"] {
+    flex: 1;
+    margin-bottom: 0;
+    min-width: 120px;
+    background-color: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 6px 10px;
+    border-radius: 4px;
+}
+
+.layer-item input[type="text"]:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 3px var(--accent-primary);
+}
+
+.layer-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--accent-primary);
+}
+
+/* Control Group Styles */
+.control-group {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.panel-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--accent-tertiary);
+    font-weight: 600;
+    flex: 1;
+}
+
+.panel-title h3 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+
+.panel-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.panel-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* Button Group Styles */
+.button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.button-group button {
+    flex: 1;
+    min-width: 40px;
+}
+
+/* Toggle Button Styles */
+.toggle-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0 5px;
+    font-size: 12px;
+    width: auto;
+    min-width: auto;
+    transition: all 0.2s ease;
+}
+
+.toggle-btn:hover {
+    color: var(--accent-primary);
+    transform: scale(1.1);
+}
+
+.toggle-btn.minimized i::before {
+    content: "+";
+}
+
+/* Input and Select Styles */
+input,
+select {
+    width: 100%;
+    padding: 4px 4px;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+    background-color: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: 4px;
+    font-family: inherit;
+}
+
+input:focus,
+select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 3px var(--accent-primary);
+}
+
+/* Label Styles */
+label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+/* Layer Controls Enhancement */
+#layers-list {
+    margin: 10px 0;
+}
+
+/* Up/Down Button Styles */
+.layer-item .icon-button {
+    background-color: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+}
+
+.layer-item .icon-button:hover {
+    background-color: var(--accent-primary);
+    color: var(--bg-darkest);
+    border-color: var(--accent-primary);
+    transform: translateY(-1px);
+}
+
+.layer-item .icon-button:active {
+    transform: translateY(0);
+}
+
+/* Delete Button Style */
+.layer-item .icon-button:last-child {
+    color: var(--accent-secondary);
+    border-color: var(--accent-secondary);
+}
+
+/* Sidebar Header Styles */
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-glow);
+}
+
+.sidebar-header h2 {
+    color: var(--accent-primary);
+    font-size: 18px;
+    margin: 0;
+    font-weight: 700;
+}
+
+.global-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.global-actions .icon-button {
+    background-color: var(--bg-medium);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+}
+
+.global-actions .icon-button:hover {
+    background-color: var(--accent-primary);
+    color: var(--bg-darkest);
+    border-color: var(--accent-primary);
+    transform: scale(1.1);
+}
+
+/* Panel Section Styles */
+.panel-section {
+    margin-bottom: 15px;
+    padding: 12px;
+    background-color: var(--bg-medium);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+/* Active Panel Highlight */
+.panel-section.active {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 8px var(--border-glow);
+}
+/* Vertical Tab System */
+.tab-rail {
+    width: var(--tab-width);
+    background-color: var(--bg-darkest);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 0;
+    position: relative;
+    z-index: 10;
+}
+
+.tab-button {
+    width: 32px;
+    height: 32px;
+    background-color: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    margin: 5px 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.tab-button:hover {
+    background-color: var(--bg-medium);
+    color: var(--accent-primary);
+}
+
+.tab-button.active {
+    background-color: var(--accent-primary);
+    color: var(--bg-darkest);
+}
+
+.tab-button.active::before {
+    content: '';
+    position: absolute;
+    right: -4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: var(--tab-active-width);
+    height: 20px;
+    background-color: var(--accent-primary);
+    border-radius: 0 2px 2px 0;
+}
+
+.tab-button i {
+    font-size: 16px;
+}
+
+/* Panel Container with Tabs */
+.panel-container {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+
+.panel-content-wrapper {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 10px;
+}
+
+
+
+/* Panel Header with Right-Aligned Controls */
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-right: 10px;
+}
+
+.panel-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+}
+
+/* Minimize/Maximize Button Alignment */
+.toggle-btn {
+    background: var(--bg-medium);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 12px;
+    width: auto;
+    min-width: auto;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.toggle-btn:hover {
+    background: var(--bg-light);
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.toggle-btn.minimized {
+    transform: rotate(180deg);
+}
+
+/* Individual Panel Styling */
+.control-group {
+    margin-bottom: 15px;
+    padding: 12px;
+    background-color: var(--bg-medium);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.control-group.hidden {
+    display: none;
+}
+
+
+/* Layer Panel Specific Styles */
+#layers-panel {
+    margin-top: auto;
+}
+
+/* Responsive Tab System */
+@media (max-width: 768px) {
+    .tab-rail {
+        width: 36px;
+    }
+
+    .tab-button {
+        width: 28px;
+        height: 28px;
+    }
+
+    #sidebar {
+        width: 300px;
+    }
+}
+.layer-item .icon-button:last-child:hover {
+    background-color: var(--accent-secondary);
+    color: var(--bg-darkest);
+}
+
+/* Scrollbar Styling */
+#sidebar::-webkit-scrollbar {
+    width: 8px;
+}
+
+#sidebar::-webkit-scrollbar-track {
+    background: var(--bg-darkest);
+    border-radius: 4px;
+}
+
+#sidebar::-webkit-scrollbar-thumb {
+    background: var(--accent-primary);
+    border-radius: 4px;
+}
+
+#sidebar::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-secondary);
+}
+
+/* Animation for Layer Movement */
+@keyframes layerMove {
+    0% { transform: translateX(0); opacity: 1; }
+    50% { transform: translateX(5px); opacity: 0.8; }
+    100% { transform: translateX(0); opacity: 1; }
+}
+
+.layer-item {
+    animation: layerMove 0.3s ease;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    #sidebar {
+        width: 300px;
+    }
+
+    button {
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+}
+
+/* Font Awesome Integration */
+.fa, .fas {
+    font-size: 14px;
+    color: inherit;
+}
+
+/* Layer Item Specific Icons */
+.layer-item .fa-arrow-up {
+    color: var(--accent-tertiary);
+}
+
+.layer-item .fa-arrow-down {
+    color: var(--accent-tertiary);
+}
+
+.layer-item .fa-trash {
+    color: var(--accent-secondary);
+}
+
+.layer-item .fa-eye, .layer-item .fa-eye-slash {
+    color: var(--accent-primary);
+}
+
+/* Visibility Toggle Customization */
+.layer-item input[type="checkbox"]:checked {
+    accent-color: var(--accent-primary);
+}
+
+/* Professional Layer Header */
+.control-group h2 {
+    color: var(--accent-primary);
+    font-size: 20px;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-glow);
+    font-weight: 700;
+}
+
+/* Add Layer Button Enhancement */
+#add-layer {
+    background-color: var(--accent-primary);
+    color: var(--bg-darkest);
+    font-weight: 600;
+    margin: 10px 0;
+    border: none;
+}
+
+#add-layer:hover {
+    background-color: var(--accent-tertiary);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px var(--border-glow);
+}
+
+/* Current Layer Dropdown */
+#current-layer {
+    background-color: var(--bg-dark);
+    border: 1px solid var(--accent-primary);
+    color: var(--text-primary);
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+/* Layer Name Input Focus */
+.layer-item input[type="text"]:focus {
+    border-color: var(--accent-tertiary);
+    box-shadow: 0 0 5px var(--accent-tertiary);
+}
