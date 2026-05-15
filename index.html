@@ -159,17 +159,30 @@
                             <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button></div>
                         </div>
                         <div class="panel-content button-group">
-                            <button id="add-cube" class="icon-button" title="Add Cube"><svg width="20" height="20"><use href="#svg-cube"/></svg></button>
-                            <button id="add-sphere" class="icon-button" title="Add Sphere"><svg width="20" height="20"><use href="#svg-sphere"/></svg></button>
-                            <button id="add-cylinder" class="icon-button" title="Add Cylinder"><svg width="20" height="20"><use href="#svg-cylinder"/></svg></button>
-                            <button id="add-ramp" class="icon-button" title="Add Ramp"><svg width="20" height="20"><use href="#svg-ramp"/></svg></button>
-                            <hr style="width:100%; margin:10px 0;">
-                            <button id="add-terrain" class="icon-button" title="Add Terrain Tile"><svg width="20" height="20"><use href="#svg-terrain"/></svg></button>
-                            <button id="add-wall" class="icon-button" title="Add Wall"><svg width="20" height="20"><use href="#svg-wall"/></svg></button>
-                            <button id="add-building" class="icon-button" title="Add Building"><svg width="20" height="20"><use href="#svg-building"/></svg></button>
-                            <button id="add-path" class="icon-button" title="Add Path"><svg width="20" height="20"><use href="#svg-path"/></svg></button>
-                            <button id="add-river" class="icon-button" title="Add River"><svg width="20" height="20"><use href="#svg-river"/></svg></button>
-                            <hr style="width:100%; margin:10px 0;">
+                            <div class="object-group">
+                                <div class="group-label">Basic Shapes</div>
+                                <div class="button-row">
+                                    <button id="add-cube" class="icon-button" title="Add Cube"><i class="fas fa-cube"></i></button>
+                                    <button id="add-sphere" class="icon-button" title="Add Sphere"><i class="fas fa-circle"></i></button>
+                                    <button id="add-cylinder" class="icon-button" title="Add Cylinder"><i class="fas fa-database"></i></button>
+                                    <button id="add-ramp" class="icon-button" title="Add Ramp"><i class="fas fa-shapes"></i></button>
+                                </div>
+                            </div>
+                            <div class="object-group">
+                                <div class="group-label">Terrain & Buildings</div>
+                                <div class="button-row">
+                                    <button id="add-terrain" class="icon-button" title="Add Terrain Tile"><i class="fas fa-mountain"></i></button>
+                                    <button id="add-wall" class="icon-button" title="Add Wall"><i class="fas fa-vector-square"></i></button>
+                                    <button id="add-building" class="icon-button" title="Add Building"><i class="fas fa-building"></i></button>
+                                </div>
+                            </div>
+                            <div class="object-group">
+                                <div class="group-label">Ground Cover</div>
+                                <div class="button-row">
+                                    <button id="add-path" class="icon-button" title="Add Path"><i class="fas fa-road"></i></button>
+                                    <button id="add-river" class="icon-button" title="Add River"><i class="fas fa-water"></i></button>
+                                </div>
+                            </div>
                             <button id="clear-scene" class="icon-button" title="Clear Scene"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
