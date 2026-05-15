@@ -15,35 +15,42 @@ class MaterialsManager {
     init() {
         // Create default materials
         this.createDefaultMaterials();
+        
+        // Set up create material button event listener
+        const createBtn = document.getElementById('create-material-btn');
+        if (createBtn) {
+            createBtn.addEventListener('click', () => this.createNewMaterial());
+        }
     }
 
     createDefaultMaterials() {
         // Create some default materials
-        this.createMaterial('Plain Wood', 0x8B4513, 0.0, 0.7, 'wood');
-        this.createMaterial('Smooth Metal', 0xaaaaaa, 0.9, 0.1, 'metal');
-        this.createMaterial('Rough Plastic', 0xff5555, 0.0, 0.8, 'plastic');
-        this.createMaterial('Matte Stone', 0x808080, 0.2, 0.9, 'stone');
-        this.createMaterial('Gold', 0xffd700, 1.0, 0.15, 'metal');
-        this.createMaterial('Rusty Metal', 0x8b4513, 0.7, 0.6, 'rust');
+        this.createMaterial('Plain Wood', 0x8B4513, 0.0, 0.7, 1.0, 'wood');
+        this.createMaterial('Smooth Metal', 0xaaaaaa, 0.9, 0.1, 1.0, 'metal');
+        this.createMaterial('Rough Plastic', 0xff5555, 0.0, 0.8, 1.0, 'plastic');
+        this.createMaterial('Matte Stone', 0x808080, 0.2, 0.9, 1.0, 'stone');
+        this.createMaterial('Gold', 0xffd700, 1.0, 0.15, 1.0, 'metal');
+        this.createMaterial('Rusty Metal', 0x8b4513, 0.7, 0.6, 1.0, 'rust');
 
         // Pixel texture materials (using texture manager)
-        this.createMaterial('Grass Pixel', 0x7CFC00, 0.9, 0.0, 'grass');
-        this.createMaterial('Dirt Pixel', 0x8B4513, 0.95, 0.0, 'dirt');
-        this.createMaterial('Brick Pixel', 0xD32F2F, 0.85, 0.1, 'brick');
-        this.createMaterial('Cobblestone', 0x78909C, 0.9, 0.1, 'cobblestone');
-        this.createMaterial('Sand Pixel', 0xFFD54F, 0.95, 0.0, 'sand');
-        this.createMaterial('Water Pixel', 0x2196F3, 0.1, 0.8, 'water');
+        this.createMaterial('Grass Pixel', 0x7CFC00, 0.9, 0.0, 1.0, 'grass');
+        this.createMaterial('Dirt Pixel', 0x8B4513, 0.95, 0.0, 1.0, 'dirt');
+        this.createMaterial('Brick Pixel', 0xD32F2F, 0.85, 0.1, 1.0, 'brick');
+        this.createMaterial('Cobblestone', 0x78909C, 0.9, 0.1, 1.0, 'cobblestone');
+        this.createMaterial('Sand Pixel', 0xFFD54F, 0.95, 0.0, 1.0, 'sand');
+        this.createMaterial('Water Pixel', 0x2196F3, 0.1, 0.8, 0.7, 'water');
 
         this.render();
     }
 
-    createMaterial(name, color, metalness, roughness, textureType = null) {
+    createMaterial(name, color, metalness, roughness, opacity = 1.0, textureType = null) {
         const material = {
             id: 'mat-' + Date.now() + Math.random(),
             name: name,
             color: color,
             metalness: metalness,
             roughness: roughness,
+            opacity: opacity,
             textureType: textureType,
             objectsUsing: [], // Track which objects use this material
             isPixelTexture: textureType !== null
@@ -56,15 +63,6 @@ class MaterialsManager {
         if (!this.container) return;
 
         this.container.innerHTML = '';
-
-        // Add create material button
-        const createBtn = document.createElement('button');
-        createBtn.className = 'btn primary';
-        createBtn.style.marginBottom = '10px';
-        createBtn.style.width = '100%';
-        createBtn.innerHTML = '<i class="fas fa-plus"></i> Create Material';
-        createBtn.addEventListener('click', () => this.createNewMaterial());
-        this.container.appendChild(createBtn);
 
         // Render each material
         this.materials.forEach(material => {
@@ -82,6 +80,7 @@ class MaterialsManager {
                     <div class="material-properties">
                         <span class="material-prop">M: ${material.metalness.toFixed(1)}</span>
                         <span class="material-prop">R: ${material.roughness.toFixed(1)}</span>
+                        <span class="material-prop">O: ${material.opacity.toFixed(2)}</span>
                         ${material.textureType ? `<span class="material-prop">T: ${material.textureType}</span>` : ''}
                     </div>
                 </div>
@@ -139,6 +138,7 @@ class MaterialsManager {
             color: 0x00ff41,
             metalness: 0.2,
             roughness: 0.3,
+            opacity: 1.0,
             textureType: null
         };
 
@@ -173,6 +173,10 @@ class MaterialsManager {
                     <input type="range" id="new-material-roughness" min="0" max="1" step="0.01" value="${defaults.roughness}">
                 </div>
                 <div class="property-group">
+                    <label>Opacity: <span id="new-opacity-value">${defaults.opacity.toFixed(2)}</span></label>
+                    <input type="range" id="new-material-opacity" min="0" max="1" step="0.01" value="${defaults.opacity}">
+                </div>
+                <div class="property-group">
                     <label>Texture Type:</label>
                     <select id="new-material-texture" class="material-dropdown-wrapper" style="width:100%">
                         <option value="">None (Standard PBR)</option>
@@ -202,6 +206,9 @@ class MaterialsManager {
         dialog.querySelector('#new-material-roughness').addEventListener('input', (e) => {
             dialog.querySelector('#new-roughness-value').textContent = parseFloat(e.target.value).toFixed(2);
         });
+        dialog.querySelector('#new-material-opacity').addEventListener('input', (e) => {
+            dialog.querySelector('#new-opacity-value').textContent = parseFloat(e.target.value).toFixed(2);
+        });
 
         document.body.appendChild(dialog);
 
@@ -214,6 +221,7 @@ class MaterialsManager {
             const colorInput = dialog.querySelector('#new-material-color');
             const metalnessInput = dialog.querySelector('#new-material-metalness');
             const roughnessInput = dialog.querySelector('#new-material-roughness');
+            const opacityInput = dialog.querySelector('#new-material-opacity');
             const textureInput = dialog.querySelector('#new-material-texture');
 
             // Parse color
@@ -229,6 +237,7 @@ class MaterialsManager {
                 colorValue,
                 parseFloat(metalnessInput.value),
                 parseFloat(roughnessInput.value),
+                parseFloat(opacityInput.value),
                 textureType
             );
 
@@ -267,7 +276,7 @@ class MaterialsManager {
         const obj = selectedObj;
         let targetMesh = null;
 
-        if (obj.userData.type === 'shape' || obj.userData.type === 'terrain') {
+        if (obj.isMesh) {
             targetMesh = obj;
         } else if (obj.isGroup) {
             // Apply to all meshes in group
@@ -276,6 +285,15 @@ class MaterialsManager {
                     this._applyMaterialToMesh(c, material);
                 }
             });
+            // Add to objects using this material
+            if (!material.objectsUsing.includes(obj)) {
+                material.objectsUsing.push(obj);
+            }
+            if (this.app.notifications) {
+                this.app.notifications.show(`Applied material to ${obj.userData.name || obj.userData.type}`, 'success');
+            } else if (window.notifications) {
+                window.notifications.show(`Applied material to ${obj.userData.name || obj.userData.type}`, 'success');
+            }
             return;
         }
 
@@ -309,7 +327,9 @@ class MaterialsManager {
             const newMaterial = new THREE.MeshStandardMaterial({
                 color: material.color,
                 metalness: material.metalness,
-                roughness: material.roughness
+                roughness: material.roughness,
+                transparent: material.opacity < 1.0,
+                opacity: material.opacity
             });
             mesh.material = newMaterial;
             mesh.userData.isPixelTexture = false;
@@ -337,6 +357,10 @@ class MaterialsManager {
                 <div class="property-group">
                     <label>Roughness: <span id="edit-roughness-value">${material.roughness.toFixed(2)}</span></label>
                     <input type="range" id="edit-material-roughness" min="0" max="1" step="0.01" value="${material.roughness}">
+                </div>
+                <div class="property-group">
+                    <label>Opacity: <span id="edit-opacity-value">${material.opacity.toFixed(2)}</span></label>
+                    <input type="range" id="edit-material-opacity" min="0" max="1" step="0.01" value="${material.opacity}">
                 </div>
                 <div class="property-group">
                     <label>Texture Type:</label>
@@ -368,6 +392,9 @@ class MaterialsManager {
         dialog.querySelector('#edit-material-roughness').addEventListener('input', (e) => {
             dialog.querySelector('#edit-roughness-value').textContent = parseFloat(e.target.value).toFixed(2);
         });
+        dialog.querySelector('#edit-material-opacity').addEventListener('input', (e) => {
+            dialog.querySelector('#edit-opacity-value').textContent = parseFloat(e.target.value).toFixed(2);
+        });
 
         document.body.appendChild(dialog);
 
@@ -379,6 +406,7 @@ class MaterialsManager {
             const colorInput = dialog.querySelector('#edit-material-color');
             const metalnessInput = dialog.querySelector('#edit-material-metalness');
             const roughnessInput = dialog.querySelector('#edit-material-roughness');
+            const opacityInput = dialog.querySelector('#edit-material-opacity');
             const textureInput = dialog.querySelector('#edit-material-texture');
 
             // Parse color
@@ -390,6 +418,7 @@ class MaterialsManager {
             material.color = colorValue;
             material.metalness = parseFloat(metalnessInput.value);
             material.roughness = parseFloat(roughnessInput.value);
+            material.opacity = parseFloat(opacityInput.value);
             material.textureType = textureInput.value || null;
             material.isPixelTexture = material.textureType !== null;
 
@@ -417,13 +446,25 @@ class MaterialsManager {
     }
 
     deleteMaterial(material) {
-        if (material.objectsUsing.length > 0) {
-            const confirmDelete = confirm(`This material is used by ${material.objectsUsing.length} objects. Delete anyway?`);
+        // Check if material is used by objects
+        if (material.objectsUsing && material.objectsUsing.length > 0) {
+            // Get object names for the warning
+            const objectNames = material.objectsUsing.map(obj => obj.userData.name || obj.userData.type || 'unnamed').join(', ');
+            const confirmDelete = confirm(`Warning: This material is currently used by ${material.objectsUsing.length} object(s):\n${objectNames}\n\nDeleting will remove the material from these objects. Continue?`);
             if (!confirmDelete) return;
         }
 
         const index = this.materials.indexOf(material);
         if (index > -1) {
+            // Remove this material from all objects using it
+            if (material.objectsUsing) {
+                material.objectsUsing.forEach(obj => {
+                    if (obj.userData.currentMaterialId === material.id) {
+                        delete obj.userData.currentMaterialId;
+                    }
+                });
+            }
+            
             this.materials.splice(index, 1);
             if (this.selectedMaterial === material) {
                 this.selectedMaterial = null;
@@ -472,15 +513,6 @@ class MaterialsManager {
 
         materialsContent.innerHTML = '';
 
-        // Add create material button
-        const createBtn = document.createElement('button');
-        createBtn.className = 'btn primary';
-        createBtn.style.marginBottom = '12px';
-        createBtn.style.width = '100%';
-        createBtn.innerHTML = '<i class="fas fa-plus"></i> Create Material';
-        createBtn.addEventListener('click', () => this.createNewMaterial());
-        materialsContent.appendChild(createBtn);
-
         // Render each material with more details
         this.materials.forEach(material => {
             const materialEl = document.createElement('div');
@@ -497,6 +529,7 @@ class MaterialsManager {
                     <div class="material-properties-full">
                         <span>M: ${material.metalness.toFixed(2)}</span>
                         <span>R: ${material.roughness.toFixed(2)}</span>
+                        <span>O: ${material.opacity.toFixed(2)}</span>
                         ${material.textureType ? `<span>T: ${material.textureType}</span>` : ''}
                     </div>
                 </div>

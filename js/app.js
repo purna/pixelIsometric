@@ -346,23 +346,60 @@ function setupUI() {
 // Initialize materials UI
 function initMaterialsUI() {
     // Initialize material selector dropdown
-    const materialSelectorBtn = document.getElementById('material-selector-btn');
-    const materialDropdownList = document.getElementById('material-dropdown-list');
-    const selectedMaterialText = document.querySelector('#material-selector-btn .selected-material-text');
-
-    if (!materialSelectorBtn || !materialDropdownList) return;
+    if (!UI.materialSelectorBtn || !UI.materialDropdownList) return;
 
     // Toggle dropdown
-    materialSelectorBtn.addEventListener('click', (e) => {
+    UI.materialSelectorBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        materialDropdownList.classList.toggle('show');
+        UI.materialDropdownList.classList.toggle('show');
     });
 
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
-        if (!materialSelectorBtn.contains(e.target) && !materialDropdownList.contains(e.target)) {
-            materialDropdownList.classList.remove('show');
+        if (!UI.materialSelectorBtn.contains(e.target) && !UI.materialDropdownList.contains(e.target)) {
+            UI.materialDropdownList.classList.remove('show');
         }
+    });
+
+    // Populate material list
+    function populateMaterialsList() {
+        UI.materialDropdownList.innerHTML = '';
+        if (!materialsManager) return;
+
+        materialsManager.materials.forEach(material => {
+            const item = document.createElement('div');
+            item.className = 'material-dropdown-item' + (material === materialsManager.selectedMaterial ? ' selected' : '');
+            item.innerHTML = `
+                <span class="material-color-swatch" style="background-color: #${material.color.toString(16).padStart(6, '0')}"></span>
+                <span class="material-option-text">${material.name}</span>
+            `;
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // Apply material to selected object
+                if (selectedObject) {
+                    materialsManager.applyMaterialToSelected(material);
+                } else {
+                    materialsManager.applyMaterialToObject(objects[0], material);
+                }
+                UI.selectedMaterialText.textContent = material.name;
+                UI.materialDropdownList.classList.remove('show');
+                materialsManager.selectedMaterial = material;
+                populateMaterialsList();
+            });
+            UI.materialDropdownList.appendChild(item);
+        });
+    }
+
+    // Initial population
+    populateMaterialsList();
+
+    // Re-populate when materials change
+    const originalRender = materialsManager.render.bind(materialsManager);
+    materialsManager.render = function() {
+        originalRender();
+        populateMaterialsList();
+    };
+}
     });
 
     // Populate material list
@@ -579,6 +616,7 @@ function addCube() {
     selectedObject = cube;
     updateObjectDropdown();
     updatePropertiesPanel();
+    updateSceneObjectsList();
 }
 
 // Add a sphere to the scene
@@ -620,6 +658,7 @@ function addSphere() {
     selectedObject = sphere;
     updateObjectDropdown();
     updatePropertiesPanel();
+    updateSceneObjectsList();
 }
 
 // Add a cylinder to the scene
@@ -662,6 +701,7 @@ function addCylinder() {
     selectedObject = cylinder;
     updateObjectDropdown();
     updatePropertiesPanel();
+    updateSceneObjectsList();
 }
 
 // Add a ramp to the scene
@@ -694,6 +734,7 @@ function addRamp() {
     selectedObject = ramp;
     updateObjectDropdown();
     updatePropertiesPanel();
+    updateSceneObjectsList();
 }
 
 // Create custom ramp geometry using Three.js Shape
@@ -729,8 +770,23 @@ function createCustomRampGeometry() {
 }
 
 // Clear the scene
-function clearScene() {
-    clearLayerScene();
+function clearLayerScene() {
+    // Remove all objects from all layers
+    const allObjects = layerManager.getAllObjects();
+    for (let i = allObjects.length - 1; i >= 0; i--) {
+        scene.remove(allObjects[i]);
+    }
+    
+    // Clear layer manager
+    layerManager.getAllLayers().forEach(layer => {
+        layer.objects = [];
+    });
+    
+    objects = [];
+    selectedObject = null;
+    updateObjectDropdown();
+    updatePropertiesPanel();
+    updateSceneObjectsList();
 }
 
 // Update object selection dropdown
@@ -1242,23 +1298,56 @@ function updateLayersList() {
     layerManager.updateLayersList(UI, updateLayerDropdown);
 }
 
-// Clear the scene
-function clearLayerScene() {
-    // Remove all objects from all layers
-    const allObjects = layerManager.getAllObjects();
-    for (let i = allObjects.length - 1; i >= 0; i--) {
-        scene.remove(allObjects[i]);
-    }
-
-    // Clear layer manager
-    layerManager.getAllLayers().forEach(layer => {
-        layer.objects = [];
+// Update scene objects list grouped by type
+function updateSceneObjectsList() {
+    if (!UI.sceneObjectsList) return;
+    
+    // Group objects by type
+    const objectsByType = {};
+    objects.forEach(obj => {
+        const type = obj.userData.type || 'unknown';
+        if (!objectsByType[type]) {
+            objectsByType[type] = [];
+        }
+        objectsByType[type].push(obj);
     });
-
-    objects = [];
-    selectedObject = null;
-    updateObjectDropdown();
-    updatePropertiesPanel();
+    
+    // Build HTML
+    let html = '';
+    const typeNames = Object.keys(objectsByType).sort();
+    
+    typeNames.forEach(type => {
+        const objects = objectsByType[type];
+        html += `<div class="object-type-group">`;
+        html += `<div class="object-type-header">${type.toUpperCase()} (${objects.length})</div>`;
+        html += `<div class="object-type-items">`;
+        
+        objects.forEach(obj => {
+            const isSelected = obj === selectedObject;
+            html += `<div class="object-list-item ${isSelected ? 'selected' : ''}" data-object-id="${obj.userData.id}">`;
+            html += `<span class="object-name">${obj.userData.name || 'Unnamed'}</span>`;
+            html += `<span class="object-position">(${obj.position.x.toFixed(0)}, ${obj.position.y.toFixed(0)}, ${obj.position.z.toFixed(0)})</span>`;
+            html += `</div>`;
+        });
+        
+        html += `</div></div>`;
+    });
+    
+    UI.sceneObjectsList.innerHTML = html || '<div class="empty-state">No objects in scene</div>';
+    
+    // Add click handlers to object list items
+    document.querySelectorAll('.object-list-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            const objectId = parseInt(item.dataset.objectId);
+            const obj = objects.find(o => o.userData.id === objectId);
+            if (obj) {
+                selectedObject = obj;
+                updateObjectDropdown();
+                updatePropertiesPanel();
+                updateSceneObjectsList(); // Refresh to show selection
+            }
+        });
+    });
 }
 
 // Set up header action buttons (settings, save, load)

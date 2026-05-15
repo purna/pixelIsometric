@@ -230,22 +230,55 @@ button:active {
 
 .panel-content {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 4px;
     padding: 6px 10px 10px 14px;
 }
 
-/* Button Group Styles */
+/* Object Panel Group Styling */
+.object-group {
+    width: 100%;
+    margin-bottom: 8px;
+}
+
+.group-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    padding-left: 4px;
+}
+
+.button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.button-row .icon-button {
+    flex: 1;
+    min-width: 40px;
+    aspect-ratio: 1;
+}
+
+.property-group {
+    margin-bottom: 12px;
+}
+
+.property-group label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
 .button-group {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
     width: 100%;
-}
-
-.button-group button {
-    flex: 1;
-    min-width: 40px;
 }
 
 /* Toggle Button Styles */
@@ -530,7 +563,23 @@ label {
 
 /* Layer Panel Specific Styles */
 #layers-panel {
-    margin-top: auto;
+    margin-top: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+#layers-panel .panel-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+#layers-panel #layers-list {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 300px;
+    margin: 10px 0;
 }
 
 /* Responsive Tab System */
@@ -832,7 +881,7 @@ label {
     font-size: 0.7rem;
     padding: 2px 4px;
     border-radius: 2px;
-    width: 120px;
+    width: 60px;
 }
 
 .material-name:focus {
@@ -842,7 +891,7 @@ label {
 }
 
 .material-properties {
-    display: flex;
+    display: none;
     gap: 8px;
     font-size: 0.6rem;
     color: var(--text-secondary);
@@ -1079,6 +1128,15 @@ label {
     border-left: 3px solid transparent;
 }
 
+.material-dropdown-item.selected {
+    background: rgba(0, 217, 255, 0.15);
+    border-left-color: var(--accent-primary);
+}
+
+.material-dropdown-item.selected .material-color-swatch {
+    box-shadow: 0 0 6px var(--accent-primary);
+}
+
 .material-dropdown-item:hover {
     background: var(--bg-medium);
     border-left-color: var(--accent-primary);
@@ -1161,4 +1219,69 @@ label {
     font-size: 0.8rem;
     color: var(--text-primary);
     margin-bottom: 10px;
+}
+
+/* Scene Objects List Styles */
+.object-type-group {
+    margin-bottom: 12px;
+}
+
+.object-type-header {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    padding-left: 4px;
+}
+
+.object-type-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.object-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.7rem;
+}
+
+.object-list-item:hover {
+    background: var(--bg-medium);
+    border-color: var(--accent-primary);
+}
+
+.object-list-item.selected {
+    border-color: var(--accent-primary);
+    background: rgba(0, 217, 255, 0.05);
+}
+
+.object-name {
+    flex-grow: 1;
+    margin-right: 8px;
+}
+
+.object-position {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    font-family: 'Courier New', monospace;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 12px;
+    color: var(--text-secondary);
+    font-style: italic;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
 }

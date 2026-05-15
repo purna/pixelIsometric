@@ -232,7 +232,6 @@ class LayerManager {
             const layerItem = document.createElement('div');
             layerItem.className = 'layer-item';
             layerItem.dataset.layerId = layer.id;
-            // Removed draggable = true - now using up/down buttons
 
             const visibilityToggle = document.createElement('input');
             visibilityToggle.type = 'checkbox';

@@ -103,6 +103,14 @@ function initDOM() {
     // Object selection
     UI.objectSelectDropdown = document.getElementById('object-select');
 
+    // Material selector (moved to properties panel)
+    UI.materialSelectorBtn = document.getElementById('material-selector-btn');
+    UI.materialDropdownList = document.getElementById('material-dropdown-list');
+    UI.selectedMaterialText = document.querySelector('#material-selector-btn .selected-material-text');
+
+    // Scene objects list
+    UI.sceneObjectsList = document.getElementById('scene-objects-list');
+
     // Properties
     UI.propertiesPanel = document.getElementById('properties-panel');
     UI.objectColorPicker = document.getElementById('object-color');
