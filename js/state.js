@@ -3,21 +3,14 @@
  * Handles application state, user preferences, and session data
  */
 
-// Application State Manager
 class StateManager {
     constructor() {
-        // Initialize state from localStorage if available
         this.state = this.loadState() || this.getDefaultState();
         this.listeners = [];
     }
 
-    /**
-     * Get default application state
-     * @returns {Object} Default state object
-     */
     getDefaultState() {
         return {
-            // Scene state
             scene: {
                 backgroundColor: '#808080',
                 currentCameraAngle: 0,
@@ -25,23 +18,17 @@ class StateManager {
                 gridVisible: true,
                 axesVisible: true
             },
-
-            // Object state
             objects: {
                 selectedObjectId: null,
                 lastCreatedObjectType: null,
                 objectCount: 0,
                 totalObjectsCreated: 0
             },
-
-            // Layer state
             layers: {
                 currentLayerId: 1,
                 layerCount: 1,
                 lastActiveLayer: 1
             },
-
-            // UI state
             ui: {
                 sidebarVisible: true,
                 propertiesPanelVisible: false,
@@ -51,29 +38,25 @@ class StateManager {
                 scenePanelExpanded: true,
                 activeTab: 'objects'
             },
-
-            // Tool state
             tools: {
                 currentTool: 'select',
                 lastUsedTool: 'select',
                 dragModeActive: false,
                 snapToGrid: true,
-                gridSize: 1
+                gridSize: 1,
+                currentPaintMaterial: 'grass',
+                terrainHeight: 0.25
             },
-
-            // User preferences
             preferences: {
                 theme: 'dark',
                 language: 'en',
                 showTutorial: true,
                 autoSave: false,
-                saveInterval: 300, // 5 minutes in seconds
+                saveInterval: 300,
                 showGrid: true,
                 showAxes: true,
                 defaultObjectColor: '#ffffff'
             },
-
-            // Session data
             session: {
                 lastSaveTime: null,
                 sessionStartTime: new Date().toISOString(),
@@ -81,21 +64,15 @@ class StateManager {
                 projectName: 'Untitled Project',
                 projectDescription: ''
             },
-
-            // Recent files
             recentFiles: {
                 files: [],
                 maxRecentFiles: 5
             },
-
-            // Undo/Redo stack
             history: {
                 undoStack: [],
                 redoStack: [],
                 maxHistorySize: 50
             },
-
-            // Performance metrics
             performance: {
                 lastFrameTime: 0,
                 averageFPS: 60,
@@ -106,81 +83,50 @@ class StateManager {
         };
     }
 
-    /**
-     * Get current state
-     * @returns {Object} Current state
-     */
     getState() {
         return this.state;
     }
 
-    /**
-     * Get specific state property
-     * @param {string} path - Dot notation path to property
-     * @returns {*} State property value
-     */
     getStateProperty(path) {
         return path.split('.').reduce((obj, key) => obj?.[key], this.state);
     }
 
-    /**
-     * Set state property
-     * @param {string} path - Dot notation path to property
-     * @param {*} value - Value to set
-     */
     setStateProperty(path, value) {
         const keys = path.split('.');
         let current = this.state;
 
-        // Navigate to the parent object
         for (let i = 0; i < keys.length - 1; i++) {
             current = current[keys[i]];
         }
 
-        // Set the final property
         current[keys[keys.length - 1]] = value;
-
         this.saveState();
         this.notifyListeners();
     }
 
-    /**
-     * Update state with new values
-     * @param {Object} newState - Partial state to merge
-     */
     updateState(newState) {
         this.state = { ...this.state, ...newState };
         this.saveState();
         this.notifyListeners();
     }
 
-    /**
-     * Reset state to defaults
-     */
     resetState() {
         this.state = this.getDefaultState();
         this.saveState();
         this.notifyListeners();
     }
 
-    /**
-     * Save state to localStorage
-     */
     saveState() {
         try {
-            localStorage.setItem('3dEditorState', JSON.stringify(this.state));
+            localStorage.setItem('isometricEditorState', JSON.stringify(this.state));
         } catch (error) {
             console.error('Failed to save state:', error);
         }
     }
 
-    /**
-     * Load state from localStorage
-     * @returns {Object|null} Loaded state or null if not found
-     */
     loadState() {
         try {
-            const savedState = localStorage.getItem('3dEditorState');
+            const savedState = localStorage.getItem('isometricEditorState');
             return savedState ? JSON.parse(savedState) : null;
         } catch (error) {
             console.error('Failed to load state:', error);
@@ -188,12 +134,9 @@ class StateManager {
         }
     }
 
-    /**
-     * Clear saved state
-     */
     clearState() {
         try {
-            localStorage.removeItem('3dEditorState');
+            localStorage.removeItem('isometricEditorState');
             this.state = this.getDefaultState();
             this.notifyListeners();
         } catch (error) {
@@ -201,27 +144,18 @@ class StateManager {
         }
     }
 
-    /**
-     * Add state change listener
-     * @param {Function} callback - Callback function
-     * @returns {Function} Unsubscribe function
-     */
     subscribe(callback) {
         this.listeners.push(callback);
-
         return () => {
             this.listeners = this.listeners.filter(listener => listener !== callback);
         };
     }
 
-    /**
-     * Notify all listeners of state change
-     */
     notifyListeners() {
         this.listeners.forEach(listener => listener(this.state));
     }
 
-    // Scene-specific state methods
+    // State helper methods
     setCameraAngle(angle) {
         this.setStateProperty('scene.currentCameraAngle', angle);
     }
@@ -234,7 +168,6 @@ class StateManager {
         this.setStateProperty('scene.backgroundColor', color);
     }
 
-    // Object-specific state methods
     setSelectedObjectId(id) {
         this.setStateProperty('objects.selectedObjectId', id);
     }
@@ -245,7 +178,6 @@ class StateManager {
         this.setStateProperty('objects.totalObjectsCreated', this.getStateProperty('objects.totalObjectsCreated') + 1);
     }
 
-    // Layer-specific state methods
     setCurrentLayerId(id) {
         this.setStateProperty('layers.currentLayerId', id);
         this.setStateProperty('layers.lastActiveLayer', id);
@@ -256,7 +188,22 @@ class StateManager {
         this.setStateProperty('layers.layerCount', currentCount + 1);
     }
 
-    // UI-specific state methods
+    setCurrentPaintMaterial(type) {
+        this.setStateProperty('tools.currentPaintMaterial', type);
+    }
+
+    getCurrentPaintMaterial() {
+        return this.getStateProperty('tools.currentPaintMaterial') || 'grass';
+    }
+
+    setTerrainHeight(height) {
+        this.setStateProperty('tools.terrainHeight', height);
+    }
+
+    getTerrainHeight() {
+        return this.getStateProperty('tools.terrainHeight') || 0.25;
+    }
+
     togglePanelVisibility(panelName) {
         const currentVisibility = this.getStateProperty(`ui.${panelName}Visible`);
         this.setStateProperty(`ui.${panelName}Visible`, !currentVisibility);
@@ -266,7 +213,6 @@ class StateManager {
         this.setStateProperty('ui.activeTab', tabName);
     }
 
-    // Tool-specific state methods
     setCurrentTool(toolName) {
         this.setStateProperty('tools.currentTool', toolName);
         this.setStateProperty('tools.lastUsedTool', toolName);
@@ -277,19 +223,15 @@ class StateManager {
         this.setStateProperty('tools.snapToGrid', !currentSnap);
     }
 
-    // History management methods
     addToHistory(action) {
         const history = this.getStateProperty('history');
         history.undoStack.push(action);
 
-        // Limit history size
         if (history.undoStack.length > history.maxHistorySize) {
             history.undoStack.shift();
         }
 
-        // Clear redo stack when new action is added
         history.redoStack = [];
-
         this.updateState({ history });
     }
 
@@ -315,7 +257,6 @@ class StateManager {
         return null;
     }
 
-    // Performance tracking methods
     updatePerformanceMetrics(metrics) {
         this.updateState({
             performance: {
@@ -326,6 +267,5 @@ class StateManager {
     }
 }
 
-// Create and export state manager instance
 const stateManager = new StateManager();
 export { stateManager };

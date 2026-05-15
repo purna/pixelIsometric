@@ -1,140 +1,200 @@
 /**
  * Configuration file for Isometric 3D Editor
- * Contains default settings for the application
+ * Stage 1: added objectCreation defaults for stairs, roof, pyramid, bridge
  */
 
-// Default configuration object
 const config = {
-    // Camera settings
     camera: {
-        initialAngle: 0,                // Initial camera angle (0, 90, 180, 270)
-        distance: 20,                   // Distance from origin
-        fov: 75,                        // Field of view for perspective camera (not used in orthographic)
-        near: 0.1,                     // Near clipping plane
-        far: 1000,                     // Far clipping plane
-        orthographicSize: 20,          // Size for orthographic camera
-        enableDamping: true,           // Enable damping for smooth camera movement
-        dampingFactor: 0.05,           // Damping factor
-        minDistance: 5,                // Minimum zoom distance
-        maxDistance: 50                // Maximum zoom distance
+        initialAngle:       0,
+        distance:           20,
+        fov:                75,
+        near:               0.1,
+        far:                1000,
+        orthographicSize:   20,
+        enableDamping:      true,
+        dampingFactor:      0.05,
+        minDistance:        5,
+        maxDistance:        50
     },
 
-    // Scene settings
     scene: {
-        backgroundColor: 0x808080,      // Default background color (50% grey)
-        gridSize: 20,                  // Grid size
-        gridDivisions: 20,             // Number of grid divisions
-        gridColor1: 0x333333,          // Primary grid color
-        gridColor2: 0x333333,          // Secondary grid color
-        axesHelperSize: 5,             // Size of axes helper
-        ambientLightColor: 0x404040,   // Ambient light color
-        ambientLightIntensity: 0.5,    // Ambient light intensity
-        directionalLightColor: 0xffffff, // Directional light color
-        directionalLightIntensity: 0.8, // Directional light intensity
-        directionalLightPosition: {    // Directional light position
-            x: 10,
-            y: 20,
-            z: 10
-        }
+        backgroundColor:            0x808080,
+        gridSize:                   100,
+        gridDivisions:              20,
+        gridColor1:                 0x333333,
+        gridColor2:                 0x333333,
+        axesHelperSize:             5,
+        ambientLightColor:          0x404040,
+        ambientLightIntensity:      0.5,
+        directionalLightColor:      0xffffff,
+        directionalLightIntensity:  0.8,
+        directionalLightPosition:   { x: 10, y: 20, z: 10 }
     },
 
-    // Object settings
     objects: {
-        defaultColor: 0xffffff,        // Default object color (white)
-        defaultScale: 1,              // Default object scale
-        defaultPositionRange: 5,      // Range for random positioning (-5 to 5)
-        gridSnapSize: 1,              // Grid snapping size
-        maxZIndex: 100,               // Maximum z-index value
+        defaultColor:         0xffffff,
+        defaultScale:         1,
+        defaultPositionRange: 5,
+        gridSnapSize:         1,
+        maxZIndex:            100,
         materialProperties: {
-            roughness: 0.7,           // Default material roughness
-            metalness: 0.2            // Default material metalness
+            roughness: 0.7,
+            metalness: 0.2
         }
     },
 
-    // Object creation settings
     objectCreation: {
         cube: {
-            width: 1,
-            height: 1,
-            depth: 1
+            width: 1, height: 1, depth: 1
         },
         sphere: {
-            radius: 0.5,
-            widthSegments: 16,
-            heightSegments: 16
+            radius: 0.5, widthSegments: 16, heightSegments: 16
         },
         cylinder: {
-            radiusTop: 0.5,
-            radiusBottom: 0.5,
-            height: 1,
-            radialSegments: 16
+            radiusTop: 0.5, radiusBottom: 0.5, height: 1, radialSegments: 16
         },
         ramp: {
-            width: 2,
-            height: 0.5,
-            depth: 1
+            width: 1, height: 0.5, depth: 1
+        },
+        terrain: {
+            width: 1, length: 1, height: 0.25, segments: 1
+        },
+        wall: {
+            width: 1, height: 2, depth: 0.2
+        },
+        building: {
+            width: 2, height: 3, depth: 2
+        },
+        path: {
+            width: 1, length: 1, thickness: 0.05
+        },
+        river: {
+            width: 1, length: 1, thickness: 0.05, curveIntensity: 0.3
+        },
+        window: {
+            width: 0.3, height: 0.5, frameWidth: 0.05
+        },
+        door: {
+            width: 0.8, height: 1.8, frameWidth: 0.1
+        },
+
+        // ── Stage 1 additions ─────────────────────────────────────────
+        stairs: {
+            steps:      4,
+            width:      1,
+            stepHeight: 0.25,
+            stepDepth:  0.5
+        },
+        roof: {
+            width:    2,
+            depth:    2,
+            height:   0.8,
+            overhang: 0.1
+        },
+        pyramid: {
+            base:   1,
+            height: 1.5
+        },
+        bridge: {
+            width:      1,
+            span:       3,
+            deckHeight: 0.15,
+            pierHeight: 1,
+            pierWidth:  0.2,
+            clearance:  0.5
         }
     },
 
-    // Layer settings
+    textures: {
+        basePath:    'gfx/textures/',
+        defaultTile: 'grass.png',
+        tileSize:    64,
+        spriteSheet: 'tileset.png',
+        materials: {
+            grass:       { color: 0x7CFC00, roughness: 0.9,  metalness: 0.0 },
+            dirt:        { color: 0x8B4513, roughness: 0.95, metalness: 0.0 },
+            stone:       { color: 0x808080, roughness: 0.8,  metalness: 0.2 },
+            wood:        { color: 0x8B4513, roughness: 0.7,  metalness: 0.1 },
+            brick:       { color: 0xB22222, roughness: 0.85, metalness: 0.1 },
+            sand:        { color: 0xF4A460, roughness: 0.95, metalness: 0.0 },
+            water:       { color: 0x1E90FF, roughness: 0.1,  metalness: 0.8, transparent: true, opacity: 0.7 },
+            cobblestone: { color: 0x696969, roughness: 0.9,  metalness: 0.1 },
+            roof:        { color: 0x8B0000, roughness: 0.8,  metalness: 0.2 },
+            snow:        { color: 0xEEEEFF, roughness: 0.9,  metalness: 0.0 },
+            lava:        { color: 0xFF4500, roughness: 0.6,  metalness: 0.1, emissive: 0xFF2000, emissiveIntensity: 0.3 }
+        }
+    },
+
+    export: {
+        unity: {
+            defaultCellSize:          1,
+            defaultColliderType:      'box',
+            includeCollidersByDefault: true,
+            generatePrefab:           true,
+            tilemapLayerName:         'IsometricTiles',
+            gridOrientation:          'isometric',
+            shadowsEnabled:           true
+        },
+        obj: {
+            includeNormals: true,
+            includeUVs:     true,
+            scale:          1.0
+        },
+        stl: {
+            binary: true,
+            scale:  1.0
+        }
+    },
+
     layers: {
-        defaultLayerName: "Layer",     // Default layer name prefix
-        defaultLayerVisible: true,     // Default layer visibility
-        maxLayers: 50                 // Maximum number of layers
+        defaultLayerName:    'Layer',
+        defaultLayerVisible: true,
+        maxLayers:           50
     },
 
-    // UI settings
     ui: {
-        sidebarWidth: 350,            // Sidebar width in pixels
-        panelSpacing: 15,             // Spacing between panels
-        buttonSize: "40px",           // Button size
-        colorPickerWidth: "100%",     // Color picker width
-        sliderMin: 1,                 // Minimum slider value
-        sliderMax: 5,                 // Maximum slider value
-        sliderStep: 1                 // Slider step value
+        sidebarWidth:     350,
+        panelSpacing:     15,
+        buttonSize:       '40px',
+        colorPickerWidth: '100%',
+        sliderMin:        1,
+        sliderMax:        5,
+        sliderStep:       1
     },
 
-    // Rendering settings
     rendering: {
-        antialias: true,              // Enable antialiasing
-        pixelRatio: window.devicePixelRatio || 1, // Device pixel ratio
-        shadowMapEnabled: false,      // Enable shadow mapping
-        toneMapping: "Linear",        // Tone mapping type
-        toneMappingExposure: 1        // Tone mapping exposure
+        antialias:              true,
+        pixelRatio:             window.devicePixelRatio || 1,
+        shadowMapEnabled:       true,     // Stage 1: enable shadow map
+        shadowMapType:          'PCFSoft', // prettier soft shadows
+        toneMapping:            'Linear',
+        toneMappingExposure:    1
     },
 
-    // Performance settings
     performance: {
-        maxObjects: 1000,             // Maximum number of objects
-        animationFrameRate: 60,       // Target animation frame rate
-        renderQuality: "high"         // Render quality (low, medium, high)
+        maxObjects:         1000,
+        animationFrameRate: 60,
+        renderQuality:      'high'
     },
 
-    // Keyboard shortcuts
     shortcuts: {
-        addCube: "Ctrl+1",
-        addSphere: "Ctrl+2",
-        addCylinder: "Ctrl+3",
-        addRamp: "Ctrl+4",
-        clearScene: "Ctrl+Delete",
-        resetCamera: "Ctrl+R",
-        rotateClockwise: "Ctrl+Right",
-        rotateCounterClockwise: "Ctrl+Left",
-        moveUp: "ArrowUp",
-        moveDown: "ArrowDown",
-        moveLeft: "ArrowLeft",
-        moveRight: "ArrowRight"
+        addCube:                  'Ctrl+1',
+        addSphere:                'Ctrl+2',
+        addCylinder:              'Ctrl+3',
+        addRamp:                  'Ctrl+4',
+        clearScene:               'Ctrl+Delete',
+        resetCamera:              'Ctrl+R',
+        rotateClockwise:          'Ctrl+Right',
+        rotateCounterClockwise:   'Ctrl+Left'
     },
 
-    // Debug settings
     debug: {
-        showStats: false,             // Show performance stats
-        showBoundingBoxes: false,     // Show object bounding boxes
-        showWireframes: false,        // Show wireframe mode
-        logCameraChanges: false,      // Log camera position changes
-        logObjectChanges: false       // Log object creation/modification
+        showStats:         false,
+        showBoundingBoxes: false,
+        showWireframes:    false,
+        logCameraChanges:  false,
+        logObjectChanges:  false
     }
 };
 
-// Export the configuration
 export default config;

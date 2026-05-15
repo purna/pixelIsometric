@@ -7,10 +7,6 @@ import { ViewportManager } from './viewportManager.js';
 import { FloatingMenu } from './floatingMenu.js';
 import config from './config.js';
 import { initDOM } from './dom.js';
-import { objectManager } from './objectManager.js';
-import { MaterialsManager } from './materialsManager.js';
-import { textureManager } from './textureManager.js';
-import { PixelPostProcessor } from './pixelPostProcessor.js';
 
 // Global variables
 let scene, camera, renderer, controls;
@@ -21,9 +17,6 @@ let sceneManager;
 let stateManager, UI;
 let gridHelper, axesHelper;
 let viewportManager, floatingMenu;
-let materialsManager;
-let textureManagerInstance;
-let pixelPostProcessor;
 
 // Variables for drag-and-drop
 let isDragging = false;
@@ -129,15 +122,6 @@ function init() {
     );
     scene.add(directionalLight);
 
-    // Initialize texture manager
-    textureManagerInstance = textureManager;
-    textureManager.init(config);
-
-    // Initialize materials manager
-    materialsManager = new MaterialsManager(this);
-
-    // Initialize pixel post-processor
-    pixelPostProcessor = new PixelPostProcessor(renderer, scene, camera);
     // Handle window resize via viewportManager
     window.addEventListener('resize', onWindowResize);
 
@@ -156,9 +140,6 @@ function onWindowResize() {
     const width = UI.sceneContainer.clientWidth;
     const height = UI.sceneContainer.clientHeight;
     viewportManager.resize(width, height);
-    if (pixelPostProcessor) {
-        pixelPostProcessor.resize(width, height);
-    }
 }
 
 // Animation loop
@@ -179,21 +160,7 @@ function animate() {
         obj.visible = true;
     });
 
-    // Update pixel post-processor time uniform and render
-    if (pixelPostProcessor) {
-        if (pixelPostProcessor.crtPass) {
-            pixelPostProcessor.crtPass.uniforms.time.value += 0.016;
-        }
-        if (pixelPostProcessor.scanlinePass) {
-            pixelPostProcessor.scanlinePass.uniforms.time.value += 0.016;
-        }
-        if (pixelPostProcessor.noisePass) {
-            pixelPostProcessor.noisePass.uniforms.time.value += 0.016;
-        }
-        pixelPostProcessor.render();
-    } else {
-        renderer.render(scene, camera);
-    }
+    renderer.render(scene, camera);
 }
 
 // Raycaster for object picking
@@ -338,115 +305,6 @@ function setupUI() {
 
     // Set up viewport interaction listeners
     setupViewportInteraction();
-
-    // Initialize materials UI
-    initMaterialsUI();
-}
-
-// Initialize materials UI
-function initMaterialsUI() {
-    // Initialize material selector dropdown
-    const materialSelectorBtn = document.getElementById('material-selector-btn');
-    const materialDropdownList = document.getElementById('material-dropdown-list');
-    const selectedMaterialText = document.querySelector('#material-selector-btn .selected-material-text');
-
-    if (!materialSelectorBtn || !materialDropdownList) return;
-
-    // Toggle dropdown
-    materialSelectorBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        materialDropdownList.classList.toggle('show');
-    });
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!materialSelectorBtn.contains(e.target) && !materialDropdownList.contains(e.target)) {
-            materialDropdownList.classList.remove('show');
-        }
-    });
-
-    // Populate material list
-    function populateMaterialsList() {
-        materialDropdownList.innerHTML = '';
-        if (!materialsManager) return;
-
-        materialsManager.materials.forEach(material => {
-            const item = document.createElement('div');
-            item.className = 'material-dropdown-item' + (material === materialsManager.selectedMaterial ? ' selected' : '');
-            item.innerHTML = `
-                <span class="material-color-swatch" style="background-color: #${material.color.toString(16).padStart(6, '0')}"></span>
-                <span class="material-option-text">${material.name}</span>
-            `;
-            item.addEventListener('click', (e) => {
-                e.stopPropagation();
-                // Apply material to selected object
-                if (selectedObject) {
-                    materialsManager.applyMaterialToSelected(material);
-                } else {
-                    materialsManager.applyMaterialToObject(objects[0], material);
-                }
-                selectedMaterialText.textContent = material.name;
-                materialDropdownList.classList.remove('show');
-                materialsManager.selectedMaterial = material;
-                populateMaterialsList();
-            });
-            materialDropdownList.appendChild(item);
-        });
-    }
-
-    // Initial population
-    populateMaterialsList();
-
-    // Re-populate when materials change
-    const originalRender = materialsManager.render.bind(materialsManager);
-    materialsManager.render = function() {
-        originalRender();
-        populateMaterialsList();
-    };
-
-    // Pixel effect controls
-    const pixelEffectEnabled = document.getElementById('pixel-effect-enabled');
-    const pixelEffectsControls = document.getElementById('pixel-effects-controls');
-    const pixelSizeSlider = document.getElementById('pixel-size');
-    const pixelSizeValue = document.getElementById('pixel-size-value');
-    const pixelCRTEffect = document.getElementById('pixel-crt-effect');
-    const pixelScanlinesEffect = document.getElementById('pixel-scanlines-effect');
-    const pixelNoiseEffect = document.getElementById('pixel-noise-effect');
-
-    if (pixelEffectEnabled && pixelEffectsControls) {
-        pixelEffectEnabled.addEventListener('change', (e) => {
-            if (pixelPostProcessor) {
-                pixelPostProcessor.enabled = e.target.checked;
-                pixelEffectsControls.style.display = e.target.checked ? 'block' : 'none';
-            }
-        });
-    }
-
-    if (pixelSizeSlider && pixelSizeValue && pixelPostProcessor) {
-        pixelSizeSlider.addEventListener('input', (e) => {
-            const size = parseInt(e.target.value);
-            pixelSizeValue.textContent = size;
-            pixelPostProcessor.setPixelSize(size);
-        });
-    }
-
-    if (pixelCRTEffect && pixelPostProcessor) {
-        pixelCRTEffect.addEventListener('change', (e) => {
-            pixelPostProcessor.toggleEffect('crt', e.target.checked);
-        });
-    }
-
-    if (pixelScanlinesEffect && pixelPostProcessor) {
-        pixelScanlinesEffect.addEventListener('change', (e) => {
-            pixelPostProcessor.toggleEffect('scanlines', e.target.checked);
-        });
-    }
-
-    if (pixelNoiseEffect && pixelPostProcessor) {
-        pixelNoiseEffect.addEventListener('change', (e) => {
-            pixelPostProcessor.toggleEffect('noise', e.target.checked);
-        });
-    }
 }
 /**
  * Set up vertical tab system for panels

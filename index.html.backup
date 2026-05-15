@@ -125,16 +125,7 @@
                         </button>
                     </div>
 
-                    <!-- Group 3: Materials -->
-                    <div class="tab-group-divider"></div>
-                    <div class="tab-group">
-                        <div class="tab-group-label">MATERIALS</div>
-                        <button class="tab-button" data-panel="materials-panel">
-                            <i class="fas fa-palette" title="Materials"></i>
-                        </button>
-                    </div>
-
-                    <!-- Group 4: Object Properties -->
+                    <!-- Group 3: Object Properties -->
                     <div class="tab-group-divider"></div>
                     <div class="tab-group">
                         <div class="tab-group-label">OBJECT</div>

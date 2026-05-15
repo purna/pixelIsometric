@@ -18,6 +18,7 @@
     /* LAYOUT DIMENSIONS */
     --header-height: 48px;
     --icon-rail-width: 48px;
+    --tab-width: 44px;
     --tools-width: 320px;
     --side-panel-width: 350px;
     --border-glow: rgba(0, 255, 65, 0.3);
@@ -26,6 +27,10 @@
     --tile-dim: 32;
     --pixel-size: 16px;
     --canvas-size: 512px;
+    
+    /* Floating Menu */
+    --floating-menu-bg: rgba(26, 26, 46, 0.95);
+    --floating-menu-border: var(--accent-primary);
 }
 
 
@@ -52,6 +57,12 @@ body {
     position: relative;
     background-color: var(--bg-medium);
     border-right: 1px solid var(--border-color);
+    overflow: hidden; /* Prevent scrollbars */
+    cursor: grab;
+}
+
+#scene-container:active {
+    cursor: grabbing;
 }
 
 #sidebar {
@@ -170,18 +181,21 @@ button:active {
     accent-color: var(--accent-primary);
 }
 
-/* Control Group Styles */
-.control-group {
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid var(--border-color);
+/* Control Group Styles - override for panel-sections */
+.control-group.panel-section {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
 }
 
 .panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 0;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .panel-title {
@@ -195,27 +209,38 @@ button:active {
 
 .panel-title h3 {
     margin: 0;
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-primary);
 }
 
 
 .panel-actions {
     display: flex;
-    gap: 5px;
+    gap: 4px;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+.panel-header:hover .panel-actions {
+    opacity: 1;
 }
 
 .panel-content {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 4px;
+    padding: 6px 10px 10px 14px;
 }
 
 /* Button Group Styles */
 .button-group {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 4px;
+    width: 100%;
 }
 
 .button-group button {
@@ -245,18 +270,9 @@ button:active {
     content: "+";
 }
 
-/* Input and Select Styles */
-input,
-select {
-    width: 100%;
-    padding: 4px 4px;
-    margin-bottom: 10px;
-    box-sizing: border-box;
-    background-color: var(--bg-dark);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    border-radius: 4px;
-    font-family: inherit;
+.panel-content input,
+.panel-content select {
+    margin-bottom: 6px;
 }
 
 input:focus,
@@ -364,19 +380,19 @@ label {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 10px 0;
+    padding: 8px 0;
     position: relative;
     z-index: 10;
 }
 
 .tab-button {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     background-color: transparent;
     border: none;
     color: var(--text-secondary);
     cursor: pointer;
-    margin: 5px 0;
+    margin: 2px 0;
     padding: 0;
     display: flex;
     align-items: center;
@@ -389,6 +405,7 @@ label {
 .tab-button:hover {
     background-color: var(--bg-medium);
     color: var(--accent-primary);
+    transform: scale(1.05);
 }
 
 .tab-button.active {
@@ -399,17 +416,62 @@ label {
 .tab-button.active::before {
     content: '';
     position: absolute;
-    right: -4px;
+    right: -3px;
     top: 50%;
     transform: translateY(-50%);
-    width: var(--tab-active-width);
-    height: 20px;
+    width: 3px;
+    height: 16px;
     background-color: var(--accent-primary);
     border-radius: 0 2px 2px 0;
 }
 
+.tab-button:hover {
+    background-color: var(--bg-medium);
+    color: var(--accent-primary);
+}
+
+.tab-button.active {
+    background-color: var(--accent-primary);
+    color: var(--bg-darkest);
+}
+
 .tab-button i {
-    font-size: 16px;
+    font-size: 14px;
+}
+
+/* Tab Group Styling */
+.tab-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.tab-group-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 8px 0 4px 0;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+    width: 100%;
+    text-align: center;
+}
+
+.tab-group:hover .tab-group-label,
+.tab-group.active .tab-group-label {
+    opacity: 1;
+    color: var(--accent-primary);
+}
+
+.tab-group-divider {
+    width: 60%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-color), transparent);
+    margin: 2px auto;
+    opacity: 0.5;
 }
 
 /* Panel Container with Tabs */
@@ -427,22 +489,7 @@ label {
 
 
 
-/* Panel Header with Right-Aligned Controls */
-.panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-    padding-right: 10px;
-}
-
-.panel-actions {
-    display: flex;
-    gap: 8px;
-    margin-left: auto;
-}
-
-/* Minimize/Maximize Button Alignment */
+/* Panel Container with Tabs */
 .toggle-btn {
     background: var(--bg-medium);
     border: 1px solid var(--border-color);
@@ -536,6 +583,104 @@ label {
     animation: layerMove 0.3s ease;
 }
 
+/* Floating Menu - Blender Style Toolbar */
+#floating-menu {
+    position: fixed;
+    top: 60px;
+    left: 10px;
+    z-index: 2000;
+    background-color: var(--floating-menu-bg);
+    border: 1px solid var(--floating-menu-border);
+    border-radius: 8px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    box-shadow: 0 4px 20px rgba(0, 255, 65, 0.2);
+    backdrop-filter: blur(10px);
+    user-select: none;
+}
+
+#floating-menu .tool-btn {
+    width: 40px;
+    height: 40px;
+    background-color: transparent;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    padding: 0;
+    margin: 0;
+    min-width: auto;
+}
+
+#floating-menu .tool-btn:hover {
+    background-color: var(--bg-dark);
+    border-color: var(--accent-tertiary);
+    color: var(--accent-tertiary);
+    transform: scale(1.05);
+}
+
+#floating-menu .tool-btn.active {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: var(--bg-darkest);
+    box-shadow: 0 0 10px var(--border-glow);
+}
+
+#floating-menu .tool-btn i {
+    font-size: 16px;
+    pointer-events: none;
+}
+
+#floating-menu .tool-btn.active i {
+    color: var(--bg-darkest);
+}
+
+/* Viewport container - fixed resolution, clipped */
+#scene-container {
+    flex: 1;
+    position: relative;
+    background-color: var(--bg-medium);
+    border-right: 1px solid var(--border-color);
+    overflow: hidden;
+    cursor: default;
+    min-width: 0;
+    min-height: 0;
+}
+
+#scene-container.viewport-move {
+    cursor: grab;
+}
+
+#scene-container.viewport-move:active {
+    cursor: grabbing;
+}
+
+#scene-container.viewport-select {
+    cursor: crosshair;
+}
+
+#scene-container.viewport-cursor {
+    cursor: crosshair;
+}
+
+/* Canvas element - fixed internal resolution */
+#scene-container canvas {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     #sidebar {
@@ -615,4 +760,405 @@ label {
 .layer-item input[type="text"]:focus {
     border-color: var(--accent-tertiary);
     box-shadow: 0 0 5px var(--accent-tertiary);
+}
+
+/* =============================================
+   MATERIALS SYSTEM
+   ============================================= */
+.materials-section {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+    flex-direction: column;
+}
+
+.materials-section .panel-header {
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg-dark);
+}
+
+.materials-section .panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+.material-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.material-item:hover {
+    background: var(--bg-medium);
+    border-color: var(--accent-primary);
+}
+
+.material-item.selected {
+    border-color: var(--accent-primary);
+    background: rgba(0, 217, 255, 0.05);
+}
+
+.material-preview {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.material-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.material-name {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-primary);
+    font-size: 0.7rem;
+    padding: 2px 4px;
+    border-radius: 2px;
+    width: 120px;
+}
+
+.material-name:focus {
+    background: var(--bg-dark);
+    border-color: var(--border-color);
+    outline: none;
+}
+
+.material-properties {
+    display: flex;
+    gap: 8px;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+}
+
+.material-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.material-actions button {
+    width: 24px;
+    height: 24px;
+    padding: 2px;
+    font-size: 0.7rem;
+}
+
+/* Material Edit Dialog */
+.material-edit-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    z-index: 10000;
+    width: 300px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.dialog-header h3 {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.close-dialog-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-dialog-btn:hover {
+    color: var(--text-primary);
+}
+
+.dialog-content {
+    margin-bottom: 15px;
+}
+
+.dialog-content .property-group {
+    margin-bottom: 12px;
+}
+
+.dialog-content .property-group label {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.dialog-content .property-group input[type="color"] {
+    width: 100%;
+    height: 32px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--bg-light);
+    cursor: pointer;
+}
+
+.dialog-content .property-group input[type="range"] {
+    width: 100%;
+    margin-top: 4px;
+}
+
+.dialog-content .property-group select {
+    width: 100%;
+    padding: 8px;
+    font-size: 0.7rem;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.dialog-actions .btn {
+    padding: 8px 16px;
+    font-size: 0.75rem;
+}
+
+/* Materials Section for Full View */
+.material-item-full {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.material-item-full:hover {
+    background: var(--bg-medium);
+    border-color: var(--accent-primary);
+}
+
+.material-preview-full {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.material-info-full {
+    flex: 1;
+}
+
+.material-name-full {
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.material-properties-full {
+    display: flex;
+    gap: 12px;
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+}
+
+.material-actions-full {
+    display: flex;
+    gap: 6px;
+}
+
+.material-actions-full button {
+    width: 28px;
+    height: 28px;
+    padding: 4px;
+    font-size: 0.8rem;
+}
+
+/* Material Selector Dropdown */
+.material-dropdown-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.material-selector {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 0.7rem;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s;
+    min-height: 36px;
+    box-sizing: border-box;
+}
+
+.material-selector:hover {
+    background: var(--bg-medium);
+    border-color: var(--text-secondary);
+}
+
+.material-dropdown-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    margin-top: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.material-dropdown-list.show {
+    display: block;
+}
+
+.material-dropdown-item {
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.7rem;
+    color: var(--text-primary);
+    min-height: 32px;
+    border-left: 3px solid transparent;
+}
+
+.material-dropdown-item:hover {
+    background: var(--bg-medium);
+    border-left-color: var(--accent-primary);
+}
+
+.material-dropdown-item .material-color-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    border: 1px solid var(--border-color);
+    flex-shrink: 0;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.material-dropdown-item .material-option-text {
+    flex-grow: 1;
+    color: var(--text-primary);
+    font-size: 0.7rem;
+}
+
+.pixel-effect-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.pixel-effect-toggle label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.pixel-effect-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.pixel-effect-toggle .effect-description {
+    font-size: 0.65rem;
+    color: #666;
+    margin-left: 24px;
+}
+
+.pixel-slider-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.pixel-slider-group label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    min-width: 80px;
+}
+
+.pixel-slider-group input[type="range"] {
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--bg-light);
+}
+
+.pixel-slider-group .value-display {
+    font-size: 0.7rem;
+    color: var(--accent-primary);
+    min-width: 30px;
+    text-align: right;
+}
+
+.pixel-effect-controls {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color);
+}
+
+.pixel-effect-controls h4 {
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    margin-bottom: 10px;
 }
