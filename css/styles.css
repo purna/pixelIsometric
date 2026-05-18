@@ -50,6 +50,7 @@ body {
     display: flex;
     height: 100vh;
     width: 100vw;
+    position: relative;
 }
 
 #scene-container {
@@ -185,6 +186,24 @@ button:active {
 .control-group.panel-section {
     margin-bottom: 0;
     padding-bottom: 0;
+    padding-left: 6px;
+    padding-right: 6px;
+    padding-top: 6px;
+    border-bottom: none;
+}
+
+/* Panel Section (sidebar panels) */
+.panel-section {
+    margin-bottom: 15px;
+    padding: 12px;
+    background-color: var(--bg-medium);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+/* Override right-panel.settings bottom border independently */
+.control-group.panel-section {
     border-bottom: none;
 }
 
@@ -232,7 +251,7 @@ button:active {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    padding: 6px 10px 10px 14px;
+    padding: 12px 0px;
 }
 
 /* Object Panel Group Styling */
@@ -259,7 +278,7 @@ button:active {
 
 .button-row .icon-button {
     flex: 1;
-    min-width: 40px;
+    min-width: 30px;
     aspect-ratio: 1;
 }
 
@@ -388,6 +407,32 @@ label {
     color: var(--bg-darkest);
     border-color: var(--accent-primary);
     transform: scale(1.1);
+}
+
+.mode-toggle-btn {
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-tertiary));
+    color: var(--bg-darkest);
+    border: 1px solid var(--accent-primary);
+    padding: 4px 8px;
+    font-size: 11px;
+}
+
+.mode-toggle-btn i {
+    margin-right: 4px;
+}
+
+.mode-toggle-btn:hover {
+    box-shadow: 0 0 12px var(--accent-primary);
+    transform: scale(1.05);
+}
+
+/* 2D/3D Mode classes */
+.scene-view-2d {
+    cursor: default !important;
+}
+
+.scene-view-3d {
+    cursor: grab !important;
 }
 
 /* Panel Section Styles */
@@ -549,7 +594,7 @@ label {
 /* Individual Panel Styling */
 .control-group {
     margin-bottom: 15px;
-    padding: 12px;
+    padding: 6px;
     background-color: var(--bg-medium);
     border-radius: 6px;
     border: 1px solid var(--border-color);
@@ -628,9 +673,299 @@ label {
     100% { transform: translateX(0); opacity: 1; }
 }
 
-.layer-item {
-    animation: layerMove 0.3s ease;
+/* ═══════════════════════════════════════════════════════════════════════ */
+/*  LAYER PANEL – LAYER GROUP + OBJECT LIST                              */
+/* ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Layer group wrapper ──────────────────────────────────────────────── */
+.layer-group {
+    background: var(--bg-medium);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    margin-bottom: 6px;
+    overflow: hidden;
+    transition: border-color 0.2s ease;
 }
+
+.layer-group.active {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 6px rgba(0, 217, 255, 0.15);
+}
+
+/* ── Layer group header row ──────────────────────────────────────────── */
+.layer-group-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 8px;
+    cursor: default;
+    min-height: 34px;
+}
+
+/* ── Expand / collapse chevron ───────────────────────────────────────── */
+.layer-chevron {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: transform 0.25s ease, color 0.2s ease;
+    font-size: 10px;
+    line-height: 1;
+}
+
+.layer-chevron:hover {
+    color: var(--accent-primary);
+}
+
+.layer-chevron.expanded {
+    transform: rotate(0deg);
+}
+
+.layer-chevron:not(.expanded) {
+    transform: rotate(-90deg);
+}
+
+/* ── Visibility checkbox ─────────────────────────────────────────────── */
+.layer-vis-check {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    cursor: pointer;
+    accent-color: var(--accent-primary);
+}
+
+/* ── Layer name input ────────────────────────────────────────────────── */
+.layer-name-input {
+    flex: 1;
+    min-width: 80px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 6px;
+    border-radius: 4px;
+    outline: none;
+}
+
+.layer-name-input:hover {
+    background: var(--bg-light);
+}
+
+.layer-name-input:focus {
+    background: var(--bg-dark);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 4px rgba(0, 217, 255, 0.2);
+}
+
+/* ── Layer name input (panel header — #layer-name) ─────────────────────── */
+#layer-name {
+    flex: 1;
+    min-width: 120px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 8px;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#layer-name:hover {
+    border-color: var(--accent-tertiary);
+}
+
+#layer-name:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 5px rgba(0, 217, 255, 0.25);
+    outline: none;
+}
+
+/* ── Layer name row (input + inline + button) ──────────────────────────── */
+.layer-name-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.add-layer-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    border: 1px solid var(--accent-primary);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--accent-primary);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.add-layer-btn:hover {
+    background: var(--accent-primary);
+    color: var(--bg-darkest);
+    box-shadow: 0 0 6px rgba(0, 217, 255, 0.3);
+}
+
+.add-layer-btn:active {
+    transform: scale(0.92);
+}
+
+.paint-layer-btn {
+    color: var(--accent-tertiary);
+}
+
+.paint-layer-btn:hover {
+    background: var(--accent-tertiary);
+    color: var(--bg-darkest) !important;
+    border-color: var(--accent-tertiary) !important;
+    transform: translateY(-1px);
+}
+
+.paint-layer-btn:active {
+    transform: scale(0.92) !important;
+}
+
+/* ── Layer action buttons (up / down / delete) ────────────────────────── */
+.layer-group-actions {
+    display: flex;
+    gap: 3px;
+    flex-shrink: 0;
+}
+
+.layer-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--bg-dark);
+    color: var(--text-secondary);
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.layer-icon-btn:hover {
+    background: var(--accent-primary);
+    color: var(--bg-darkest);
+    border-color: var(--accent-primary);
+    transform: translateY(-1px);
+}
+
+.layer-icon-btn:active {
+    transform: translateY(0);
+}
+
+.layer-icon-btn .fa-trash:hover,
+.layer-group-actions .layer-icon-btn:last-child:hover {
+    background: #f44336;
+    border-color: #f44336;
+    color: #fff;
+}
+
+/* ── Layer details (collapsible object list) ──────────────────────────── */
+.layer-details {
+    border-top: 1px solid var(--border-color);
+    max-height: 400px;
+    overflow: auto;
+    transition: max-height 0.3s ease, padding 0.2s ease;
+    animation: layerExpand 0.25s ease;
+}
+
+.layer-details.collapsed {
+    display: none;
+}
+
+@keyframes layerExpand {
+    from { opacity: 0; max-height: 0; }
+    to   { opacity: 1; max-height: 400px; }
+}
+
+/* ── Objects empty placeholder ────────────────────────────────────────── */
+.layer-objects-empty {
+    padding: 8px 12px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-style: italic;
+    text-align: center;
+}
+
+/* ── Object type sub-groups inside a layer ───────────────────────────── */
+.layer-object-type-group {
+    margin-bottom: 2px;
+}
+
+.layer-object-type-header {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--accent-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 5px 10px 3px 10px;
+}
+
+.layer-object-items {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+/* ── Individual object row inside a layer ────────────────────────────── */
+.layer-object-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 10px 4px 20px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    font-size: 11px;
+    color: var(--text-primary);
+    border-radius: 3px;
+    margin: 0 4px;
+}
+
+.layer-object-item:hover {
+    background: rgba(0, 217, 255, 0.08);
+}
+
+.layer-object-item.selected {
+    background: rgba(0, 217, 255, 0.14);
+    color: var(--accent-primary);
+    font-weight: 500;
+}
+
+.layer-object-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.layer-object-position {
+    font-size: 10px;
+    color: var(--text-secondary);
+    font-family: 'Courier New', monospace;
+    opacity: 0.75;
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+
+
 
 /* Floating Menu - Blender Style Toolbar */
 #floating-menu {
@@ -778,21 +1113,6 @@ label {
     padding-bottom: 10px;
     border-bottom: 1px solid var(--border-glow);
     font-weight: 700;
-}
-
-/* Add Layer Button Enhancement */
-#add-layer {
-    background-color: var(--accent-primary);
-    color: var(--bg-darkest);
-    font-weight: 600;
-    margin: 10px 0;
-    border: none;
-}
-
-#add-layer:hover {
-    background-color: var(--accent-tertiary);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px var(--border-glow);
 }
 
 /* Current Layer Dropdown */
@@ -1285,3 +1605,433 @@ label {
     border: 1px solid var(--border-color);
     border-radius: 4px;
 }
+
+/* =========================================================== */
+/* STYLE FIX: Readable text, styled form elements, settings    */
+/* =========================================================== */
+
+/* ── 1. Base font size bump: labels and group labels ───────── */
+label,
+.property-group label,
+.group-label,
+.tool-options-label,
+.tool-option-label,
+.dither-label,
+.brightness-label {
+    font-size: 12px !important;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.panel-title h3,
+.object-type-header,
+.layer-object-type-header {
+    font-size: 11px !important;
+    letter-spacing: 0.5px;
+}
+
+.group-label {
+    font-size: 11px !important;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+/* Tiny rem-based font sizes → replace with readable px equivalents */
+.material-name,
+.material-option-text,
+.material-dropdown-item,
+.object-list-item,
+.layer-object-item,
+.material-item-full .material-name-full {
+    font-size: 12px !important;
+}
+
+.material-properties,
+.material-properties-full,
+.object-position,
+.layer-object-position {
+    font-size: 11px !important;
+}
+
+/* ── 2. Text inputs & textareas ─────────────────────────────── */
+input[type="text"],
+input[type="number"],
+input[type="url"],
+input[type="email"],
+textarea {
+    width: 100%;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 12px;
+    padding: 6px 9px;
+    border-radius: 4px;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    font-family: inherit;
+}
+
+input[type="text"]:hover,
+input[type="number"]:hover,
+input[type="url"]:hover,
+input[type="email"]:hover {
+    border-color: var(--text-secondary);
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="url"]:focus,
+input[type="email"]:focus,
+textarea:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(0, 255, 65, 0.12);
+    outline: none;
+}
+
+/* ── 3. Select dropdowns ─────────────────────────────────────── */
+select {
+    width: 100%;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 12px;
+    padding: 6px 28px 6px 9px;
+    border-radius: 4px;
+    outline: none;
+    box-sizing: border-box;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 9px center;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    font-family: inherit;
+}
+
+select:hover {
+    border-color: var(--text-secondary);
+}
+
+select:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(0, 255, 65, 0.12);
+    outline: none;
+}
+
+/* ── 4. Range inputs ─────────────────────────────────────────── */
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--bg-light);
+    border-radius: 2px;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 0;
+    margin: 4px 0;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px;
+    background: var(--bg-light);
+    border-radius: 2px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: var(--accent-primary);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid var(--bg-dark);
+    margin-top: -5px;
+    box-shadow: 0 0 4px rgba(0, 255, 65, 0.3);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 8px rgba(0, 255, 65, 0.5);
+}
+
+input[type="range"]::-moz-range-track {
+    height: 4px;
+    background: var(--bg-light);
+    border-radius: 2px;
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: var(--accent-primary);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid var(--bg-dark);
+    box-shadow: 0 0 4px rgba(0, 255, 65, 0.3);
+}
+
+/* Range value display spans next to sliders */
+.range-value,
+#brightness-value,
+#terrain-height-value,
+#fog-near-value,
+#fog-far-value,
+.value-display,
+[id$="-value"] {
+    font-size: 11px;
+    color: var(--accent-primary);
+    font-family: 'Courier New', monospace;
+    min-width: 32px;
+    display: inline-block;
+    text-align: right;
+}
+
+/* ── 5. Color inputs ─────────────────────────────────────────── */
+input[type="color"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 30px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--bg-dark);
+    cursor: pointer;
+    padding: 2px 3px;
+    box-sizing: border-box;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+    border-radius: 3px;
+}
+
+input[type="color"]::-webkit-color-swatch {
+    border: none;
+    border-radius: 3px;
+}
+
+/* ── 6. Checkboxes ───────────────────────────────────────────── */
+input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--accent-primary);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+/* ── 7. Settings modal: missing classes ─────────────────────── */
+
+/* .settings-select used in settings modal */
+.settings-select {
+    width: 100%;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 12px;
+    padding: 6px 28px 6px 9px;
+    border-radius: 4px;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 9px center;
+    cursor: pointer;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.settings-select:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(0, 255, 65, 0.12);
+}
+
+/* .settings-btn used in settings modal */
+.settings-btn {
+    background: var(--bg-medium);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 12px;
+    padding: 7px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: inherit;
+}
+
+.settings-btn:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+    background: var(--bg-light);
+}
+
+/* .property-label used in settings modal */
+.property-label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+/* .setting-label + .checkmark used for checkbox rows */
+.setting-label {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+    user-select: none;
+}
+
+.setting-label input[type="checkbox"] {
+    flex-shrink: 0;
+    width: 15px;
+    height: 15px;
+    accent-color: var(--accent-primary);
+}
+
+.checkmark {
+    font-size: 12px;
+    color: var(--text-primary);
+}
+
+/* .setting-description under each setting row */
+.setting-description {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    margin-left: 24px;
+    line-height: 1.4;
+}
+
+/* settings-group section title */
+.settings-group {
+    margin-bottom: 20px;
+}
+
+.settings-group h3 {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--accent-tertiary);
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* settings tab buttons */
+.settings-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0;
+}
+
+.settings-tab {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-secondary);
+    font-size: 12px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 0;
+    width: auto;
+    margin: 0;
+    margin-bottom: -1px;
+}
+
+.settings-tab:hover {
+    color: var(--text-primary);
+    background: transparent;
+    border-color: transparent;
+}
+
+.settings-tab.active {
+    color: var(--accent-primary);
+    border-bottom-color: var(--accent-primary);
+    background: transparent;
+}
+
+.settings-content {
+    padding: 4px 0;
+}
+
+/* ── 8. Property group layout (row with range + value) ──────── */
+.property-group {
+    margin-bottom: 12px;
+}
+
+.property-group > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.property-group > div > label {
+    width: 100%;
+}
+
+.property-group > div > input[type="range"] {
+    flex: 1;
+    min-width: 80px;
+}
+
+/* ── 9. Panel content spacing ────────────────────────────────── */
+.panel-content {
+    padding: 10px 8px;
+}
+
+.panel-content > * + * {
+    margin-top: 4px;
+}
+
+/* ── 10. Scene content / export content scrollable areas ─────── */
+.scene-settings-content,
+.export-settings-content {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+/* ── 11. Button base legibility ──────────────────────────────── */
+button {
+    font-size: 12px;
+}
+
+/* Small inline buttons (icon-button) retain their compact size */
+.icon-button {
+    font-size: 12px;
+    min-height: 28px;
+}
+
+/* ── 12. Sidebar overall padding tighten ────────────────────── */
+#sidebar {
+    padding: 10px 12px;
+}
+
+/* ── 13. Global actions header buttons ───────────────────────── */
+.global-actions .icon-button {
+    font-size: 11px;
+    padding: 4px 7px;
+    min-height: 26px;
+}
+

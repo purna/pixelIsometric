@@ -1,0 +1,277 @@
+/* =============================================================
+   inline.css — styles extracted from index.html inline styles
+   ============================================================= */
+
+/* ── <style> block from <head> ─────────────────────────────── */
+
+@font-face {
+    font-family: 'Inter';
+    src: url('../fonts/inter-normal.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Inter';
+    src: url('../fonts/inter-bold.woff2') format('woff2');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+
+.paint-button.active {
+    background-color: #4CAF50 !important;
+    border-color: #4CAF50 !important;
+}
+
+/* ── SVG hidden helper (line 42) ───────────────────────────── */
+svg.hidden-defs {
+    display: none;
+}
+
+/* ── Movement panel: move buttons fill their row ──────────── */
+/* #move-left, #move-up, #move-right-up,
+   #move-left-down, #move-down, #move-right — style="flex:1;" */
+#movement-panel .button-group button {
+    flex: 1;
+}
+
+/* ── Scene panel: theme button-group top margin ────────────── */
+/* .button-group style="margin-top:6px;" on theme row */
+#scene-panel .theme-button-group {
+    margin-top: 6px;
+}
+
+/* ── Scene panel: Apply Brightness / Set Image BG buttons ──── */
+/* style="margin-top:4px;width:100%;" */
+#adjust-brightness,
+#apply-image-background {
+    margin-top: 4px;
+    width: 100%;
+}
+
+/* ── Scene panel: paint icon colours (dirt/stone/water/sand) ── */
+/* style="color:#8B4513" etc. on <i> inside paint buttons */
+#paint-dirt i   { color: #8B4513; }
+#paint-stone i  { color: #808080; }
+#paint-water i  { color: #1E90FF; }
+#paint-sand i   { color: #F4A460; }
+
+/* ── Scene panel: gradient colour pickers fill row ─────────── */
+/* style="flex:1;" on #gradient-color1 / #gradient-color2 */
+#gradient-color1,
+#gradient-color2 {
+    flex: 1;
+}
+
+/* ── Scene panel: gradient / fog button-group flex buttons ──── */
+/* style="flex:1;" on apply-gradient-*, apply-fog, remove-fog */
+#apply-gradient-vertical,
+#apply-gradient-horizontal,
+#apply-fog,
+#remove-fog {
+    flex: 1;
+}
+
+/* ── Export panel: include-colliders checkbox wrapper ──────── */
+/* style="margin-top:8px;" on the div wrapping the checkbox */
+#export-panel .collider-checkbox-row {
+    margin-top: 8px;
+}
+
+/* ── Materials panel: material-builder wrapper ─────────────── */
+/* style="margin-bottom:16px;" */
+.material-builder {
+    margin-bottom: 16px;
+}
+
+/* ── Materials panel: builder canvas ───────────────────────── */
+/* style="width:100%; background:#111116; border:1px solid #222; border-radius:4px;" */
+#material-builder-canvas {
+    width: 100%;
+    background: #111116;
+    border: 1px solid #222;
+    border-radius: 4px;
+}
+
+/* ── Materials panel: builder property-group top margin ─────── */
+/* style="margin-top:12px;" on the property-group inside .material-builder */
+.material-builder .property-group {
+    margin-top: 12px;
+}
+
+/* ── Materials panel: builder .row layout ──────────────────── */
+/* style="display:flex; align-items:center; gap:8px; margin-bottom:8px;" (colour rows)
+   style="display:flex; align-items:center; gap:8px; margin-bottom:6px;" (dither rows)
+   style="display:flex; align-items:center; gap:8px; margin-bottom:12px;" (blend rows)
+   style="display:flex; gap:8px;" (save/download row) */
+.material-builder .row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.material-builder .row.mb-8  { margin-bottom: 8px; }
+.material-builder .row.mb-6  { margin-bottom: 6px; }
+.material-builder .row.mb-12 { margin-bottom: 12px; }
+
+/* ── Materials panel: builder labels ───────────────────────── */
+/* style="font-size:10px; color:#888; width:70px;"
+   style="font-size:10px; color:#888; width:70px;" (top/bot colour labels)
+   style="font-size:10px; color:#888; min-width:72px;" (dither labels) */
+.material-builder .row label {
+    font-size: 10px;
+    color: #888;
+}
+
+.material-builder .row label.w-70  { width: 70px; }
+.material-builder .row label.w-72  { min-width: 72px; }
+
+/* ── Materials panel: colour swatch wrappers (.sw) ─────────── */
+/* style="width:26px; height:26px; border-radius:4px; border:1px solid #222;
+         cursor:pointer; background:#3ecfb2; flex-shrink:0;" etc. */
+.material-builder .sw {
+    width: 26px;
+    height: 26px;
+    border-radius: 4px;
+    border: 1px solid #222;
+    cursor: pointer;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+/* hidden colour input inside swatch */
+.material-builder .sw input[type="color"] {
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 0;
+    border: none;
+}
+
+/* ── Materials panel: builder range sliders ─────────────────── */
+/* style="flex:1; -webkit-appearance:none; height:2px; background:#1c1c1c; border-radius:2px;" */
+.material-builder input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 2px;
+    background: #1c1c1c;
+    border-radius: 2px;
+    border: none;
+    outline: none;
+}
+
+/* ── Materials panel: builder value spans ───────────────────── */
+/* style="font-size:10px; color:#3a3a3a; width:34px; text-align:right;" (split/rot)
+   style="font-size:10px; color:#3a3a3a; width:28px; text-align:right;" (dither) */
+.material-builder .row span {
+    font-size: 10px;
+    color: #3a3a3a;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.material-builder .row span.w-34 { width: 34px; }
+.material-builder .row span.w-28 { width: 28px; }
+
+/* ── Materials panel: outline segment control ───────────────── */
+/* style="display:flex; border:1px solid #222; border-radius:5px; overflow:hidden; flex:1;" */
+.material-builder .seg {
+    display: flex;
+    border: 1px solid #222;
+    border-radius: 5px;
+    overflow: hidden;
+    flex: 1;
+}
+
+/* buttons inside outline segment */
+/* style="flex:1; padding:5px 0; font-size:10px; background:transparent; border:none;
+         border-right:1px solid #1e1e1e; color:#3a3a3a; cursor:pointer;" (first)
+   style="flex:1; padding:5px 0; font-size:10px; background:transparent; border:none;
+         color:#3a3a3a; cursor:pointer;" (second) */
+.material-builder .seg button {
+    flex: 1;
+    padding: 5px 0;
+    font-size: 10px;
+    background: transparent;
+    border: none;
+    color: #3a3a3a;
+    cursor: pointer;
+    margin: 0;
+    width: auto;
+}
+
+.material-builder .seg button:not(:last-child) {
+    border-right: 1px solid #1e1e1e;
+}
+
+/* ── Materials panel: dither mode selects ───────────────────── */
+/* style="flex:1; background:transparent; color:#4a4a60; border:1px solid #222;
+         border-radius:5px; padding:4px; font-size:10px; font-family:monospace;" */
+#builder-tDitherMode,
+#builder-bDitherMode {
+    flex: 1;
+    background: transparent;
+    color: #4a4a60;
+    border: 1px solid #222;
+    border-radius: 5px;
+    padding: 4px;
+    font-size: 10px;
+    font-family: monospace;
+}
+
+/* ── Materials panel: save / download buttons ───────────────── */
+/* style="flex:1; font-size:11px; padding:6px;" */
+#builder-save,
+#builder-download {
+    flex: 1;
+    font-size: 11px;
+    padding: 6px;
+}
+
+/* ── Materials panel: separator <hr> ────────────────────────── */
+/* style="border:none; border-top:1px solid #1a1a1a; margin:12px 0;" */
+hr.sep {
+    border: none;
+    border-top: 1px solid #1a1a1a;
+    margin: 12px 0;
+}
+
+/* ── Materials panel: create-material-btn ───────────────────── */
+/* style="width:100%; margin-bottom:12px;" */
+#create-material-btn {
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+/* ── Materials panel: pixel-effects-controls hidden by default ─ */
+/* style="display:none;" — toggled by JS, so handled via class in CSS */
+#pixel-effects-controls {
+    display: none;
+}
+
+#pixel-effects-controls.visible {
+    display: block;
+}
+
+/* ── Properties panel: current-material-name span ──────────── */
+/* style="font-size:11px; color:#3ecfb2; font-weight:bold;" */
+#current-material-name {
+    font-size: 11px;
+    color: #3ecfb2;
+    font-weight: bold;
+}
+
+/* ── Settings modal: full-width settings buttons ────────────── */
+/* style="width:100%;" on #setting-clear-state and #setting-start-tutorial */
+#setting-clear-state,
+#setting-start-tutorial {
+    width: 100%;
+}

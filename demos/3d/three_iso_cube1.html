@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js Isometric Cube</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: #0d0d10; 
+            font-family: 'Space Mono', monospace;
+            color: #4a4a60;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #111115;
+            border: 1px solid #1f1f28;
+            padding: 15px;
+            width: 250px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 10;
+        }
+
+        .row { display: flex; align-items: center; justify-content: space-between; font-size: 11px; }
+        input[type="range"] { flex: 1; margin: 0 10px; accent-color: #3ecfb2; }
+        input[type="color"] { background: none; border: 1px solid #2a2a38; cursor: pointer; height: 24px; width: 40px; padding: 0; }
+        
+        .title { color: #7a7a9a; font-size: 12px; text-transform: uppercase; letter-spacing: 0.2em; border-bottom: 1px solid #1f1f28; padding-bottom: 8px; margin-bottom: 4px; }
+        .hint { position: absolute; bottom: 20px; width: 100%; text-align: center; color: #3ecfb2; font-size: 12px; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <div class="title">3D Controls</div>
+        <div class="row">
+            Top <input type="color" id="colA" value="#3ecfb2">
+        </div>
+        <div class="row">
+            Bottom <input type="color" id="colB" value="#c94b6e">
+        </div>
+        <div class="row">
+            Split <input type="range" id="split" min="-50" max="50" value="0">
+        </div>
+        <div class="row">
+            Light <input type="range" id="light" min="10" max="200" value="100">
+        </div>
+        <div class="row">
+            Dither Pattern <input type="checkbox" id="dither" checked>
+        </div>
+    </div>
+
+    <div class="hint">Left Click + Drag to Rotate • Right Click + Drag to Pan • Scroll to Zoom</div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // 1. SCENE SETUP
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2('#0d0d10', 0.05);
+
+        // 2. ISOMETRIC CAMERA
+        const aspect = window.innerWidth / window.innerHeight;
+        const frustumSize = 10;
+        const camera = new THREE.OrthographicCamera(
+            frustumSize * aspect / -2, frustumSize * aspect / 2, 
+            frustumSize / 2, frustumSize / -2, 
+            1, 1000
+        );
+        // Position at an angle for the classic isometric perspective
+        camera.position.set(10, 10, 10);
+        camera.lookAt(scene.position);
+
+        // 3. RENDERER
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // optimize performance
+        document.body.appendChild(renderer.domElement);
+
+        // 4. CONTROLS (Allows rotating the grid in 3D!)
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // 5. LIGHTING
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); // Soft base light
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        directionalLight.position.set(5, 10, 2); // Shines down from the top right
+        scene.add(directionalLight);
+
+        // 6. THE GRID
+        const grid = new THREE.GridHelper(20, 20, 0x3ecfb2, 0x1f1f28);
+        grid.position.y = -0.5; // Sit slightly below the cube
+        scene.add(grid);
+
+        // 7. THE CUBE (Geometry & Custom Shader Material)
+        const geometry = new THREE.BoxGeometry(2, 2, 2);
+
+        // Uniforms allow us to pass HTML input values directly into the GPU shader
+        const customUniforms = {
+            colorA: { value: new THREE.Color('#3ecfb2') },
+            colorB: { value: new THREE.Color('#c94b6e') },
+            splitY: { value: 0.0 }, // -1.0 to 1.0 range on a size 2 box
+            useDither: { value: 1.0 }
+        };
+
+        const material = new THREE.MeshStandardMaterial({
+            roughness: 0.8,
+            metalness: 0.1
+        });
+
+        // We inject custom shader code into Three.js's standard lighting shader
+        material.onBeforeCompile = (shader) => {
+            shader.uniforms.colorA = customUniforms.colorA;
+            shader.uniforms.colorB = customUniforms.colorB;
+            shader.uniforms.splitY = customUniforms.splitY;
+            shader.uniforms.useDither = customUniforms.useDither;
+
+            // Pass local vertex Y position to the fragment shader
+            shader.vertexShader = `
+                varying float vLocalY;
+                ${shader.vertexShader}
+            `.replace(
+                `#include <begin_vertex>`,
+                `#include <begin_vertex>
+                 vLocalY = position.y;`
+            );
+
+            // Replace standard color logic with our Split + Dither logic
+            shader.fragmentShader = `
+                uniform vec3 colorA;
+                uniform vec3 colorB;
+                uniform float splitY;
+                uniform float useDither;
+                varying float vLocalY;
+                ${shader.fragmentShader}
+            `.replace(
+                `vec4 diffuseColor = vec4( diffuse, opacity );`,
+                `
+                // 1. Determine split color
+                vec3 baseColor = vLocalY > splitY ? colorA : colorB;
+                
+                // 2. Simple Screen-space crosshatch dither
+                vec2 screenPos = gl_FragCoord.xy;
+                bool isHatch = (mod(screenPos.x + screenPos.y, 8.0) < 1.5) || (mod(screenPos.x - screenPos.y, 8.0) < 1.5);
+                
+                if (useDither > 0.5 && isHatch) {
+                    // Darken the hatched pixels
+                    baseColor *= 0.6; 
+                }
+
+                vec4 diffuseColor = vec4( baseColor, opacity );
+                `
+            );
+        };
+
+        const cube = new THREE.Mesh(geometry, material);
+        scene.add(cube);
+
+        // 8. THE OUTLINES
+        const edgesGeom = new THREE.EdgesGeometry(geometry);
+        const edgesMat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+        const cubeEdges = new THREE.LineSegments(edgesGeom, edgesMat);
+        cube.add(cubeEdges); // Attach edges directly to the cube
+
+        // 9. UI EVENT LISTENERS
+        document.getElementById('colA').addEventListener('input', e => customUniforms.colorA.value.set(e.target.value));
+        document.getElementById('colB').addEventListener('input', e => customUniforms.colorB.value.set(e.target.value));
+        // Map 0-100 slider to -1.0 to 1.0 height range
+        document.getElementById('split').addEventListener('input', e => customUniforms.splitY.value = e.target.value / 50);
+        document.getElementById('light').addEventListener('input', e => directionalLight.intensity = e.target.value / 100);
+        document.getElementById('dither').addEventListener('change', e => customUniforms.useDither.value = e.target.checked ? 1.0 : 0.0);
+
+        // Handle window resizing
+        window.addEventListener('resize', () => {
+            const aspect = window.innerWidth / window.innerHeight;
+            camera.left = -frustumSize * aspect / 2;
+            camera.right = frustumSize * aspect / 2;
+            camera.top = frustumSize / 2;
+            camera.bottom = -frustumSize / 2;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // 10. ANIMATION LOOP
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update(); // Required for damping
+            renderer.render(scene, camera);
+        }
+        animate();
+
+    </script>
+</body>
+</html>

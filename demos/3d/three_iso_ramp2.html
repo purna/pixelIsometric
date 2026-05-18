@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js Isometric Custom Ramp Dither</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: #0d0d10; 
+            font-family: 'Space Mono', monospace;
+            color: #4a4a60;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #111115;
+            border: 1px solid #1f1f28;
+            padding: 15px;
+            width: 270px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 10;
+            max-height: 95vh;
+            overflow-y: auto;
+        }
+
+        #ui::-webkit-scrollbar { width: 6px; }
+        #ui::-webkit-scrollbar-thumb { background: #2a2a38; border-radius: 3px; }
+
+        .row { display: flex; align-items: center; justify-content: space-between; font-size: 11px; min-height: 24px; }
+        input[type="range"] { flex: 1; margin: 0 10px; accent-color: #3ecfb2; background: #191920; }
+        input[type="color"] { background: none; border: 1px solid #2a2a38; cursor: pointer; height: 24px; width: 40px; padding: 0; }
+        input[type="checkbox"] { accent-color: #3ecfb2; cursor: pointer; width: 16px; height: 16px; }
+        select { background: #0f0f14; color: #7a7a9a; border: 1px solid #2a2a38; padding: 4px; font-family: 'Space Mono'; font-size: 10px; text-transform: uppercase; width: 110px; }
+        
+        .title { color: #7a7a9a; font-size: 12px; text-transform: uppercase; letter-spacing: 0.2em; border-bottom: 1px solid #1f1f28; padding-bottom: 6px; margin-top: 10px; margin-bottom: 4px; }
+        .title:first-child { margin-top: 0; }
+        .hint { position: absolute; bottom: 20px; width: 100%; text-align: center; color: #3ecfb2; font-size: 12px; pointer-events: none; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <div class="title">Ramp Transform</div>
+        <div class="row">Width (X)
+            <select id="sizeX">
+                <option value="1">1 Unit</option>
+                <option value="2" selected>2 Units</option>
+                <option value="3">3 Units</option>
+                <option value="4">4 Units</option>
+            </select>
+        </div>
+        <div class="row">Height (Y)
+            <select id="sizeY">
+                <option value="1">1 Unit</option>
+                <option value="2">2 Units</option>
+                <option value="3">3 Units</option>
+                <option value="4">4 Units</option>
+            </select>
+        </div>
+        <div class="row">Length (Z)
+            <select id="sizeZ">
+                <option value="1">1 Unit</option>
+                <option value="2">2 Units</option>
+                <option value="3" selected>3 Units</option>
+                <option value="4">4 Units</option>
+            </select>
+        </div>
+        <div class="row">Rotation
+            <select id="rampRot">
+                <option value="0" selected>0°</option>
+                <option value="90">90°</option>
+                <option value="180">180°</option>
+                <option value="270">270°</option>
+            </select>
+        </div>
+
+        <div class="title">Geometry Shading</div>
+        <div class="row">Single Colour <input type="checkbox" id="singleColor"></div>
+        <div class="row" id="row-colA">Main / Top Col <input type="color" id="colA" value="#3ecfb2"></div>
+        <div class="row" id="row-colB">Bot Col <input type="color" id="colB" value="#c94b6e"></div>
+        <div class="row" id="row-split">Split <input type="range" id="split" min="-50" max="50" value="0"></div>
+        
+        <div class="title" style="color:#3ecfb2">Top Dither</div>
+        <div class="row">Mode 
+            <select id="tMode">
+                <option value="0">Off</option>
+                <option value="1">Noise</option>
+                <option value="2">H-Lines</option>
+                <option value="3">V-Lines</option>
+                <option value="4" selected>Crosshatch</option>
+            </select>
+        </div>
+        <div class="row">Ink Type 
+            <select id="tInkMode">
+                <option value="0" selected>Bright</option>
+                <option value="1">Color</option>
+            </select>
+        </div>
+        <div class="row" id="tBrightRow">Bright <input type="range" id="tBright" min="-100" max="100" value="100"></div>
+        <div class="row hidden" id="tColorRow">Ink Color <input type="color" id="tInkCol" value="#ffffff"></div>
+        <div class="row">Space <input type="range" id="tSpace" min="2" max="16" value="6"></div>
+        <div class="row">Thick <input type="range" id="tThick" min="1" max="6" value="1" step="0.5"></div>
+        <div class="row">Blend <input type="range" id="tAlpha" min="5" max="100" value="50"></div>
+
+        <div class="title" style="color:#c94b6e">Bottom Dither</div>
+        <div class="row">Mode 
+            <select id="bMode">
+                <option value="0">Off</option>
+                <option value="1" selected>Noise</option>
+                <option value="2">H-Lines</option>
+                <option value="3">V-Lines</option>
+                <option value="4">Crosshatch</option>
+            </select>
+        </div>
+        <div class="row">Ink Type 
+            <select id="bInkMode">
+                <option value="0" selected>Bright</option>
+                <option value="1">Color</option>
+            </select>
+        </div>
+        <div class="row" id="bBrightRow">Bright <input type="range" id="bBright" min="-100" max="100" value="-100"></div>
+        <div class="row hidden" id="bColorRow">Ink Color <input type="color" id="bInkCol" value="#000000"></div>
+        <div class="row">Space <input type="range" id="bSpace" min="2" max="16" value="4"></div>
+        <div class="row">Thick <input type="range" id="bThick" min="1" max="6" value="1" step="0.5"></div>
+        <div class="row">Blend <input type="range" id="bAlpha" min="5" max="100" value="70"></div>
+    </div>
+
+    <div class="hint">Left Click + Drag to Rotate • Scroll to Zoom</div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // 1. SCENE SETUP
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2('#0d0d10', 0.05);
+
+        const aspect = window.innerWidth / window.innerHeight;
+        const frustumSize = 12;
+        const camera = new THREE.OrthographicCamera(
+            frustumSize * aspect / -2, frustumSize * aspect / 2, 
+            frustumSize / 2, frustumSize / -2, 
+            1, 1000
+        );
+        camera.position.set(12, 12, 12);
+        camera.lookAt(scene.position);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // LIGHTING
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.75);
+        directionalLight.position.set(6, 12, 4);
+        scene.add(directionalLight);
+
+        const grid = new THREE.GridHelper(30, 30, 0x3ecfb2, 0x1f1f28);
+        grid.position.y = 0.0;
+        scene.add(grid);
+
+        // 2. REBUILT WEDGE GEOMETRY BUILDER (Fixed Phantom Faces & Hard Normals)
+        function createRampGeometry(w, h, l) {
+            const geometry = new THREE.BufferGeometry();
+            
+            const x0 = -w/2, x1 = w/2;
+            const y0 = 0,    y1 = h;
+            const z0 = -l/2, z1 = l/2;
+
+            // Strict CCW winding for a clean 5-faced right-triangular prism wedge
+            const vertices = new Float32Array([
+                // 1. Bottom Floor Face (2 triangles) - Facing downwards (-Y)
+                x0, y0, z1,   x1, y0, z1,   x0, y0, z0,
+                x1, y0, z1,   x1, y0, z0,   x0, y0, z0,
+
+                // 2. Vertical Back Wall Face (2 triangles) - Facing backward (-Z)
+                x0, y0, z0,   x1, y0, z0,   x0, y1, z0,
+                x1, y0, z0,   x1, y1, z0,   x0, y1, z0,
+
+                // 3. Sloped Top Face (2 triangles) - Slopes up from front (+Z) to back (-Z)
+                x0, y0, z1,   x0, y1, z0,   x1, y0, z1,
+                x1, y0, z1,   x0, y1, z0,   x1, y1, z0,
+
+                // 4. Left Side Triangle (1 triangle) - Facing outwards (-X)
+                x0, y0, z0,   x0, y1, z0,   x0, y0, z1,
+
+                // 5. Right Side Triangle (1 triangle) - Facing outwards (+X)
+                x1, y0, z1,   x1, y1, z0,   x1, y0, z0
+            ]);
+
+            // Map local positions directly to spatial UV channels
+            const uvs = new Float32Array([
+                // Bottom Face
+                0,1,  1,1,  0,0,
+                1,1,  1,0,  0,0,
+
+                // Back Face
+                0,0,  1,0,  0,1,
+                1,0,  1,1,  0,1,
+
+                // Sloped Top Face
+                0,1,  0,0,  1,1,
+                1,1,  0,0,  1,0,
+
+                // Left Side Face
+                0,0,  0,1,  1,0,
+
+                // Right Side Face
+                1,0,  1,1,  0,0
+            ]);
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+            geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+            
+            // Recompute smooth face directions based on independent, split vertices
+            geometry.computeVertexNormals();
+
+            return geometry;
+        }
+
+        // 3. SHADER UNIFORMS
+        const customUniforms = {
+            colorA: { value: new THREE.Color('#3ecfb2') },
+            colorB: { value: new THREE.Color('#c94b6e') },
+            splitY: { value: 0.5 },
+            isSingleColor: { value: 0 },
+            
+            // Top Dither
+            tMode: { value: 4 }, 
+            tInkMode: { value: 0 }, 
+            tInkColor: { value: new THREE.Color('#ffffff') },
+            tSpace: { value: 6.0 }, 
+            tThick: { value: 1.0 }, 
+            tBright: { value: 1.0 }, 
+            tAlpha: { value: 0.5 },
+            
+            // Bottom Dither
+            bMode: { value: 1 }, 
+            bInkMode: { value: 0 }, 
+            bInkColor: { value: new THREE.Color('#000000') },
+            bSpace: { value: 4.0 }, 
+            bThick: { value: 1.0 }, 
+            bBright: { value: -1.0 }, 
+            bAlpha: { value: 0.7 }
+        };
+
+        // 4. MATERIAL WITH CUSTOM INK SHADER COMPILATION
+        const material = new THREE.MeshStandardMaterial({ roughness: 0.85, metalness: 0.05 });
+
+        material.onBeforeCompile = (shader) => {
+            for (const [key, uniform] of Object.entries(customUniforms)) {
+                shader.uniforms[key] = uniform;
+            }
+
+            shader.vertexShader = `
+                varying vec3 vLocalPos;
+                varying vec2 myUv;
+                ${shader.vertexShader}
+            `.replace(
+                `#include <begin_vertex>`,
+                `#include <begin_vertex>
+                 vLocalPos = position;
+                 myUv = uv;`
+            );
+
+            shader.fragmentShader = `
+                uniform vec3 colorA; uniform vec3 colorB; uniform float splitY; uniform int isSingleColor;
+                
+                uniform int tMode; uniform int tInkMode; uniform vec3 tInkColor; uniform float tSpace; uniform float tThick; uniform float tBright; uniform float tAlpha;
+                uniform int bMode; uniform int bInkMode; uniform vec3 bInkColor; uniform float bSpace; uniform float bThick; uniform float bBright; uniform float bAlpha;
+
+                varying vec3 vLocalPos;
+                varying vec2 myUv;
+                ${shader.fragmentShader}
+            `;
+
+            // Step A: Base Color Split
+            shader.fragmentShader = shader.fragmentShader.replace(
+                `vec4 diffuseColor = vec4( diffuse, opacity );`,
+                `
+                bool isTop = (isSingleColor == 1) ? true : (vLocalPos.y > splitY);
+                vec3 splitBase = isTop ? colorA : colorB;
+                vec4 diffuseColor = vec4( splitBase, opacity );
+                `
+            );
+
+            // Step B: Direct Screen-Space/Local Dither Mapping Layer
+            shader.fragmentShader = shader.fragmentShader.replace(
+                `#include <dithering_fragment>`,
+                `#include <dithering_fragment>
+
+                int dMode = isTop ? tMode : bMode;
+                int dInkMode = isTop ? tInkMode : bInkMode;
+                vec3 dInkColor = isTop ? tInkColor : bInkColor;
+                float dSpace = isTop ? tSpace : bSpace;
+                float dThick = isTop ? tThick : bThick;
+                float dBright = isTop ? tBright : bBright;
+                float dAlpha = isTop ? tAlpha : bAlpha;
+
+                if (dMode > 0) {
+                    bool isDither = false;
+                    
+                    vec2 projectedCoords = vec2(vLocalPos.x + vLocalPos.z, vLocalPos.y - vLocalPos.z * 0.5);
+                    vec2 scaledUv = projectedCoords * (100.0 / dSpace);
+                    float lineThreshold = dThick / dSpace;
+
+                    if (dMode == 1) { 
+                        vec2 gridUv = floor(scaledUv);
+                        float noise = fract(sin(dot(gridUv, vec2(12.9898, 78.233))) * 43758.5453);
+                        isDither = noise > 0.5;
+                    } else if (dMode == 2) { 
+                        isDither = fract(scaledUv.y) < lineThreshold;
+                    } else if (dMode == 3) { 
+                        isDither = fract(scaledUv.x) < lineThreshold;
+                    } else if (dMode == 4) { 
+                        isDither = (fract(scaledUv.y) < lineThreshold) || (fract(scaledUv.x) < lineThreshold);
+                    }
+
+                    if (isDither) {
+                        vec3 targetCol;
+                        if (dInkMode == 1) {
+                            vec3 lightingFactor = gl_FragColor.rgb / max(splitBase, vec3(0.001));
+                            targetCol = dInkColor * lightingFactor;
+                        } else {
+                            vec3 brightShift = dBright > 0.0 ? vec3(1.0) : vec3(0.0);
+                            targetCol = mix(gl_FragColor.rgb, brightShift, abs(dBright));
+                        }
+                        gl_FragColor.rgb = mix(gl_FragColor.rgb, targetCol, dAlpha);
+                    }
+                }
+                `
+            );
+        };
+
+        // 5. OBJECT CONTAINERS & INITIALIZATION
+        const rampGroup = new THREE.Group();
+        scene.add(rampGroup);
+
+        let currentMesh = null;
+        let currentEdges = null;
+
+        function updateRampMesh() {
+            const w = parseFloat(document.getElementById('sizeX').value);
+            const h = parseFloat(document.getElementById('sizeY').value);
+            const l = parseFloat(document.getElementById('sizeZ').value);
+            const rotDeg = parseFloat(document.getElementById('rampRot').value);
+
+            if (currentMesh) {
+                rampGroup.remove(currentMesh);
+                currentMesh.geometry.dispose();
+                if (currentEdges) currentEdges.geometry.dispose();
+            }
+
+            const newGeom = createRampGeometry(w, h, l);
+            currentMesh = new THREE.Mesh(newGeom, material);
+            
+            const edgesGeom = new THREE.EdgesGeometry(newGeom);
+            const edgesMat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+            currentEdges = new THREE.LineSegments(edgesGeom, edgesMat);
+            currentMesh.add(currentEdges);
+
+            currentMesh.position.y = 0;
+            rampGroup.rotation.y = THREE.MathUtils.degToRad(rotDeg);
+            
+            rampGroup.add(currentMesh);
+
+            const splitSliderVal = parseFloat(document.getElementById('split').value);
+            customUniforms.splitY.value = (h * 0.5) + (splitSliderVal / 100) * h;
+        }
+
+        // Initialize setup
+        updateRampMesh();
+
+        // 6. UI EVENT LISTENERS
+        document.getElementById('sizeX').addEventListener('change', updateRampMesh);
+        document.getElementById('sizeY').addEventListener('change', updateRampMesh);
+        document.getElementById('sizeZ').addEventListener('change', updateRampMesh);
+        document.getElementById('rampRot').addEventListener('change', updateRampMesh);
+
+        document.getElementById('singleColor').addEventListener('change', e => {
+            const checked = e.target.checked;
+            customUniforms.isSingleColor.value = checked ? 1 : 0;
+            document.getElementById('row-colB').classList.toggle('hidden', checked);
+            document.getElementById('row-split').classList.toggle('hidden', checked);
+        });
+
+        document.getElementById('colA').addEventListener('input', e => customUniforms.colorA.value.set(e.target.value));
+        document.getElementById('colB').addEventListener('input', e => customUniforms.colorB.value.set(e.target.value));
+        document.getElementById('split').addEventListener('input', e => {
+            const h = parseFloat(document.getElementById('sizeY').value);
+            customUniforms.splitY.value = (h * 0.5) + (e.target.value / 100) * h;
+        });
+        
+        // Top Listeners
+        document.getElementById('tMode').addEventListener('change', e => customUniforms.tMode.value = parseInt(e.target.value));
+        document.getElementById('tInkMode').addEventListener('change', e => {
+            const val = parseInt(e.target.value);
+            customUniforms.tInkMode.value = val;
+            document.getElementById('tBrightRow').classList.toggle('hidden', val === 1);
+            document.getElementById('tColorRow').classList.toggle('hidden', val === 0);
+        });
+        document.getElementById('tInkCol').addEventListener('input', e => customUniforms.tInkColor.value.set(e.target.value));
+        document.getElementById('tSpace').addEventListener('input', e => customUniforms.tSpace.value = parseFloat(e.target.value));
+        document.getElementById('tThick').addEventListener('input', e => customUniforms.tThick.value = parseFloat(e.target.value));
+        document.getElementById('tBright').addEventListener('input', e => customUniforms.tBright.value = parseFloat(e.target.value) / 100);
+        document.getElementById('tAlpha').addEventListener('input', e => customUniforms.tAlpha.value = parseFloat(e.target.value) / 100);
+
+        // Bottom Listeners
+        document.getElementById('bMode').addEventListener('change', e => customUniforms.bMode.value = parseInt(e.target.value));
+        document.getElementById('bInkMode').addEventListener('change', e => {
+            const val = parseInt(e.target.value);
+            customUniforms.bInkMode.value = val;
+            document.getElementById('bBrightRow').classList.toggle('hidden', val === 1);
+            document.getElementById('bColorRow').classList.toggle('hidden', val === 0);
+        });
+        document.getElementById('bInkCol').addEventListener('input', e => customUniforms.bInkColor.value.set(e.target.value));
+        document.getElementById('bSpace').addEventListener('input', e => customUniforms.bSpace.value = parseFloat(e.target.value));
+        document.getElementById('bThick').addEventListener('input', e => customUniforms.bThick.value = parseFloat(e.target.value));
+        document.getElementById('bBright').addEventListener('input', e => customUniforms.bBright.value = parseFloat(e.target.value) / 100);
+        document.getElementById('bAlpha').addEventListener('input', e => customUniforms.bAlpha.value = parseFloat(e.target.value) / 100);
+
+        window.addEventListener('resize', () => {
+            const aspect = window.innerWidth / window.innerHeight;
+            camera.left = -frustumSize * aspect / 2;
+            camera.right = frustumSize * aspect / 2;
+            camera.top = frustumSize / 2;
+            camera.bottom = -frustumSize / 2;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+    </script>
+</body>
+</html>

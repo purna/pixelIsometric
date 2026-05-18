@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Isometric Two-Tone Cube</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #111116;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Courier New', monospace;
+    gap: 44px;
+  }
+  h1 { font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase; color: #3a3a3a; font-weight: 400; }
+  canvas { display: block; }
+  .controls { display: flex; flex-direction: column; gap: 16px; width: 320px; }
+  .row { display: flex; align-items: center; gap: 12px; }
+  .lbl { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #444; width: 84px; flex-shrink: 0; }
+  .swatch {
+    width: 26px; height: 26px; border-radius: 4px;
+    border: 1px solid #222; cursor: pointer;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .swatch input[type=color] {
+    position: absolute; inset: -6px;
+    opacity: 0; cursor: pointer; width: 150%; height: 150%;
+  }
+  input[type=range] {
+    flex: 1; -webkit-appearance: none; appearance: none;
+    height: 2px; background: #1c1c1c; border-radius: 2px; outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 13px; height: 13px; border-radius: 50%;
+    background: #ccc; cursor: pointer;
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 13px; height: 13px; border-radius: 50%;
+    background: #ccc; cursor: pointer; border: none;
+  }
+  .val { font-size: 10px; color: #3a3a3a; width: 34px; text-align: right; }
+  .sep { border: none; border-top: 1px solid #1c1c1c; }
+</style>
+</head>
+<body>
+
+<h1>Isometric · Two-Tone Shader</h1>
+
+<canvas id="c" width="480" height="380"></canvas>
+
+<div class="controls">
+  <div class="row">
+    <span class="lbl">Top colour</span>
+    <div class="swatch" id="swA" style="background:#3ecfb2">
+      <input type="color" id="colA" value="#3ecfb2">
+    </div>
+  </div>
+  <div class="row">
+    <span class="lbl">Bot colour</span>
+    <div class="swatch" id="swB" style="background:#c94b6e">
+      <input type="color" id="colB" value="#c94b6e">
+    </div>
+  </div>
+  <hr class="sep">
+  <div class="row">
+    <span class="lbl">Split</span>
+    <input type="range" id="split" min="0" max="100" value="50">
+    <span class="val" id="splitV">50%</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Size</span>
+    <input type="range" id="size" min="40" max="115" value="85">
+    <span class="val" id="sizeV">85</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Rotate</span>
+    <input type="range" id="rot" min="0" max="3" value="0" step="1">
+    <span class="val" id="rotV">0°</span>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+
+let colorA   = '#3ecfb2';
+let colorB   = '#c94b6e';
+let splitPct = 0.5;   // 0 = all colorA, 1 = all colorB
+let tileSize = 85;
+let rotStep  = 0;
+
+// ── colour helpers ────────────────────────────────────────────────────────────
+function hexToRgb(h) {
+  return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
+}
+function shaded(hex, f) {
+  const [r,g,b] = hexToRgb(hex);
+  return `rgb(${Math.min(255,r*f|0)},${Math.min(255,g*f|0)},${Math.min(255,b*f|0)})`;
+}
+
+// ── transforms ────────────────────────────────────────────────────────────────
+// Rotate vertex [x,y,z] around cube centre (0.5,0.5) n steps of 90 deg CW
+function rotVert([x,y,z], n) {
+  for (let i=0;i<n;i++) [x,y] = [1-y, x];
+  return [x,y,z];
+}
+// Rotate a direction vector (pure rotation, no translation)
+function rotDir([nx,ny,nz], n) {
+  let x=nx, y=ny;
+  for (let i=0;i<n;i++) [x,y] = [-y, x];
+  return [x,y,nz];
+}
+// Standard isometric projection
+function isoProj([x,y,z], S, cx,cy) {
+  return [ cx + (x-y)*S,  cy + (x+y)*0.5*S - z*S ];
+}
+
+// ── drawing ───────────────────────────────────────────────────────────────────
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const cx = canvas.width  / 2;
+  const cy = canvas.height / 2 + tileSize * 0.2;
+  drawCube(cx, cy, tileSize);
+}
+
+function drawCube(cx, cy, S) {
+  // Clamp so we never land exactly on 0 or 1 (avoids degenerate edge cases)
+  const splitZ = Math.max(0.001, Math.min(0.999, splitPct));
+
+  // Unit cube vertices (z=0 bottom, z=1 top)
+  const base = [
+    [0,0,1],[1,0,1],[1,1,1],[0,1,1],   // 0-3  top ring
+    [0,0,0],[1,0,0],[1,1,0],[0,1,0],   // 4-7  bottom ring
+  ];
+  const rv = base.map(v => rotVert(v, rotStep));
+
+  // Project rotated 3-D point to screen
+  const proj = v => isoProj(v, S, cx, cy);
+
+  // All 6 faces: vertex indices, outward normal, face light multiplier
+  const allFaces = [
+    { vi:[0,1,2,3], n:[ 0, 0, 1], light:1.12 },  // top
+    { vi:[7,6,5,4], n:[ 0, 0,-1], light:0.50 },  // bottom (hidden)
+    { vi:[3,2,6,7], n:[ 0, 1, 0], light:0.72 },  // y=1 side
+    { vi:[4,5,1,0], n:[ 0,-1, 0], light:0.55 },  // y=0 side (hidden)
+    { vi:[1,5,6,2], n:[ 1, 0, 0], light:0.88 },  // x=1 side
+    { vi:[0,3,7,4], n:[-1, 0, 0], light:0.65 },  // x=0 side (hidden)
+  ];
+
+  // Camera direction in isometric space is (1,1,1).
+  // Keep faces whose rotated normal has a positive dot product with it.
+  const visible = allFaces.filter(f => {
+    const [nx,ny,nz] = rotDir(f.n, rotStep);
+    return nx + ny + nz > 0;
+  });
+
+  // Draw order: side faces first, top face last (painter's algorithm)
+  visible.sort((a,b) => (a.n[2]===1 ? 1 : 0) - (b.n[2]===1 ? 1 : 0));
+
+  visible.forEach(({ vi, light }) => {
+    drawFace(vi.map(i => rv[i]), light, splitZ, proj);
+  });
+}
+
+/**
+ * drawFace
+ * Clips the face polygon at the 3-D horizontal plane z = splitZ.
+ * Upper half (z > splitZ) → colorA, lower half → colorB.
+ * The seam between them is computed in 3-D then projected, so it
+ * correctly follows the isometric angle on every face.
+ */
+function drawFace(verts3d, light, splitZ, proj) {
+  const zs   = verts3d.map(v => v[2]);
+  const maxZ = Math.max(...zs);
+  const minZ = Math.min(...zs);
+  const n    = verts3d.length;
+
+  function fill(pts3d, color) {
+    if (pts3d.length < 3) return;
+    const pts = pts3d.map(proj);
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.closePath();
+    ctx.fillStyle = shaded(color, light);
+    ctx.fill();
+  }
+
+  function outline(pts3d) {
+    if (pts3d.length < 2) return;
+    const pts = pts3d.map(proj);
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(0,0,0,0.38)';
+    ctx.lineWidth   = 1.5;
+    ctx.setLineDash([]);
+    ctx.stroke();
+  }
+
+  // 3-D crossing point where edge a→b intersects z = splitZ
+  function cross(a, b) {
+    const t = (splitZ - a[2]) / (b[2] - a[2]);
+    return [ a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, splitZ ];
+  }
+
+  // ── trivial cases ─────────────────────────────────────────────────────────
+  if (splitZ >= maxZ) { fill(verts3d, colorB); outline(verts3d); return; }
+  if (splitZ <= minZ) { fill(verts3d, colorA); outline(verts3d); return; }
+
+  // ── polygon clipping at z = splitZ ────────────────────────────────────────
+  // Walk vertices in winding order, routing each to upper or lower bucket.
+  // When an edge crosses the split plane, insert the crossing point into both.
+  const upper = [];   // z > splitZ  → colorA
+  const lower = [];   // z ≤ splitZ  → colorB
+  const seam  = [];   // the two edge-crossing points that form the split line
+
+  for (let i=0; i<n; i++) {
+    const a   = verts3d[i];
+    const b   = verts3d[(i+1) % n];
+    const aUp = a[2] > splitZ;
+    const bUp = b[2] > splitZ;
+
+    if (aUp) upper.push(a); else lower.push(a);
+
+    if (aUp !== bUp) {        // edge crosses the split plane
+      const cp = cross(a, b);
+      upper.push(cp);
+      lower.push(cp);
+      seam.push(cp);
+    }
+  }
+
+  fill(upper, colorA);
+  fill(lower, colorB);
+
+  // Draw the seam in 3-D-projected space — this is what gives the correct angle
+  if (seam.length === 2) {
+    const [p0, p1] = seam.map(proj);
+    ctx.beginPath();
+    ctx.moveTo(p0[0], p0[1]);
+    ctx.lineTo(p1[0], p1[1]);
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+    ctx.lineWidth   = 1.5;
+    ctx.setLineDash([]);
+    ctx.stroke();
+  }
+
+  outline(verts3d);
+}
+
+// ── controls ──────────────────────────────────────────────────────────────────
+document.getElementById('colA').addEventListener('input', e => {
+  colorA = e.target.value;
+  document.getElementById('swA').style.background = colorA;
+  draw();
+});
+document.getElementById('colB').addEventListener('input', e => {
+  colorB = e.target.value;
+  document.getElementById('swB').style.background = colorB;
+  draw();
+});
+document.getElementById('split').addEventListener('input', e => {
+  splitPct = e.target.value / 100;
+  document.getElementById('splitV').textContent = e.target.value + '%';
+  draw();
+});
+document.getElementById('size').addEventListener('input', e => {
+  tileSize = +e.target.value;
+  document.getElementById('sizeV').textContent = e.target.value;
+  draw();
+});
+document.getElementById('rot').addEventListener('input', e => {
+  rotStep = +e.target.value;
+  document.getElementById('rotV').textContent = (rotStep * 90) + '°';
+  draw();
+});
+
+draw();
+</script>
+</body>
+</html>

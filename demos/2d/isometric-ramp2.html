@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Isometric · Procedural Ramp & Solid Colors</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #111116;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Courier New', monospace;
+  gap: 20px;
+  color: #888;
+  padding: 20px 0;
+}
+h1 { font-size: 10px; letter-spacing: 0.26em; text-transform: uppercase; color: #6a6a80; font-weight: 400; }
+canvas { display: block; cursor: grab; touch-action: none; background: #111116; border-radius: 4px;}
+canvas.dragging { cursor: grabbing; }
+.hint { font-size: 10px; letter-spacing: 0.08em; color: #4a4a5a; }
+.ctrl { display: flex; flex-direction: column; gap: 11px; width: 380px; max-height: 85vh; overflow-y: auto; padding-right: 5px; }
+.ctrl::-webkit-scrollbar { width: 4px; }
+.ctrl::-webkit-scrollbar-thumb { background: #2a2a38; border-radius: 2px; }
+.row { display: flex; align-items: center; gap: 10px; }
+.lbl { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #6a6a7a; width: 100px; flex-shrink: 0; }
+.sw { width: 22px; height: 22px; border-radius: 4px; border: 1px solid #2a2a38; cursor: pointer; position: relative; overflow: hidden; flex-shrink: 0; }
+.sw input[type=color] { position: absolute; inset: -6px; opacity: 0; cursor: pointer; width: 150%; height: 150%; }
+input[type=range] { flex: 1; -webkit-appearance: none; appearance: none; height: 2px; background: #1c1c26; border-radius: 2px; outline: none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; background: #5a5a72; cursor: pointer; }
+input[type=range]::-moz-range-thumb { width: 13px; height: 13px; border-radius: 50%; background: #5a5a72; cursor: pointer; border: none; }
+.val { font-size: 10px; color: #7a7a90; width: 44px; text-align: right; }
+.sep { border: none; border-top: 1px solid #1f1f28; margin: 4px 0; }
+.seg { display: flex; border: 1px solid #222; border-radius: 5px; overflow: hidden; flex: 1; }
+.seg button { flex: 1; padding: 5px 0; font-size: 10px; font-family: 'Courier New', monospace; letter-spacing: 0.06em; background: transparent; border: none; border-right: 1px solid #1e1e28; color: #5a5a6e; cursor: pointer; text-transform: uppercase; }
+.seg button:last-child { border-right: none; }
+.seg button.active { background: #1c1c26; color: #9a9ab2; }
+.dl { display: inline-flex; align-items: center; gap: 8px; font-size: 10px; font-family: 'Courier New', monospace; letter-spacing: 0.12em; text-transform: uppercase; color: #6a6a80; text-decoration: none; padding: 8px 18px; border: 1px solid #2a2a38; border-radius: 5px; cursor: pointer; background: transparent; }
+.dl:hover { background: #16161e; color: #9a9ab2; }
+.dl svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.btn-rot { padding: 5px 10px; font-size: 9px; font-family: 'Courier New', monospace; background: transparent; border: 1px solid #2a2a38; border-radius: 4px; color: #7a7a90; cursor: pointer; text-transform: uppercase; transition: background 0.15s; }
+.btn-rot:hover { background: #1c1c26; color: #9a9ab2; }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<h1>Isometric · Procedural Ramp · Solid Colors</h1>
+<canvas id="c" width="560" height="440"></canvas>
+<p class="hint">Drag the ramp bounding base to reposition it on the grid</p>
+
+<div class="ctrl">
+  <div class="row">
+    <span class="lbl">Top Base</span>
+    <div class="sw" id="swA" style="background:#3ecfb2"><input type="color" id="colA" value="#3ecfb2"></div>
+    <span class="lbl" style="margin-left: 20px; width: 80px;">Bottom Base</span>
+    <div class="sw" id="swB" style="background:#c94b6e"><input type="color" id="colB" value="#c94b6e"></div>
+  </div>
+
+  <hr class="sep">
+  <div class="row">
+    <span class="lbl" style="color: #9a9ab2;">Ramp Units</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Length (X)</span>
+    <input type="range" id="rampLen" min="1" max="5" value="3" step="1">
+    <span class="val" id="rampLenV">3</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Width (Y)</span>
+    <input type="range" id="rampWid" min="1" max="5" value="2" step="1">
+    <span class="val" id="rampWidV">2</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Height (Z)</span>
+    <input type="range" id="rampHgt" min="1" max="4" value="2" step="1">
+    <span class="val" id="rampHgtV">2</span>
+  </div>
+
+  <hr class="sep">
+  <div class="row">
+    <span class="lbl">Split Height</span>
+    <input type="range" id="split" min="0" max="100" value="50" step="1">
+    <span class="val" id="splitV">50%</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Scale size</span>
+    <input type="range" id="size" min="24" max="64" value="42" step="1">
+    <span class="val" id="sizeV">42</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Grid Area</span>
+    <input type="range" id="gridN" min="4" max="12" value="9" step="1">
+    <span class="val" id="gridV">9×9</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Rotate Ramp</span>
+    <div style="display: flex; gap: 6px; flex: 1;">
+      <button class="btn-rot" id="rotCCW">⟲ CCW</button>
+      <button class="btn-rot" id="rotCW">⟳ CW</button>
+    </div>
+    <span class="val" id="rotV" style="width: auto; min-width: 35px;">0°</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Outline</span>
+    <div class="seg" id="outlineSeg">
+      <button class="active" data-v="on">On</button>
+      <button data-v="off">Off</button>
+    </div>
+  </div>
+  
+  <hr class="sep">
+  <div class="row"><span class="lbl" style="color:#3ecfb2;font-size:9px;letter-spacing:.18em;opacity:0.85">TOP SURFACE TREATMENT</span></div>
+  <div class="row">
+    <span class="lbl">Mode</span>
+    <div class="seg" id="tDitherSeg">
+      <button data-v="none">Off</button>
+      <button data-v="solid">Solid Col</button>
+      <button data-v="random">Noise</button>
+      <button data-v="h">H</button>
+      <button data-v="v">V</button>
+      <button class="active" data-v="hv">Cross</button>
+    </div>
+  </div>
+  <div class="row" id="tInkTypeRow">
+    <span class="lbl">Ink type</span>
+    <div class="seg" id="tInkTypeSeg">
+      <button class="active" data-v="bright">Bright</button>
+      <button data-v="color">Color</button>
+    </div>
+  </div>
+  <div class="row" id="tBrightRow">
+    <span class="lbl">Bright</span>
+    <input type="range" id="tBright" min="-100" max="100" value="100">
+    <span class="val" id="tBrightV">100</span>
+  </div>
+  <div class="row hidden" id="tColorRow">
+    <span class="lbl">Ink Color</span>
+    <div class="sw" id="swTInk" style="background:#ffffff"><input type="color" id="tInkCol" value="#ffffff"></div>
+  </div>
+  <div id="tDitherControls" style="display: contents;">
+    <div class="row">
+      <span class="lbl">Space</span>
+      <input type="range" id="tSpace" min="2" max="16" value="6" step="1">
+      <span class="val" id="tSpaceV">6</span>
+    </div>
+    <div class="row">
+      <span class="lbl">Thick</span>
+      <input type="range" id="tThick" min="1" max="6" value="1" step="0.5">
+      <span class="val" id="tThickV">1</span>
+    </div>
+  </div>
+  <div class="row">
+    <span class="lbl">Blend</span>
+    <input type="range" id="tBlend" min="5" max="100" value="50">
+    <span class="val" id="tBlendV">50%</span>
+  </div>
+  
+  <hr class="sep">
+  <div class="row"><span class="lbl" style="color:#c94b6e;font-size:9px;letter-spacing:.18em;opacity:0.85">BOT SURFACE TREATMENT</span></div>
+  <div class="row">
+    <span class="lbl">Mode</span>
+    <div class="seg" id="bDitherSeg">
+      <button data-v="none">Off</button>
+      <button data-v="solid">Solid Col</button>
+      <button class="active" data-v="random">Noise</button>
+      <button data-v="h">H</button>
+      <button data-v="v">V</button>
+      <button data-v="hv">Cross</button>
+    </div>
+  </div>
+  <div class="row" id="bInkTypeRow">
+    <span class="lbl">Ink type</span>
+    <div class="seg" id="bInkTypeSeg">
+      <button class="active" data-v="bright">Bright</button>
+      <button data-v="color">Color</button>
+    </div>
+  </div>
+  <div class="row" id="bBrightRow">
+    <span class="lbl">Bright</span>
+    <input type="range" id="bBright" min="-100" max="100" value="-100">
+    <span class="val" id="bBrightV">-100</span>
+  </div>
+  <div class="row hidden" id="bColorRow">
+    <span class="lbl">Ink Color</span>
+    <div class="sw" id="swBInk" style="background:#000000"><input type="color" id="bInkCol" value="#000000"></div>
+  </div>
+  <div id="bDitherControls" style="display: contents;">
+    <div class="row">
+      <span class="lbl">Space</span>
+      <input type="range" id="bSpace" min="2" max="16" value="4" step="1">
+      <span class="val" id="bSpaceV">4</span>
+    </div>
+    <div class="row">
+      <span class="lbl">Thick</span>
+      <input type="range" id="bThick" min="1" max="6" value="1" step="0.5">
+      <span class="val" id="bThickV">1</span>
+    </div>
+  </div>
+  <div class="row">
+    <span class="lbl">Blend</span>
+    <input type="range" id="bBlend" min="5" max="100" value="70">
+    <span class="val" id="bBlendV">70%</span>
+  </div>
+  
+  <hr class="sep">
+  <div class="row" style="justify-content:center">
+    <button class="dl" id="dlBtn">
+      <svg viewBox="0 0 24 24"><path d="M12 3v13m0 0-4-4m4 4 4-4M3 21h18"/></svg>
+      Download PNG
+    </button>
+    <button class="dl" id="dlHtml" style="margin-left:8px">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Download HTML
+    </button>
+  </div>
+</div>
+
+<script>
+(function(){
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+
+let colorA   = '#3ecfb2';
+let colorB   = '#c94b6e';
+let splitPct = 0.5;
+let S        = 42;
+let rotStep  = 0; 
+let GRID     = 9;
+let showOutline = true;
+
+let rLen = 3;
+let rWid = 2;
+let rHgt = 2;
+
+let topDither = { mode: 'hv',     inkMode: 'bright', inkColor: '#ffffff', space: 6, thick: 1, bright:  1.0, alpha: 0.5 };
+let botDither = { mode: 'random', inkMode: 'bright', inkColor: '#000000', space: 4, thick: 1, bright: -1.0, alpha: 0.7 };
+
+let cubeCol = 1, cubeRow = 1;
+let dragActive = false, ghostCol = 1, ghostRow = 1;
+
+function hexToRgb(h) {
+  return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
+}
+function shaded(hex, f) {
+  const [r,g,b] = hexToRgb(hex);
+  return `rgb(${Math.min(255,r*f|0)},${Math.min(255,g*f|0)},${Math.min(255,b*f|0)})`;
+}
+function shadedRgb(hex, f) {
+  const [r,g,b] = hexToRgb(hex);
+  return [Math.min(255,r*f|0), Math.min(255,g*f|0), Math.min(255,b*f|0)];
+}
+
+function ditherStroke(baseHex, lightFactor, dParams) {
+  let dr, dg, db;
+  if (dParams.inkMode === 'color' || dParams.mode === 'solid') {
+    [dr, dg, db] = shadedRgb(dParams.inkColor, lightFactor);
+  } else {
+    const [r,g,b] = shadedRgb(baseHex, lightFactor);
+    if (dParams.bright >= 0) {
+      const t = dParams.bright;
+      dr = (r + (255-r)*t)|0; dg = (g + (255-g)*t)|0; db = (b + (255-b)*t)|0;
+    } else {
+      const t = -dParams.bright;
+      dr = (r*(1-t))|0; dg = (g*(1-t))|0; db = (b*(1-t))|0;
+    }
+  }
+  return `rgba(${dr},${dg},${db},${dParams.alpha})`;
+}
+
+function isoProj([x,y,z], sc, cx, cy) {
+  return [cx+(x-y)*sc, cy+(x+y)*0.5*sc-z*sc];
+}
+
+function canvasCX() { return canvas.width/2; }
+function canvasCY() { return canvas.height/2 + (GRID * S * 0.25) - (rHgt * S * 0.3); }
+
+function drawHatchLines(verts3d, uAxis, vAxis, origin3d, uLen, vLen, drawU, drawV, proj, color, light, dParams) {
+  const period = Math.max(0.001, (dParams.space + dParams.thick) / S);
+  const start  = (dParams.thick * 0.5) / S;
+  ctx.strokeStyle = ditherStroke(color, light, dParams);
+  ctx.lineWidth   = dParams.thick;
+  ctx.setLineDash([]);
+
+  if (drawV) {
+    for (let t = start; t < 1.05; t += period) {
+      const a3 = [
+        origin3d[0] + uAxis[0]*t*uLen + vAxis[0]*0,
+        origin3d[1] + uAxis[1]*t*uLen + vAxis[1]*0,
+        origin3d[2] + uAxis[2]*t*uLen + vAxis[2]*0,
+      ];
+      const b3 = [
+        origin3d[0] + uAxis[0]*t*uLen + vAxis[0]*vLen,
+        origin3d[1] + uAxis[1]*t*uLen + vAxis[1]*vLen,
+        origin3d[2] + uAxis[2]*t*uLen + vAxis[2]*vLen,
+      ];
+      const a2 = proj(a3), b2 = proj(b3);
+      ctx.beginPath(); ctx.moveTo(a2[0], a2[1]); ctx.lineTo(b2[0], b2[1]); ctx.stroke();
+    }
+  }
+
+  if (drawU) {
+    for (let t = start; t < 1.05; t += period) {
+      const a3 = [
+        origin3d[0] + uAxis[0]*0      + vAxis[0]*t*vLen,
+        origin3d[1] + uAxis[1]*0      + vAxis[1]*t*vLen,
+        origin3d[2] + uAxis[2]*0      + vAxis[2]*t*vLen,
+      ];
+      const b3 = [
+        origin3d[0] + uAxis[0]*uLen  + vAxis[0]*t*vLen,
+        origin3d[1] + uAxis[1]*uLen  + vAxis[1]*t*vLen,
+        origin3d[2] + uAxis[2]*uLen  + vAxis[2]*t*vLen,
+      ];
+      const a2 = proj(a3), b2 = proj(b3);
+      ctx.beginPath(); ctx.moveTo(a2[0], a2[1]); ctx.lineTo(b2[0], b2[1]); ctx.stroke();
+    }
+  }
+}
+
+function drawRandomDither(verts3d, proj, color, light, dParams) {
+  const pts2d = verts3d.map(proj);
+  const xs = pts2d.map(p=>p[0]), ys = pts2d.map(p=>p[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+
+  let seed = 0xdeadbeef;
+  function rand() { seed = (seed*1664525+1013904223)&0xffffffff; return (seed>>>0)/0xffffffff; }
+
+  const step = dParams.space;
+  ctx.fillStyle = ditherStroke(color, light, dParams);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(pts2d[0][0], pts2d[0][1]);
+  for(let i=1;i<pts2d.length;i++) ctx.lineTo(pts2d[i][0], pts2d[i][1]);
+  ctx.closePath();
+  ctx.clip();
+
+  for(let sy = minY; sy < maxY; sy += step) {
+    for(let sx = minX; sx < maxX; sx += step) {
+      if(rand() > 0.5) ctx.fillRect(sx, sy, dParams.thick, dParams.thick);
+    }
+  }
+  ctx.restore();
+}
+
+function drawSolidColorOverride(verts3d, proj, color, light, dParams) {
+  const pts2d = verts3d.map(proj);
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(pts2d[0][0], pts2d[0][1]);
+  for(let i=1;i<pts2d.length;i++) ctx.lineTo(pts2d[i][0], pts2d[i][1]);
+  ctx.closePath();
+  ctx.fillStyle = ditherStroke(color, light, dParams);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawRamp(baseCol, baseRow, alpha) {
+  const ox = canvasCX(), oy = canvasCY();
+  ctx.globalAlpha = alpha;
+
+  const splitZ = Math.max(0.001, Math.min(rHgt - 0.001, splitPct * rHgt));
+  const proj = v => isoProj(v, S, ox, oy);
+
+  const localVertices = [
+    [0,    0,    0],    
+    [rLen, 0,    0],    
+    [rLen, rWid, 0],    
+    [0,    rWid, 0],    
+    [0,    0,    rHgt], 
+    [0,    rWid, rHgt]  
+  ];
+
+  const rotatedVertices = localVertices.map(([lx, ly, lz]) => {
+    let rx = lx, ry = ly;
+    if (rotStep === 1) { 
+      rx = rWid - ly; ry = lx;
+    } else if (rotStep === 2) { 
+      rx = rLen - lx; ry = rWid - ly;
+    } else if (rotStep === 3) { 
+      rx = ly; ry = rLen - lx;
+    }
+    return [rx + baseCol, ry + baseRow, lz];
+  });
+
+  const faces = [
+    { name: 'bottom', vi: [3, 2, 1, 0],    light: 0.45,  isSlope: false, u:[1,0,0],  v:[0,1,0],  ori:localVertices[0] },
+    { name: 'back',   vi: [0, 1, 4],       light: 0.60,  isSlope: false, u:[1,0,0],  v:[0,0,1],  ori:localVertices[0] }, 
+    { name: 'front',  vi: [2, 3, 5],       light: 0.85,  isSlope: false, u:[-1,0,0], v:[0,0,1],  ori:localVertices[2] }, 
+    { name: 'backEnd',vi: [0, 4, 5, 3],    light: 0.70,  isSlope: false, u:[0,1,0],  v:[0,0,1],  ori:localVertices[0] }, 
+    { name: 'slope',  vi: [1, 2, 5, 4],    light: 1.10,  isSlope: true,  u:[0,1,0],  v:[-rLen,0,rHgt], ori:localVertices[1] } 
+  ];
+
+  const processedFaces = faces.map(f => {
+    const worldVerts = f.vi.map(i => rotatedVertices[i]);
+    let cx = 0, cy = 0, cz = 0;
+    worldVerts.forEach(([vx, vy, vz]) => { cx += vx; cy += vy; cz += vz; });
+    const count = worldVerts.length;
+    const depth = (cx / count) + (cy / count) * 1.0 + (cz / count) * 0.01;
+    return { ...f, worldVerts, depth };
+  });
+
+  processedFaces.sort((a, b) => a.depth - b.depth);
+
+  processedFaces.forEach(f => {
+    drawProceduralFace(f.worldVerts, f.name, f.light, splitZ, proj, baseCol, baseRow, f);
+  });
+
+  ctx.globalAlpha = 1;
+}
+
+function drawProceduralFace(verts3d, faceName, light, splitZ, proj, baseCol, baseRow, faceRef) {
+  const zs = verts3d.map(v => v[2]);
+  const maxZ = Math.max(...zs), minZ = Math.min(...zs);
+  const n = verts3d.length;
+
+  function fillRegion(pts3d, color) {
+    if (pts3d.length < 3) return;
+    const pts = pts3d.map(proj);
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.closePath();
+    ctx.fillStyle = shaded(color, light);
+    ctx.fill();
+  }
+
+  function hatchRegion(pts3d, color, hatchLight, dParams) {
+    if (pts3d.length < 3 || dParams.mode === 'none') return;
+
+    if (dParams.mode === 'solid') {
+      drawSolidColorOverride(pts3d, proj, color, hatchLight, dParams);
+      return;
+    }
+
+    const pts2d = pts3d.map(proj);
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(pts2d[0][0], pts2d[0][1]);
+    for (let i = 1; i < pts2d.length; i++) ctx.lineTo(pts2d[i][0], pts2d[i][1]);
+    ctx.closePath();
+    ctx.clip();
+
+    if (dParams.mode === 'random') {
+      drawRandomDither(pts3d, proj, color, hatchLight, dParams);
+      ctx.restore();
+      return;
+    }
+
+    function rotVector([ax, ay, az]) {
+      let x = ax, y = ay;
+      if (rotStep === 1) { [x, y] = [-ay, ax]; }
+      else if (rotStep === 2) { [x, y] = [-ax, -ay]; }
+      else if (rotStep === 3) { [x, y] = [ay, -ax]; }
+      return [x, y, az];
+    }
+
+    let uDir = [1, 0, 0], vDir = [0, 1, 0], wOri = [baseCol, baseRow, 0];
+
+    if (!faceRef.isSlope) {
+      uDir = rotVector(faceRef.u);
+      vDir = rotVector(faceRef.v);
+      const oL = faceRef.ori;
+      let rx = oL[0], ry = oL[1];
+      if (rotStep === 1) { rx = rWid - oL[1]; ry = oL[0]; }
+      else if (rotStep === 2) { rx = rLen - oL[0]; ry = rWid - oL[1]; }
+      else if (rotStep === 3) { rx = oL[1]; ry = rLen - oL[0]; }
+      wOri = [rx + baseCol, ry + baseRow, oL[2]];
+    } else {
+      uDir = rotVector([0, 1, 0]); 
+      vDir = rotVector([-rLen, 0, rHgt]); 
+      let rx = rLen, ry = 0;
+      if (rotStep === 1) { rx = rWid; ry = rLen; }
+      else if (rotStep === 2) { rx = 0; ry = rWid; }
+      else if (rotStep === 3) { rx = 0; ry = 0; }
+      wOri = [rx + baseCol, ry + baseRow, 0];
+    }
+
+    const uMag = Math.hypot(uDir[0], uDir[1], uDir[2]);
+    const vMag = Math.hypot(vDir[0], vDir[1], vDir[2]);
+    const uNorm = uDir.map(v => v / (uMag || 1));
+    const vNorm = vDir.map(v => v / (vMag || 1));
+
+    const drawU = dParams.mode === 'h' || dParams.mode === 'hv';
+    const drawV = dParams.mode === 'v' || dParams.mode === 'hv';
+
+    drawHatchLines(pts3d, uNorm, vNorm, wOri, uMag, vMag, drawU, drawV, proj, color, hatchLight, dParams);
+    ctx.restore();
+  }
+
+  function outlinePoly(pts3d) {
+    if (!showOutline) return;
+    const pts = pts3d.map(proj);
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+  }
+
+  function findCrossPoint(a, b) {
+    const t = (splitZ - a[2]) / (b[2] - a[2]);
+    return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, splitZ];
+  }
+
+  if (splitZ >= maxZ) {
+    fillRegion(verts3d, colorB);
+    hatchRegion(verts3d, colorB, light, botDither);
+    outlinePoly(verts3d);
+    return;
+  }
+  if (splitZ <= minZ) {
+    fillRegion(verts3d, colorA);
+    hatchRegion(verts3d, colorA, light, topDither);
+    outlinePoly(verts3d);
+    return;
+  }
+
+  const upper = [], lower = [], seam = [];
+  for (let i = 0; i < n; i++) {
+    const a = verts3d[i], b = verts3d[(i + 1) % n];
+    const aUp = a[2] > splitZ, bUp = b[2] > splitZ;
+    
+    if (aUp) upper.push(a); else lower.push(a);
+    
+    if (aUp !== bUp) {
+      const cp = findCrossPoint(a, b);
+      upper.push(cp);
+      lower.push(cp);
+      if (!seam.some(p => Math.hypot(p[0]-cp[0], p[1]-cp[1], p[2]-cp[2]) < 0.001)) {
+        seam.push(cp);
+      }
+    }
+  }
+
+  fillRegion(upper, colorA);
+  hatchRegion(upper, colorA, light, topDither);
+  fillRegion(lower, colorB);
+  hatchRegion(lower, colorB, light, botDither);
+
+  if (seam.length >= 2 && showOutline) {
+    const [p0, p1] = seam.map(proj);
+    ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]);
+    ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 1.4; ctx.stroke();
+  }
+
+  outlinePoly(verts3d);
+}
+
+function drawGrid() {
+  const ox = canvasCX(), oy = canvasCY();
+  for (let col = 0; col < GRID; col++) {
+    for (let row = 0; row < GRID; row++) {
+      const pts = [[col, row, 0], [col + 1, row, 0], [col + 1, row + 1, 0], [col, row + 1, 0]].map(v => isoProj(v, S, ox, oy));
+      
+      let isGhostFootprint = false;
+      if (dragActive) {
+        const curW = (rotStep % 2 === 0) ? rLen : rWid;
+        const curH = (rotStep % 2 === 0) ? rWid : rLen;
+        if (col >= ghostCol && col < ghostCol + curW && row >= ghostRow && row < ghostRow + curH) {
+          isGhostFootprint = true;
+        }
+      }
+
+      ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+      pts.slice(1).forEach(p => ctx.lineTo(p[0], p[1]));
+      ctx.closePath();
+
+      ctx.fillStyle = isGhostFootprint ? 'rgba(62,207,178,0.12)' : 'rgba(255,255,255,0.015)';
+      ctx.fill();
+      ctx.strokeStyle = isGhostFootprint ? 'rgba(62,207,178,0.5)' : 'rgba(255,255,255,0.06)';
+      ctx.lineWidth = isGhostFootprint ? 1.0 : 0.5;
+      ctx.stroke();
+    }
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawGrid();
+  if (dragActive) {
+    drawRamp(cubeCol, cubeRow, 0.25);
+    drawRamp(ghostCol, ghostRow, 1.0);
+  } else {
+    drawRamp(cubeCol, cubeRow, 1.0);
+  }
+}
+
+function screenToGrid(mx, my) {
+  const ox = canvasCX(), oy = canvasCY(), dx = mx - ox, dy = my - oy;
+  return [(dx / S + 2 * dy / S) / 2, (2 * dy / S - dx / S) / 2];
+}
+
+function clampPosition(c, r) {
+  const curW = (rotStep % 2 === 0) ? rLen : rWid;
+  const curH = (rotStep % 2 === 0) ? rWid : rLen;
+  return [
+    Math.max(0, Math.min(GRID - curW, Math.round(c))),
+    Math.max(0, Math.min(GRID - curH, Math.round(r)))
+  ];
+}
+
+function getMousePos(e) {
+  const r = canvas.getBoundingClientRect();
+  if (e.touches) return [e.touches[0].clientX - r.left, e.touches[0].clientY - r.top];
+  return [e.clientX - r.left, e.clientY - r.top];
+}
+
+function hitRampBase(mx, my) {
+  const ox = canvasCX(), oy = canvasCY();
+  const curW = (rotStep % 2 === 0) ? rLen : rWid;
+  const curH = (rotStep % 2 === 0) ? rWid : rLen;
+  
+  const points = [
+    [cubeCol,        cubeRow,        0],
+    [cubeCol + curW, cubeRow,        0],
+    [cubeCol + curW, cubeRow + curH, 0],
+    [cubeCol,        cubeRow + curH, 0],
+    [cubeCol,        cubeRow,        rHgt],
+    [cubeCol + curW, cubeRow + curH, rHgt]
+  ].map(v => isoProj(v, S, ox, oy));
+
+  const xs = points.map(p => p[0]), ys = points.map(p => p[1]);
+  return mx >= Math.min(...xs) && mx <= Math.max(...xs) && my >= Math.min(...ys) && my <= Math.max(...ys);
+}
+
+canvas.addEventListener('mousedown', e => {
+  const [mx, my] = getMousePos(e);
+  if (hitRampBase(mx, my)) {
+    dragActive = true; ghostCol = cubeCol; ghostRow = cubeRow;
+    canvas.classList.add('dragging'); draw();
+  }
+});
+canvas.addEventListener('touchstart', e => {
+  const [mx, my] = getMousePos(e);
+  if (hitRampBase(mx, my)) {
+    e.preventDefault(); dragActive = true; ghostCol = cubeCol; ghostRow = cubeRow; draw();
+  }
+}, { passive: false });
+
+function handleMove(e) {
+  if (!dragActive) return;
+  const [mx, my] = getMousePos(e);
+  const [c, r] = screenToGrid(mx, my);
+  
+  const curW = (rotStep % 2 === 0) ? rLen : rWid;
+  const curH = (rotStep % 2 === 0) ? rWid : rLen;
+  const [gc, gr] = clampPosition(c - curW / 2, r - curH / 2);
+
+  if (gc !== ghostCol || gr !== ghostRow) {
+    ghostCol = gc; ghostRow = gr; draw();
+  }
+}
+canvas.addEventListener('mousemove', handleMove);
+canvas.addEventListener('touchmove', e => { e.preventDefault(); handleMove(e); }, { passive: false });
+
+function handleRelease() {
+  if (!dragActive) return;
+  dragActive = false; cubeCol = ghostCol; cubeRow = ghostRow;
+  canvas.classList.remove('dragging'); draw();
+}
+window.addEventListener('mouseup', handleRelease);
+window.addEventListener('touchend', handleRelease);
+
+function configureSegment(id, cb) {
+  document.getElementById(id).addEventListener('click', e => {
+    const btn = e.target.closest('button'); if (!btn) return;
+    document.querySelectorAll('#' + id + ' button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active'); cb(btn.dataset.v);
+  });
+}
+
+function updateTreatmentUIVisibility(prefix, mode, inkMode) {
+  const controlsEl = document.getElementById(prefix + 'DitherControls');
+  const inkTypeRow = document.getElementById(prefix + 'InkTypeRow');
+  const brightRow = document.getElementById(prefix + 'BrightRow');
+  const colorRow = document.getElementById(prefix + 'ColorRow');
+
+  if (mode === 'none') {
+    if (controlsEl) controlsEl.style.display = 'none';
+    if (inkTypeRow) inkTypeRow.style.display = 'none';
+    if (brightRow) brightRow.style.display = 'none';
+    if (colorRow) colorRow.style.display = 'none';
+  } else if (mode === 'solid') {
+    if (controlsEl) controlsEl.style.display = 'none';
+    if (inkTypeRow) inkTypeRow.style.display = 'none';
+    if (brightRow) brightRow.style.display = 'none';
+    if (colorRow) colorRow.style.display = '';
+  } else {
+    if (controlsEl) controlsEl.style.display = '';
+    if (inkTypeRow) inkTypeRow.style.display = '';
+    if (inkMode === 'color') {
+      if (brightRow) brightRow.style.display = 'none';
+      if (colorRow) colorRow.style.display = '';
+    } else {
+      if (brightRow) brightRow.style.display = '';
+      if (colorRow) colorRow.style.display = 'none';
+    }
+  }
+}
+
+configureSegment('outlineSeg', v => { showOutline = v === 'on'; draw(); });
+
+configureSegment('tDitherSeg', v => { 
+  topDither.mode = v; 
+  if (v === 'solid') topDither.inkColor = document.getElementById('tInkCol').value;
+  updateTreatmentUIVisibility('t', v, topDither.inkMode);
+  draw(); 
+});
+configureSegment('bDitherSeg', v => { 
+  botDither.mode = v; 
+  if (v === 'solid') botDither.inkColor = document.getElementById('bInkCol').value;
+  updateTreatmentUIVisibility('b', v, botDither.inkMode);
+  draw(); 
+});
+
+configureSegment('tInkTypeSeg', v => {
+  topDither.inkMode = v;
+  updateTreatmentUIVisibility('t', topDither.mode, v);
+  draw();
+});
+configureSegment('bInkTypeSeg', v => {
+  botDither.inkMode = v;
+  updateTreatmentUIVisibility('b', botDither.mode, v);
+  draw();
+});
+
+document.getElementById('colA').addEventListener('input', e => { colorA = e.target.value; document.getElementById('swA').style.background = colorA; draw(); });
+document.getElementById('colB').addEventListener('input', e => { colorB = e.target.value; document.getElementById('swB').style.background = colorB; draw(); });
+document.getElementById('split').addEventListener('input', e => { splitPct = e.target.value / 100; document.getElementById('splitV').textContent = e.target.value + '%'; draw(); });
+document.getElementById('size').addEventListener('input', e => { S = +e.target.value; document.getElementById('sizeV').textContent = e.target.value; draw(); });
+
+document.getElementById('rampLen').addEventListener('input', e => { rLen = +e.target.value; document.getElementById('rampLenV').textContent = e.target.value; const [c, r] = clampPosition(cubeCol, cubeRow); cubeCol = c; cubeRow = r; draw(); });
+document.getElementById('rampWid').addEventListener('input', e => { rWid = +e.target.value; document.getElementById('rampWidV').textContent = e.target.value; const [c, r] = clampPosition(cubeCol, cubeRow); cubeCol = c; cubeRow = r; draw(); });
+document.getElementById('rampHgt').addEventListener('input', e => { rHgt = +e.target.value; document.getElementById('rampHgtV').textContent = e.target.value; draw(); });
+
+document.getElementById('gridN').addEventListener('input', e => { GRID = +e.target.value; document.getElementById('gridV').textContent = e.target.value + '×' + e.target.value; const [c, r] = clampPosition(cubeCol, cubeRow); cubeCol = c; cubeRow = r; draw(); });
+
+// New Directional Rotation Button Logic Implementation
+function updateRotationUI() {
+  document.getElementById('rotV').textContent = (rotStep * 90) + '°';
+  const [c, r] = clampPosition(cubeCol, cubeRow);
+  cubeCol = c;
+  cubeRow = r;
+  draw();
+}
+document.getElementById('rotCW').addEventListener('click', () => {
+  rotStep = (rotStep + 1) % 4;
+  updateRotationUI();
+});
+document.getElementById('rotCCW').addEventListener('click', () => {
+  rotStep = (rotStep + 3) % 4; // safe loop downward wrap
+  updateRotationUI();
+});
+
+document.getElementById('tSpace').addEventListener('input', e => { topDither.space = +e.target.value; document.getElementById('tSpaceV').textContent = e.target.value; draw(); });
+document.getElementById('tThick').addEventListener('input', e => { topDither.thick = +e.target.value; document.getElementById('tThickV').textContent = e.target.value; draw(); });
+document.getElementById('tBright').addEventListener('input', e => { topDither.bright = +e.target.value / 100; document.getElementById('tBrightV').textContent = e.target.value; draw(); });
+document.getElementById('tInkCol').addEventListener('input', e => { topDither.inkColor = e.target.value; document.getElementById('swTInk').style.background = topDither.inkColor; draw(); });
+document.getElementById('tBlend').addEventListener('input', e => { topDither.alpha = +e.target.value / 100; document.getElementById('tBlendV').textContent = e.target.value + '%'; draw(); });
+
+document.getElementById('bSpace').addEventListener('input', e => { botDither.space = +e.target.value; document.getElementById('bSpaceV').textContent = e.target.value; draw(); });
+document.getElementById('bThick').addEventListener('input', e => { botDither.thick = +e.target.value; document.getElementById('bThickV').textContent = e.target.value; draw(); });
+document.getElementById('bBright').addEventListener('input', e => { botDither.bright = +e.target.value / 100; document.getElementById('bBrightV').textContent = e.target.value; draw(); });
+document.getElementById('bInkCol').addEventListener('input', e => { botDither.inkColor = e.target.value; document.getElementById('swBInk').style.background = botDither.inkColor; draw(); });
+document.getElementById('bBlend').addEventListener('input', e => { botDither.alpha = +e.target.value / 100; document.getElementById('bBlendV').textContent = e.target.value + '%'; draw(); });
+
+document.getElementById('dlBtn').addEventListener('click', () => {
+  const scale = 2;
+  const w = canvas.width, h = canvas.height;
+  canvas.width = w * scale; canvas.height = h * scale;
+  S *= scale;
+  ctx.fillStyle = '#111116'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  draw();
+  const url = canvas.toDataURL('image/png');
+  canvas.width = w; canvas.height = h;
+  S /= scale; draw();
+  const a = document.createElement('a'); a.download = 'isometric-ramp-solid.png'; a.href = url; a.click();
+});
+
+document.getElementById('dlHtml').addEventListener('click', () => {
+  const src = document.documentElement.outerHTML;
+  const blob = new Blob([src], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.download = 'isometric-ramp.html'; a.href = url; a.click();
+  URL.revokeObjectURL(url);
+});
+
+updateTreatmentUIVisibility('t', topDither.mode, topDither.inkMode);
+updateTreatmentUIVisibility('b', botDither.mode, botDither.inkMode);
+
+draw();
+})();
+</script>
+</body>
+</html>

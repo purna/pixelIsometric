@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Isometric Drawing Tool — Multi-Layer Voxel System</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: #0d0d10; 
+            font-family: 'Space Mono', monospace;
+            color: #4a4a60;
+            user-select: none;
+        }
+        
+        #app-layout {
+            display: flex;
+            flex-direction: column;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #toolbar {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #1f1f28;
+            background: #111115;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            z-index: 10;
+        }
+
+        .tb-section {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-right: 1px solid #1f1f28;
+        }
+
+        .tb-label {
+            font-size: 10px;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: #55556a;
+            margin-right: 4px;
+            white-space: nowrap;
+        }
+
+        #cube-tools-container {
+            display: flex;
+            gap: 6px;
+        }
+
+        .tool-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border: 1px solid #2a2a38;
+            border-radius: 4px;
+            cursor: pointer;
+            background: transparent;
+            color: #7a7a9a;
+            font-size: 10px;
+            font-family: 'Space Mono', monospace;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            transition: all .15s ease;
+            white-space: nowrap;
+        }
+
+        .tool-btn:hover {
+            background: #191920;
+            color: #a0a0c0;
+            border-color: #4a4a60;
+        }
+
+        .tool-btn.active {
+            background: #1c1c24;
+            color: #3ecfb2;
+            border-color: #3ecfb2;
+        }
+
+        .tool-btn.col-btn.active {
+            color: #4eff91;
+            border-color: #4eff91;
+        }
+
+        .color-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: transform .1s;
+        }
+        .color-dot:hover { transform: scale(1.15); }
+        .color-dot.active { border-color: #fff; }
+
+        input[type="range"] { 
+            -webkit-appearance: none; 
+            appearance: none; 
+            width: 60px; 
+            height: 3px; 
+            background: #2a2a38; 
+            border-radius: 2px; 
+            outline: none; 
+            accent-color: #3ecfb2;
+        }
+
+        input[type="color"] {
+            background: none;
+            border: 1px solid #2a2a38;
+            cursor: pointer;
+            height: 20px;
+            width: 32px;
+            padding: 0;
+        }
+
+        .tb-mini {
+            padding: 4px 8px;
+            border: 1px solid #2a2a38;
+            border-radius: 3px;
+            font-size: 10px;
+            font-family: 'Space Mono', monospace;
+            color: #7a7a9a;
+            background: transparent;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+        .tb-mini:hover { color: #fff; border-color: #3ecfb2; }
+
+        #layer-bar {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #14141a;
+            background: #09090c;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .layer-tab {
+            padding: 6px 16px;
+            font-size: 10px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: #4a4a60;
+            cursor: pointer;
+            border-right: 1px solid #14141a;
+            border-bottom: 2px solid transparent;
+            transition: all .15s;
+        }
+        .layer-tab:hover { color: #7a7a9a; }
+        .layer-tab.active-cube { color: #3ecfb2; border-bottom-color: #3ecfb2; }
+        .layer-tab.active-col { color: #4eff91; border-bottom-color: #4eff91; }
+        
+        #layer-hint { flex: 1; padding: 6px 16px; font-size: 10px; color: #3a3a4a; letter-spacing: .08em; text-align: right;}
+
+        #viewport-container {
+            flex: 1;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            outline: none;
+        }
+
+        #statusbar {
+            padding: 6px 16px;
+            border-top: 1px solid #14141a;
+            background: #0d0d10;
+            font-size: 10px;
+            letter-spacing: .08em;
+            color: #55556a;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .hint-overlay {
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #3ecfb2;
+            font-size: 11px;
+            pointer-events: none;
+            letter-spacing: 0.05em;
+            background: rgba(13, 13, 16, 0.8);
+            padding: 4px 12px;
+            border-radius: 4px;
+            border: 1px solid #1f1f28;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-layout">
+        <div id="toolbar">
+            <div class="tb-section">
+                <span class="tb-label">Cubes</span>
+                <div id="cube-tools-container"></div>
+            </div>
+            <div class="tb-section">
+                <span class="tb-label">Collider</span>
+                <button class="tool-btn col-btn" id="btn-col-top">Top</button>
+                <button class="tool-btn col-btn" id="btn-col-left">Left</button>
+                <button class="tool-btn col-btn" id="btn-col-right">Right</button>
+                <button class="tool-btn col-btn" id="btn-col-line">Line</button>
+            </div>
+            <div class="tb-section">
+                <span class="tb-label">Erase</span>
+                <button class="tool-btn" id="btn-erase">Erase</button>
+            </div>
+            <div class="tb-section" style="gap: 4px;">
+                <span class="tb-label">Height</span>
+                <button class="tb-mini" id="btn-height-down" style="line-height:1; padding: 4px 8px;">▼</button>
+                <span id="height-label" style="font-size: 11px; color: #3ecfb2; min-width: 18px; text-align: center; font-weight: bold;">0</span>
+                <button class="tb-mini" id="btn-height-up" style="line-height:1; padding: 4px 8px;">▲</button>
+            </div>
+            <div class="tb-section">
+                <span class="tb-label">Rotate</span>
+                <button class="tool-btn" id="btn-rot-cw">⟳ CW</button>
+                <button class="tool-btn" id="btn-rot-ccw">⟲ CCW</button>
+            </div>
+            <div class="tb-section" style="gap: 5px;">
+                <span class="tb-label">Palette</span>
+                <div id="swatches" style="display:flex; gap:5px; align-items:center;"></div>
+            </div>
+            <div class="tb-section" style="flex: 1; justify-content: flex-end; gap: 8px; border-right: none;">
+                <span class="tb-label">Top</span>
+                <input type="color" id="colA" value="#3ecfb2">
+                <span class="tb-label">Bot</span>
+                <input type="color" id="colB" value="#c94b6e">
+                <span class="tb-label">Split</span>
+                <input type="range" id="split" min="-50" max="50" value="0">
+                <button class="tb-mini" id="btn-clear">Clear</button>
+            </div>
+        </div>
+
+        <div id="layer-bar">
+            <div class="layer-tab active-cube" id="tab-cube">● Cube layer</div>
+            <div class="layer-tab" id="tab-col">◎ Collider layer</div>
+            <div id="layer-hint">Painting Cubes</div>
+        </div>
+
+        <div id="viewport-container">
+            <div class="hint-overlay">Left Click: Action • Right Click + Drag: Orbit Scene • Scroll: Zoom</div>
+        </div>
+
+        <div id="statusbar"><span id="status-msg">click a cell to place an asset</span></div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- CONSTANTS & CONFIG ---
+        const GRID_N = 7; 
+        const CELL_SIZE = 2;
+        const PALETTE = ['#3ecfb2','#c94b6e','#5b9bd5','#e8a838','#9b7fd4','#74c476','#fa9fb5','#aaaaaa']; 
+        
+        let activeTool = 'cube-dither'; 
+        let activeLayer = 'cube'; 
+        let activeHeightIndex = 0; 
+        let lineStartNode = null; 
+        
+        // Cache object references currently targeted for deletion highlighting
+        let currentEraseTarget = null;
+        let lineEraseCache = [];
+
+        // --- DATA STORAGE MAPS ---
+        const activeCubes = new Map();     
+        const activeColliders = new Map(); 
+        const activeLines = [];            
+
+        // --- SHADER UNIFORMS ---
+        const globalUniforms = {
+            colorA: { value: new THREE.Color('#3ecfb2') }, 
+            colorB: { value: new THREE.Color('#c94b6e') }, 
+            splitY: { value: 0.0 }, 
+            
+            tMode: { value: 4 }, tSpace: { value: 6.0 }, tThick: { value: 1.0 }, tBright: { value: 1.0 }, tAlpha: { value: 0.5 }, 
+            bMode: { value: 1 }, bSpace: { value: 4.0 }, bThick: { value: 1.0 }, bBright: { value: -1.0 }, bAlpha: { value: 0.7 } 
+        };
+
+        // --- EXTENSIBLE CUBE REGISTRY SYSTEM ---
+        const CUBE_TYPES = [
+            {
+                id: 'cube-dither',
+                label: 'Dither Box',
+                statusHint: 'place a split-dither customizable shader cube',
+                createMesh: function(currentColor) {
+                    const geo = new THREE.BoxGeometry(CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                    const mesh = new THREE.Mesh(geo, ditherMaterial);
+                    const edges = new THREE.EdgesGeometry(geo);
+                    const line = new THREE.LineSegments(edges, blackOutlineMaterial);
+                    mesh.add(line);
+                    mesh.userData = { cubeTypeId: 'cube-dither' };
+                    return mesh;
+                },
+                updateColor: function(mesh, nextColorHex) {}
+            },
+            {
+                id: 'cube-solid',
+                label: 'Solid Box',
+                statusHint: 'place an opaque solid color voxel block',
+                createMesh: function(currentColor) {
+                    const geo = new THREE.BoxGeometry(CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                    const mat = new THREE.MeshStandardMaterial({ 
+                        color: new THREE.Color(currentColor),
+                        roughness: 0.6,
+                        metalness: 0.1
+                    });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    const edges = new THREE.EdgesGeometry(geo);
+                    const line = new THREE.LineSegments(edges, blackOutlineMaterial);
+                    mesh.add(line);
+                    mesh.userData = { cubeTypeId: 'cube-solid' };
+                    return mesh;
+                },
+                updateColor: function(mesh, nextColorHex) {
+                    if (mesh.material && mesh.material.color) {
+                        mesh.material.color.set(nextColorHex);
+                    }
+                }
+            },
+            {
+                id: 'cube-water',
+                label: 'Water',
+                statusHint: 'place a 50% transparent architectural water block',
+                createMesh: function(currentColor) {
+                    const geo = new THREE.BoxGeometry(CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                    const mat = new THREE.MeshStandardMaterial({ 
+                        color: 0x33b5e5, 
+                        transparent: true,
+                        opacity: 0.5, 
+                        roughness: 0.1, 
+                        metalness: 0.1
+                    });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    
+                    const edges = new THREE.EdgesGeometry(geo);
+                    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x88ccee, linewidth: 1 }));
+                    mesh.add(line);
+
+                    mesh.userData = { cubeTypeId: 'cube-water' };
+                    return mesh;
+                },
+                updateColor: function(mesh, nextColorHex) {}
+            }
+        ];
+
+        // --- SETUP SCENE & RENDERER ---
+        const container = document.getElementById('viewport-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2('#0d0d10', 0.02); 
+
+        const aspect = container.clientWidth / container.clientHeight;
+        const frustumSize = 16;
+        const camera = new THREE.OrthographicCamera(
+            frustumSize * aspect / -2, frustumSize * aspect / 2, 
+            frustumSize / 2, frustumSize / -2, 
+            1, 1000
+        ); 
+        camera.position.set(20, 20, 20); 
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); 
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); 
+        container.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement); 
+        controls.mouseButtons = { ORBIT: THREE.MOUSE.RIGHT, ZOOM: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.RIGHT };
+        controls.enableDamping = true; 
+        controls.dampingFactor = 0.05; 
+        controls.target.set(0, 0, 0);
+
+        // --- INTERACTION PLANES & GEOMETRIES ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        const halfGridSize = (GRID_N * CELL_SIZE) / 2;
+
+        const interactionPlaneGeo = new THREE.PlaneGeometry(GRID_N * CELL_SIZE, GRID_N * CELL_SIZE);
+        interactionPlaneGeo.rotateX(-Math.PI / 2);
+        const interactionPlane = new THREE.Mesh(interactionPlaneGeo, new THREE.MeshBasicMaterial({ visible: false }));
+        scene.add(interactionPlane);
+
+        // --- LIGHTING ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7); 
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); 
+        directionalLight.position.set(10, 20, 4);
+        scene.add(directionalLight);
+
+        // --- HIGH-CONTRAST GRID SYSTEM ---
+        const gridHelper = new THREE.GridHelper(GRID_N * CELL_SIZE, GRID_N, 0x3ecfb2, 0x2a2a3a); 
+        gridHelper.position.y = -0.01; 
+        scene.add(gridHelper);
+
+        const tileOutlineGroup = new THREE.Group();
+        const outlineMat = new THREE.LineBasicMaterial({ color: 0x3a3a4a, linewidth: 2.0 });
+        
+        for (let col = 0; col < GRID_N; col++) {
+            for (let row = 0; row < GRID_N; row++) {
+                const wx = (col * CELL_SIZE) + CELL_SIZE/2 - halfGridSize;
+                const wz = (row * CELL_SIZE) + CELL_SIZE/2 - halfGridSize;
+                const hx = CELL_SIZE / 2;
+                const points = [
+                    new THREE.Vector3(wx - hx, 0, wz - hx),
+                    new THREE.Vector3(wx + hx, 0, wz - hx),
+                    new THREE.Vector3(wx + hx, 0, wz + hx),
+                    new THREE.Vector3(wx - hx, 0, wz + hx),
+                    new THREE.Vector3(wx - hx, 0, wz - hx)
+                ];
+                const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+                const line = new THREE.Line(lineGeo, outlineMat);
+                tileOutlineGroup.add(line);
+            }
+        }
+        scene.add(tileOutlineGroup);
+
+        // --- DITHER MATERIAL COMPILER ---
+        const ditherMaterial = new THREE.MeshStandardMaterial({ roughness: 0.9, metalness: 0.1 }); 
+        ditherMaterial.onBeforeCompile = (shader) => { 
+            for (const [key, uniform] of Object.entries(globalUniforms)) {
+                shader.uniforms[key] = uniform;
+            } 
+
+            shader.vertexShader = `
+                varying float vLocalY;
+                varying vec2 myUv;
+                ${shader.vertexShader}
+            `.replace(
+                `#include <begin_vertex>`,
+                `#include <begin_vertex>
+                 vLocalY = position.y;
+                 myUv = uv;`
+            ); 
+
+            shader.fragmentShader = `
+                uniform vec3 colorA; uniform vec3 colorB; uniform float splitY;
+                uniform int tMode; uniform float tSpace; uniform float tThick; uniform float tBright; uniform float tAlpha;
+                uniform int bMode; uniform float bSpace; uniform float bThick; uniform float bBright; uniform float bAlpha;
+                varying float vLocalY;
+                varying vec2 myUv;
+                ${shader.fragmentShader}
+            `.replace(
+                `vec4 diffuseColor = vec4( diffuse, opacity );`,
+                `
+                bool isTop = vLocalY > splitY;
+                vec3 splitBase = isTop ? colorA : colorB;
+                vec4 diffuseColor = vec4( splitBase, opacity );
+                `
+            ).replace(
+                `#include <dithering_fragment>`,
+                `#include <dithering_fragment>
+                int dMode = isTop ? tMode : bMode;
+                float dSpace = isTop ? tSpace : bSpace;
+                float dThick = isTop ? tThick : bThick;
+                float dBright = isTop ? tBright : bBright;
+                float dAlpha = isTop ? tAlpha : bAlpha;
+
+                if (dMode > 0) {
+                    bool isDither = false;
+                    vec2 scaledUv = myUv * (100.0 / dSpace);
+                    float lineThreshold = dThick / dSpace;
+
+                    if (dMode == 1) { 
+                        vec2 gridUv = floor(scaledUv);
+                        float noise = fract(sin(dot(gridUv, vec2(12.9898, 78.233))) * 43758.5453);
+                        isDither = noise > 0.5;
+                    } else if (dMode == 2) { 
+                        isDither = fract(scaledUv.y) < lineThreshold;
+                    } else if (dMode == 3) { 
+                        isDither = fract(scaledUv.x) < lineThreshold;
+                    } else if (dMode == 4) { 
+                        isDither = (fract(scaledUv.y) < lineThreshold) || (fract(scaledUv.x) < lineThreshold);
+                    }
+
+                    if (isDither) {
+                        vec3 targetCol = dBright > 0.0 ? vec3(1.0) : vec3(0.0);
+                        vec3 shifted = mix(gl_FragColor.rgb, targetCol, abs(dBright));
+                        gl_FragColor.rgb = mix(gl_FragColor.rgb, shifted, dAlpha);
+                    }
+                }
+                `
+            ); 
+        };
+
+        // Static Materials
+        const faceColliderMaterial = new THREE.MeshStandardMaterial({ color: 0x4eff91, transparent: true, opacity: 0.15, side: THREE.DoubleSide, roughness: 0.5 }); 
+        const blackOutlineMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 }); 
+        const colliderLineMat = new THREE.LineBasicMaterial({ color: 0x4eff91, linewidth: 3, transparent: true, opacity: 0.2 }); 
+
+        // Materials used specifically during targeted erase highlights
+        const eraseCubeMaterial = new THREE.MeshStandardMaterial({ color: 0xeb4b6e, emissive: 0x4a101a, transparent: true, opacity: 0.7 });
+        const eraseColliderMaterial = new THREE.MeshStandardMaterial({ color: 0xeb4b6e, side: THREE.DoubleSide, transparent: true, opacity: 0.6 });
+        const eraseLineMaterial = new THREE.LineBasicMaterial({ color: 0xeb4b6e, linewidth: 4 });
+        const eraseJointMaterial = new THREE.MeshBasicMaterial({ color: 0xeb4b6e });
+
+        // Dynamic Previews
+        const previewCubeContainer = new THREE.Group();
+        scene.add(previewCubeContainer);
+
+        const previewColliderFace = new THREE.Mesh(new THREE.PlaneGeometry(CELL_SIZE, CELL_SIZE), new THREE.MeshBasicMaterial({color: 0x4eff91, transparent: true, opacity: 0.5, side: THREE.DoubleSide})); 
+        previewColliderFace.visible = false;
+        scene.add(previewColliderFace);
+
+        const previewNode = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), new THREE.MeshBasicMaterial({ color: 0x4eff91 })); 
+        previewNode.visible = false;
+        scene.add(previewNode);
+
+        const previewLineGeo = new THREE.BufferGeometry();
+        const previewLine = new THREE.Line(previewLineGeo, new THREE.LineBasicMaterial({ color: 0x4eff91, dashSize: 0.2, gapSize: 0.2 }));
+        previewLine.visible = false;
+        scene.add(previewLine);
+
+        // --- MATH CALCULATORS ---
+        function getGridCoordinates(intersectPoint) {
+            const localX = intersectPoint.x + halfGridSize;
+            const localZ = intersectPoint.z + halfGridSize;
+            const cellX = Math.floor(localX / CELL_SIZE);
+            const cellZ = Math.floor(localZ / CELL_SIZE);
+
+            if(cellX >= 0 && cellX < GRID_N && cellZ >= 0 && cellZ < GRID_N) {
+                return {
+                    gridX: cellX, gridZ: cellZ,
+                    worldX: (cellX * CELL_SIZE) + CELL_SIZE/2 - halfGridSize,
+                    worldZ: (cellZ * CELL_SIZE) + CELL_SIZE/2 - halfGridSize
+                };
+            }
+            return null;
+        }
+
+        function getNearestVertex(intersectPoint) {
+            const localX = intersectPoint.x + halfGridSize;
+            const localZ = intersectPoint.z + halfGridSize;
+            const vx = Math.round(localX / CELL_SIZE);
+            const vz = Math.round(localZ / CELL_SIZE);
+
+            if (vx >= 0 && vx <= GRID_N && vz >= 0 && vz <= GRID_N) {
+                return {
+                    vX: vx, vZ: vz,
+                    worldX: (vx * CELL_SIZE) - halfGridSize,
+                    worldZ: (vz * CELL_SIZE) - halfGridSize
+                };
+            }
+            return null;
+        }
+
+        // Reset any visual modification properties added via the erase hover mode
+        function clearEraseHighlights() {
+            if (currentEraseTarget) {
+                if (currentEraseTarget.userData.originalMaterial) {
+                    currentEraseTarget.material = currentEraseTarget.userData.originalMaterial;
+                    delete currentEraseTarget.userData.originalMaterial;
+                } else if (currentEraseTarget.userData.cubeTypeId) {
+                    // Re-evaluate standard rendering definitions to safely reverse target cube state
+                    const cDef = CUBE_TYPES.find(c => c.id === currentEraseTarget.userData.cubeTypeId);
+                    if (cDef) {
+                        const currentActiveColorHex = document.getElementById('colA').value;
+                        if (currentEraseTarget.userData.cubeTypeId === 'cube-dither') {
+                            currentEraseTarget.material = ditherMaterial;
+                        } else if (currentEraseTarget.userData.cubeTypeId === 'cube-solid') {
+                            currentEraseTarget.material = new THREE.MeshStandardMaterial({ 
+                                color: new THREE.Color(currentActiveColorHex), roughness: 0.6, metalness: 0.1
+                            });
+                        } else if (currentEraseTarget.userData.cubeTypeId === 'cube-water') {
+                            currentEraseTarget.material = new THREE.MeshStandardMaterial({ 
+                                color: 0x33b5e5, transparent: true, opacity: 0.5, roughness: 0.1, metalness: 0.1
+                            });
+                        }
+                    }
+                }
+                currentEraseTarget = null;
+            }
+
+            if (lineEraseCache.length > 0) {
+                lineEraseCache.forEach(ln => {
+                    ln.material = colliderLineMat;
+                    ln.children.forEach(joint => {
+                        if (joint.material) joint.material = new THREE.MeshBasicMaterial({ color: 0x4eff91 });
+                    });
+                });
+                lineEraseCache = [];
+            }
+        }
+
+        // --- INTERACTION HOVER UPDATES ---
+        function updatePreviews(event) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            
+            // Handle Erase Hover Mode separately
+            if (activeTool === 'erase') {
+                hidePreviews();
+                clearEraseHighlights();
+
+                const objectsToRaycast = [];
+                if (activeLayer === 'cube') {
+                    activeCubes.forEach(mesh => objectsToRaycast.push(mesh));
+                } else if (activeLayer === 'collider') {
+                    activeColliders.forEach(mesh => objectsToRaycast.push(mesh));
+                }
+
+                const eraseIntersects = raycaster.intersectObjects(objectsToRaycast, false);
+
+                if (eraseIntersects.length > 0) {
+                    const hitObj = eraseIntersects[0].object;
+                    currentEraseTarget = hitObj;
+                    
+                    if (activeLayer === 'cube') {
+                        hitObj.material = eraseCubeMaterial;
+                    } else if (activeLayer === 'collider') {
+                        hitObj.userData.originalMaterial = hitObj.material;
+                        hitObj.material = eraseColliderMaterial;
+                    }
+                    return;
+                }
+
+                // If no direct faces hit in collider layer, query vertex line attachments
+                if (activeLayer === 'collider') {
+                    const planeIntersect = raycaster.intersectObject(interactionPlane);
+                    if (planeIntersect.length > 0) {
+                        const nodeData = getNearestVertex(planeIntersect[0].point);
+                        if (nodeData) {
+                            activeLines.forEach(ln => {
+                                if (ln.userData.y === activeHeightIndex && 
+                                   ((ln.userData.x1 === nodeData.vX && ln.userData.z1 === nodeData.vZ) ||
+                                    (ln.userData.x2 === nodeData.vX && ln.userData.z2 === nodeData.vZ))) {
+                                    
+                                    ln.material = eraseLineMaterial;
+                                    ln.children.forEach(joint => {
+                                        joint.material = eraseJointMaterial;
+                                    });
+                                    lineEraseCache.push(ln);
+                                }
+                            });
+                        }
+                    }
+                }
+                return;
+            }
+
+            // Normal Draw Previews
+            const intersects = raycaster.intersectObject(interactionPlane);
+
+            if (intersects.length > 0) {
+                const point = intersects[0].point;
+                const currentHeightY = activeHeightIndex * CELL_SIZE;
+
+                if (activeTool === 'col-line') {
+                    hidePreviews();
+                    const nodeData = getNearestVertex(point);
+                    if (nodeData) {
+                        previewNode.visible = true;
+                        previewNode.position.set(nodeData.worldX, currentHeightY + CELL_SIZE, nodeData.worldZ); 
+
+                        if (lineStartNode) {
+                            previewLine.visible = true;
+                            const pts = [
+                                new THREE.Vector3(lineStartNode.worldX, currentHeightY + CELL_SIZE, lineStartNode.worldZ),
+                                new THREE.Vector3(nodeData.worldX, currentHeightY + CELL_SIZE, nodeData.worldZ)
+                            ];
+                            previewLine.geometry.setFromPoints(pts);
+                        }
+                    }
+                    return;
+                }
+
+                const gridData = getGridCoordinates(point);
+                if (gridData) {
+                    const matchedCubeType = CUBE_TYPES.find(c => c.id === activeTool);
+
+                    if (matchedCubeType && activeLayer === 'cube') {
+                        hidePreviews();
+                        
+                        while(previewCubeContainer.children.length > 0) { 
+                            previewCubeContainer.remove(previewCubeContainer.children[0]); 
+                        }
+
+                        const currentActiveColorHex = document.getElementById('colA').value;
+                        const pMesh = matchedCubeType.createMesh(currentActiveColorHex);
+                        
+                        pMesh.traverse((child) => {
+                            if (child.material) {
+                                child.material = child.material.clone();
+                                child.material.transparent = true;
+                                child.material.opacity = matchedCubeType.id === 'cube-water' ? 0.35 : 0.4;
+                            }
+                        });
+
+                        previewCubeContainer.add(pMesh);
+                        previewCubeContainer.position.set(gridData.worldX, currentHeightY + (CELL_SIZE / 2), gridData.worldZ);
+                        previewCubeContainer.visible = true;
+                    } 
+                    else if (activeTool.startsWith('col-') && activeLayer === 'collider') {
+                        hidePreviews();
+                        previewColliderFace.visible = true;
+                        previewColliderFace.rotation.set(0, 0, 0);
+                        
+                        if (activeTool === 'col-top') {
+                            previewColliderFace.rotation.x = Math.PI / 2;
+                            previewColliderFace.position.set(gridData.worldX, currentHeightY + CELL_SIZE, gridData.worldZ); 
+                        } else if (activeTool === 'col-left') {
+                            previewColliderFace.rotation.y = Math.PI / 2;
+                            previewColliderFace.position.set(gridData.worldX - CELL_SIZE/2, currentHeightY + (CELL_SIZE/2), gridData.worldZ); 
+                        } else if (activeTool === 'col-right') {
+                            previewColliderFace.position.set(gridData.worldX, currentHeightY + (CELL_SIZE/2), gridData.worldZ + CELL_SIZE/2); 
+                        }
+                    } else {
+                        hidePreviews();
+                    }
+                    return;
+                }
+            }
+            hidePreviews();
+        }
+
+        function hidePreviews() {
+            previewCubeContainer.visible = false;
+            previewColliderFace.visible = false;
+            previewNode.visible = false;
+            previewLine.visible = false;
+        }
+
+        // --- DRAW / PLACING CLICK HANDLING ---
+        function handleDrawingClick(event) {
+            if (event.button !== 0) return; 
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(interactionPlane);
+
+            if (activeTool === 'erase') {
+                // Determine elimination targets using raycasts
+                const objectsToRaycast = [];
+                if (activeLayer === 'cube') {
+                    activeCubes.forEach(mesh => objectsToRaycast.push(mesh));
+                } else if (activeLayer === 'collider') {
+                    activeColliders.forEach(mesh => objectsToRaycast.push(mesh));
+                }
+
+                const eraseIntersects = raycaster.intersectObjects(objectsToRaycast, false);
+
+                if (eraseIntersects.length > 0) {
+                    const hitObj = eraseIntersects[0].object;
+                    
+                    if (activeLayer === 'cube') {
+                        for (let [key, val] of activeCubes.entries()) {
+                            if (val === hitObj) {
+                                scene.remove(hitObj);
+                                activeCubes.delete(key);
+                                break;
+                            }
+                        }
+                    } else if (activeLayer === 'collider') {
+                        for (let [key, val] of activeColliders.entries()) {
+                            if (val === hitObj) {
+                                scene.remove(hitObj);
+                                activeColliders.delete(key);
+                                break;
+                            }
+                        }
+                    }
+                    currentEraseTarget = null;
+                    updatePreviews(event);
+                    return;
+                }
+
+                // If line vectors match the selected erase target coordinates
+                if (activeLayer === 'collider' && intersects.length > 0) {
+                    const nodeData = getNearestVertex(intersects[0].point);
+                    if (nodeData) {
+                        for (let i = activeLines.length - 1; i >= 0; i--) {
+                            const ln = activeLines[i];
+                            if (ln.userData.y === activeHeightIndex && 
+                               ((ln.userData.x1 === nodeData.vX && ln.userData.z1 === nodeData.vZ) ||
+                                (ln.userData.x2 === nodeData.vX && ln.userData.z2 === nodeData.vZ))) {
+                                scene.remove(ln);
+                                activeLines.splice(i, 1); 
+                            }
+                        }
+                        lineEraseCache = [];
+                        updatePreviews(event);
+                    }
+                }
+                return;
+            }
+
+            if (intersects.length > 0) {
+                const point = intersects[0].point;
+                const currentHeightY = activeHeightIndex * CELL_SIZE;
+
+                if (activeTool === 'col-line' && activeLayer === 'collider') {
+                    const nodeData = getNearestVertex(point);
+                    if (!nodeData) return;
+
+                    if (!lineStartNode) {
+                        lineStartNode = nodeData;
+                        UI.msg.textContent = '◎ click second vertex to finish line'; 
+                    } else {
+                        if (!(nodeData.vX === lineStartNode.vX && nodeData.vZ === lineStartNode.vZ)) {
+                            const points = [
+                                new THREE.Vector3(lineStartNode.worldX, currentHeightY + CELL_SIZE, lineStartNode.worldZ),
+                                new THREE.Vector3(nodeData.worldX, currentHeightY + CELL_SIZE, nodeData.worldZ)
+                            ];
+                            const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+                            const visualLine = new THREE.Line(lineGeo, colliderLineMat);
+
+                            const cGeo = new THREE.SphereGeometry(0.12, 16, 16);
+                            const cMat = new THREE.MeshBasicMaterial({ color: 0x4eff91 });
+                            const joint1 = new THREE.Mesh(cGeo, cMat); joint1.position.copy(points[0]);
+                            const joint2 = new THREE.Mesh(cGeo, cMat); joint2.position.copy(points[1]);
+                            
+                            visualLine.add(joint1, joint2);
+                            scene.add(visualLine);
+
+                            visualLine.userData = {
+                                type: 'line',
+                                x1: lineStartNode.vX, z1: lineStartNode.vZ,
+                                x2: nodeData.vX, z2: nodeData.vZ,
+                                y: activeHeightIndex
+                            };
+                            activeLines.push(visualLine);
+                        }
+                        lineStartNode = null;
+                        UI.msg.textContent = '◎ click a vertex to start next line'; 
+                    }
+                    return;
+                }
+
+                const gridData = getGridCoordinates(point);
+                if (!gridData) return;
+
+                const cubeKey = `${gridData.gridX},${activeHeightIndex},${gridData.gridZ}`; 
+
+                const selectedCubeType = CUBE_TYPES.find(c => c.id === activeTool);
+
+                if (selectedCubeType && activeLayer === 'cube') {
+                    const currentActiveColorHex = document.getElementById('colA').value;
+
+                    if (activeCubes.has(cubeKey)) {
+                        const existingCube = activeCubes.get(cubeKey);
+                        scene.remove(existingCube);
+                        activeCubes.delete(cubeKey);
+
+                        if (existingCube.userData.cubeTypeId !== selectedCubeType.id) {
+                            const box = selectedCubeType.createMesh(currentActiveColorHex);
+                            box.position.set(gridData.worldX, currentHeightY + (CELL_SIZE / 2), gridData.worldZ);
+                            scene.add(box);
+                            activeCubes.set(cubeKey, box);
+                        }
+                    } else {
+                        const box = selectedCubeType.createMesh(currentActiveColorHex);
+                        box.position.set(gridData.worldX, currentHeightY + (CELL_SIZE / 2), gridData.worldZ);
+                        scene.add(box);
+                        activeCubes.set(cubeKey, box);
+                    }
+                } 
+                else if (activeTool.startsWith('col-') && activeLayer === 'collider') {
+                    const faceType = activeTool.replace('col-', '');
+                    const colKey = `${gridData.gridX},${activeHeightIndex},${gridData.gridZ},${faceType}`; 
+
+                    if (activeColliders.has(colKey)) {
+                        scene.remove(activeColliders.get(colKey));
+                        activeColliders.delete(colKey); 
+                    } else {
+                        const visualCol = new THREE.Mesh(new THREE.PlaneGeometry(CELL_SIZE, CELL_SIZE), faceColliderMaterial);
+                        const wires = new THREE.LineSegments(new THREE.EdgesGeometry(visualCol.geometry), colliderLineMat); 
+                        visualCol.add(wires);
+
+                        if (faceType === 'top') {
+                            visualCol.rotation.x = Math.PI / 2;
+                            visualCol.position.set(gridData.worldX, currentHeightY + CELL_SIZE, gridData.worldZ); 
+                        } else if (faceType === 'left') {
+                            visualCol.rotation.y = Math.PI / 2;
+                            visualCol.position.set(gridData.worldX - CELL_SIZE/2, currentHeightY + (CELL_SIZE/2), gridData.worldZ); 
+                        } else if (faceType === 'right') {
+                            visualCol.position.set(gridData.worldX, currentHeightY + (CELL_SIZE/2), gridData.worldZ + CELL_SIZE/2); 
+                        }
+
+                        scene.add(visualCol);
+                        activeColliders.set(colKey, visualCol);
+                    }
+                }
+            }
+        }
+
+        // --- INTERFACE SYNC & HOOKS ---
+        const UI = {
+            msg: document.getElementById('status-msg'),
+            hint: document.getElementById('layer-hint'),
+            cubeTab: document.getElementById('tab-cube'),
+            colTab: document.getElementById('tab-col'),
+            btnTop: document.getElementById('btn-col-top'),
+            btnLeft: document.getElementById('btn-col-left'),
+            btnRight: document.getElementById('btn-col-right'),
+            btnLine: document.getElementById('btn-col-line'),
+            btnErase: document.getElementById('btn-erase'),
+            cubeToolsContainer: document.getElementById('cube-tools-container')
+        };
+
+        function initRegistryUI() {
+            CUBE_TYPES.forEach((cubeConfig) => {
+                const btn = document.createElement('button');
+                btn.className = 'tool-btn';
+                btn.id = `btn-type-${cubeConfig.id}`;
+                btn.textContent = cubeConfig.label;
+                
+                if (cubeConfig.id === activeTool) {
+                    btn.classList.add('active');
+                }
+
+                btn.addEventListener('click', () => setTool(cubeConfig.id));
+                UI.cubeToolsContainer.appendChild(btn);
+            });
+        }
+
+        const STATUS_MESSAGES = {
+            'col-top': '◎ top face collider — click cell to toggle boundary', 
+            'col-left': '◎ left face collider — click cell to toggle boundary', 
+            'col-right': '◎ right face collider — click cell to toggle boundary', 
+            'col-line': '◎ line collider — click two grid vertices to draw', 
+            erase: 'hover over any placed element to highlight, click to erase' 
+        };
+
+        function setTool(toolName) {
+            clearEraseHighlights();
+            activeTool = toolName; lineStartNode = null; 
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            
+            const activeRegistryItem = CUBE_TYPES.find(c => c.id === toolName);
+            if (activeRegistryItem) {
+                const targetBtn = document.getElementById(`btn-type-${toolName}`);
+                if (targetBtn) targetBtn.classList.add('active');
+                setLayer('cube');
+                UI.msg.textContent = activeRegistryItem.statusHint;
+            } else {
+                if(toolName === 'col-top') UI.btnTop.classList.add('active');
+                if(toolName === 'col-left') UI.btnLeft.classList.add('active');
+                if(toolName === 'col-right') UI.btnRight.classList.add('active');
+                if(toolName === 'col-line') UI.btnLine.classList.add('active');
+                if(toolName === 'erase') UI.btnErase.classList.add('active');
+                
+                if(toolName.startsWith('col-')) setLayer('collider');
+                UI.msg.textContent = STATUS_MESSAGES[toolName] || '';
+            }
+            hidePreviews();
+        }
+
+        function setLayer(layerName) {
+            clearEraseHighlights();
+            activeLayer = layerName; 
+            if(layerName === 'cube') {
+                UI.cubeTab.className = 'layer-tab active-cube'; 
+                UI.colTab.className = 'layer-tab'; 
+                UI.hint.textContent = "Painting Cubes";
+                activeCubes.forEach(m => m.visible = true);
+                activeColliders.forEach(m => m.material.opacity = 0.15); 
+                activeLines.forEach(l => l.material.opacity = 0.2);
+            } else {
+                UI.cubeTab.className = 'layer-tab'; 
+                UI.colTab.className = 'layer-tab active-col'; 
+                UI.hint.textContent = "Painting Colliders — Green physical layouts"; 
+                activeColliders.forEach(m => m.material.opacity = 0.6);
+                activeLines.forEach(l => l.material.opacity = 1.0);
+            }
+            hidePreviews();
+        }
+
+        function rotateCanvas(direction) {
+            const angle = direction * (Math.PI / 2);
+            const offset = new THREE.Vector3().copy(camera.position).sub(controls.target);
+            
+            offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
+            camera.position.copy(controls.target).add(offset);
+            controls.update();
+        }
+
+        function updateHeightLayer(delta) {
+            activeHeightIndex += delta;
+            activeHeightIndex = Math.max(-5, Math.min(10, activeHeightIndex));
+            document.getElementById('height-label').textContent = activeHeightIndex;
+            
+            const nextHeightWorldY = activeHeightIndex * CELL_SIZE;
+            
+            interactionPlane.position.y = nextHeightWorldY;
+            gridHelper.position.y = nextHeightWorldY - 0.01;
+            tileOutlineGroup.position.y = nextHeightWorldY;
+            
+            hidePreviews();
+            clearEraseHighlights();
+        }
+
+        // Initialize UI
+        initRegistryUI();
+
+        UI.btnTop.addEventListener('click', () => setTool('col-top'));
+        UI.btnLeft.addEventListener('click', () => setTool('col-left'));
+        UI.btnRight.addEventListener('click', () => setTool('col-right'));
+        UI.btnLine.addEventListener('click', () => setTool('col-line'));
+        UI.btnErase.addEventListener('click', () => setTool('erase'));
+
+        document.getElementById('btn-height-up').addEventListener('click', () => updateHeightLayer(1));
+        document.getElementById('btn-height-down').addEventListener('click', () => updateHeightLayer(-1));
+
+        document.getElementById('btn-rot-cw').addEventListener('click', () => rotateCanvas(1));
+        document.getElementById('btn-rot-ccw').addEventListener('click', () => rotateCanvas(-1));
+
+        UI.cubeTab.addEventListener('click', () => { setLayer('cube'); setTool(CUBE_TYPES[0].id); }); 
+        UI.colTab.addEventListener('click', () => { setLayer('collider'); setTool('col-top'); }); 
+
+        document.getElementById('colA').addEventListener('input', e => {
+            const nextColor = e.target.value;
+            globalUniforms.colorA.value.set(nextColor); 
+            activeCubes.forEach((cubeMesh) => {
+                const matchedDef = CUBE_TYPES.find(c => c.id === cubeMesh.userData.cubeTypeId);
+                if (matchedDef && matchedDef.updateColor) {
+                    matchedDef.updateColor(cubeMesh, nextColor);
+                }
+            });
+        }); 
+        
+        document.getElementById('colB').addEventListener('input', e => globalUniforms.colorB.value.set(e.target.value)); 
+        document.getElementById('split').addEventListener('input', e => globalUniforms.splitY.value = (parseFloat(e.target.value) / 50) * (CELL_SIZE / 2)); 
+
+        const swatchesContainer = document.getElementById('swatches');
+        PALETTE.forEach((hexColor, index) => {
+            const dot = document.createElement('div');
+            dot.className = 'color-dot' + (index === 0 ? ' active' : '');
+            dot.style.background = hexColor;
+            dot.addEventListener('click', () => {
+                globalUniforms.colorA.value.set(hexColor); 
+                document.getElementById('colA').value = hexColor; 
+                document.querySelectorAll('.color-dot').forEach((d, i) => d.classList.toggle('active', i === index)); 
+                
+                activeCubes.forEach((cubeMesh) => {
+                    const matchedDef = CUBE_TYPES.find(c => c.id === cubeMesh.userData.cubeTypeId);
+                    if (matchedDef && matchedDef.updateColor) {
+                        matchedDef.updateColor(cubeMesh, hexColor);
+                    }
+                });
+            });
+            swatchesContainer.appendChild(dot);
+        });
+
+        document.getElementById('btn-clear').addEventListener('click', () => {
+            clearEraseHighlights();
+            if (activeLayer === 'cube') {
+                activeCubes.forEach(m => scene.remove(m));
+                activeCubes.clear(); 
+            } else {
+                activeColliders.forEach(m => scene.remove(m));
+                activeColliders.clear();
+                activeLines.forEach(l => scene.remove(l));
+                activeLines.length = 0; 
+                lineStartNode = null; 
+            }
+        });
+
+        container.addEventListener('mousemove', updatePreviews);
+        container.addEventListener('mousedown', handleDrawingClick);
+        container.addEventListener('mouseleave', () => {
+            hidePreviews();
+            clearEraseHighlights();
+        });
+
+        window.addEventListener('resize', () => {
+            const aspect = container.clientWidth / container.clientHeight;
+            camera.left = -frustumSize * aspect / 2;
+            camera.right = frustumSize * aspect / 2;
+            camera.top = frustumSize / 2;
+            camera.bottom = -frustumSize / 2;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }); 
+
+        // --- RENDERING LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update(); 
+            renderer.render(scene, camera); 
+        }
+        animate();
+
+        setTool(CUBE_TYPES[0].id);
+
+    </script>
+</body>
+</html>

@@ -6,26 +6,6 @@
     <title>Isometric Terrain Builder</title>
     <link rel="icon" type="image/png" href="favicon-96x96.png" sizes="96x96" />
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <style>
-        @font-face {
-            font-family: 'Inter';
-            src: url('fonts/inter-normal.woff2') format('woff2');
-            font-weight: normal;
-            font-style: normal;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'Inter';
-            src: url('fonts/inter-bold.woff2') format('woff2');
-            font-weight: bold;
-            font-style: normal;
-            font-display: swap;
-        }
-        .paint-button.active {
-            background-color: #4CAF50 !important;
-            border-color: #4CAF50 !important;
-        }
-    </style>
     <link rel="stylesheet" href="fonts/fontawesome-free-6.5.0/css/all.min.css">
     <link rel="stylesheet" href="css/right-panel.css">
     <link rel="stylesheet" href="css/styles.css">
@@ -33,23 +13,25 @@
     <link rel="stylesheet" href="css/modal.css">
     <link rel="stylesheet" href="css/tutorials.css">
     <link rel="stylesheet" href="css/tabbed-panel.css">
+    <link rel="stylesheet" href="css/inline.css">
     
     
     
     
 </head>
 <body>
-    <svg xmlns="http://www.w3.org/2000/svg" style="display:none"></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" class="hidden-defs"></svg>
     <div id="container">
         <div id="scene-container"></div>
         <div id="sidebar">
             <div class="sidebar-header">
                 <h2>Isometric Builder</h2>
-                <div class="global-actions">
-                    <button id="settings-btn" class="icon-button" title="Settings"><i class="fas fa-cog"></i></button>
-                    <button id="save-btn" class="icon-button" title="Save"><i class="fas fa-save"></i></button>
-                    <button id="load-btn" class="icon-button" title="Load"><i class="fas fa-folder-open"></i></button>
-                </div>
+<div class="global-actions">
+                     <button id="mode-2d-3d" class="icon-button mode-toggle-btn" title="3D Mode Active"><i class="fas fa-cubes-stacked"></i> 3D Mode</button>
+                     <button id="settings-btn" class="icon-button" title="Settings"><i class="fas fa-cog"></i></button>
+                     <button id="save-btn" class="icon-button" title="Save"><i class="fas fa-save"></i></button>
+                     <button id="load-btn" class="icon-button" title="Load"><i class="fas fa-folder-open"></i></button>
+                 </div>
             </div>
             <div class="panel-container">
                 <!-- Group 1: Build Tools -->
@@ -64,17 +46,20 @@
                         </button>
                     </div>
 
-                    <!-- Group 2: Scene & View -->
-                    <div class="tab-group-divider"></div>
-                    <div class="tab-group">
-                        <div class="tab-group-label">SCENE</div>
-                        <button class="tab-button" data-panel="camera-panel">
-                            <i class="fas fa-camera" title="Camera"></i>
-                        </button>
-                        <button class="tab-button" data-panel="scene-panel">
-                            <i class="fas fa-image" title="Scene"></i>
-                        </button>
-                    </div>
+                     <!-- Group 2: Scene & View -->
+                     <div class="tab-group-divider"></div>
+                     <div class="tab-group">
+                         <div class="tab-group-label">SCENE</div>
+                         <button class="tab-button" data-panel="camera-panel">
+                             <i class="fas fa-camera" title="Camera"></i>
+                         </button>
+                         <button class="tab-button" data-panel="scene-panel">
+                             <i class="fas fa-image" title="Scene"></i>
+                         </button>
+                         <button class="tab-button" data-panel="export-panel">
+                             <i class="fas fa-file-export" title="Export"></i>
+                         </button>
+                     </div>
 
                     <!-- Group 3: Materials -->
                     <div class="tab-group-divider"></div>
@@ -127,15 +112,29 @@
                                     <button id="add-building" class="icon-button" title="Add Building"><i class="fas fa-building"></i></button>
                                 </div>
                             </div>
-                            <div class="object-group">
-                                <div class="group-label">Ground Cover</div>
-                                <div class="button-row">
-                                    <button id="add-path" class="icon-button" title="Add Path"><i class="fas fa-road"></i></button>
-                                    <button id="add-river" class="icon-button" title="Add River"><i class="fas fa-water"></i></button>
-                                </div>
-                            </div>
+                            
                             <button id="clear-scene" class="icon-button" title="Clear Scene"><i class="fas fa-trash"></i></button>
                         </div>
+
+                         <div class="panel-content button-group">
+
+                             <div class="object-group">
+                                 <div class="group-label">Collider Shapes</div>
+                                  <div class="button-row">
+                                      <button id="add-top" class="icon-button"
+                                              data-tooltip="**Top Collider**\nAdd a flat top surface to the selected object's upper face"><img src="gfx/top_icon.svg" alt="Top" width="16" height="16"></button>
+                                      <button id="add-left" class="icon-button"
+                                              data-tooltip="**Left Collider**\nAdd a left-side collider face (90° rotated)"><img src="gfx/left_side_icon.svg" alt="Left" width="16" height="16"></button>
+                                      <button id="add-right" class="icon-button"
+                                              data-tooltip="**Right Collider**\nAdd a right-side collider face (90° rotated)"><img src="gfx/right_side_icon.svg" alt="Right" width="16" height="16"></button>
+                                      <button id="add-line" class="icon-button"
+                                              data-tooltip="**Line Collider**\nAdd a line / edge element to the scene"><img src="gfx/top_icon.svg" alt="Line" width="16" height="16"></button>
+                                  </div>
+                             </div>
+                         </div>
+                   
+                   
+                   
                     </div>
 
                     <div id="movement-panel" class="control-group panel-section">
@@ -151,20 +150,18 @@
                             <div>
                                 <label>Move:</label>
                                 <div class="button-group">
-                                    <button id="move-left" style="flex:1;">↖</button>
-                                    <button id="move-up" style="flex:1;">↑</button>
-                                    <button id="move-right-up" style="flex:1;">↗</button>
+                                    <button id="move-left">↖</button>
+                                    <button id="move-up">↑</button>
+                                    <button id="move-right-up">↗</button>
                                 </div>
                                 <div class="button-group">
-                                    <button id="move-left-down" style="flex:1;">↙</button>
-                                    <button id="move-down" style="flex:1;">↓</button>
-                                    <button id="move-right" style="flex:1;">↘</button>
+                                    <button id="move-left-down">↙</button>
+                                    <button id="move-down">↓</button>
+                                    <button id="move-right">↘</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-
-
-            </div>
 
                     <div id="camera-panel" class="control-group panel-section">
                         <div class="panel-header">
@@ -182,121 +179,128 @@
                         </div>
                     </div>
 
-                    <div id="scene-panel" class="control-group panel-section">
-                        <div class="panel-header">
-                            <div class="panel-title"><h3>Scene</h3></div>
-                            <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button></div>
-                        </div>
-                        <div class="panel-content">
-                            <div class="property-group">
-                                <div class="group-label">Background</div>
-                                <div>
-                                    <label for="background-color">Color:</label>
-                                    <input type="color" id="background-color" value="#808080">
-                                </div>
-                                <div>
-                                    <label>Theme:</label>
-                                    <select id="theme-selector">
-                                        <option value="default">Default</option>
-                                        <option value="sunset">Sunset</option>
-                                        <option value="night">Night</option>
-                                        <option value="dawn">Dawn</option>
-                                        <option value="overcast">Overcast</option>
-                                    </select>
-                                    <div class="button-group" style="margin-top:6px;">
-                                        <button id="apply-theme" style="flex:1;">Apply</button>
-                                        <button id="cycle-themes" style="flex:1;">Cycle</button>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label for="brightness-adjust">Brightness:</label>
-                                    <input type="range" id="brightness-adjust" min="0.1" max="3" step="0.1" value="1.0">
-                                    <span id="brightness-value">1.0</span>
-                                    <button id="adjust-brightness" style="margin-top:4px;width:100%;">Apply Brightness</button>
-                                </div>
-                                <div>
-                                    <label for="background-image-url">Image URL:</label>
-                                    <input type="text" id="background-image-url" placeholder="https://...">
-                                    <button id="apply-image-background" style="margin-top:4px;width:100%;">Set Image BG</button>
-                                </div>
-                            </div>
-                            <div class="property-group">
-                                <div class="group-label">Terrain</div>
-                                <div>
-                                    <label for="terrain-height">Height:</label>
-                                    <input type="range" id="terrain-height" min="0.1" max="2" step="0.1" value="0.25">
-                                    <span id="terrain-height-value">0.25</span>
-                                </div>
-                            </div>
-                            <div class="property-group">
-                                <div class="group-label">Texture Paint (Shift+Click)</div>
-                                <div class="button-group">
-                                    <button id="paint-grass" class="paint-button icon-button" data-type="grass" title="Grass"><i class="fas fa-leaf"></i></button>
-                                    <button id="paint-dirt" class="paint-button icon-button" data-type="dirt" title="Dirt"><i class="fas fa-square" style="color:#8B4513"></i></button>
-                                    <button id="paint-stone" class="paint-button icon-button" data-type="stone" title="Stone"><i class="fas fa-square" style="color:#808080"></i></button>
-                                    <button id="paint-water" class="paint-button icon-button" data-type="water" title="Water"><i class="fas fa-square" style="color:#1E90FF"></i></button>
-                                    <button id="paint-sand" class="paint-button icon-button" data-type="sand" title="Sand"><i class="fas fa-square" style="color:#F4A460"></i></button>
-                                </div>
-                            </div>
-                            <div class="property-group">
-                                <div class="group-label">Export</div>
-                                <div class="button-group">
-                                    <button id="export-obj" class="icon-button" title="Export OBJ"><i class="fas fa-file-export"></i> OBJ</button>
-                                    <button id="export-stl" class="icon-button" title="Export STL"><i class="fas fa-file-export"></i> STL</button>
-                                    <button id="export-unity" class="icon-button" title="Export Unity"><i class="fab fa-unity"></i> Unity</button>
-                                </div>
-                                <div style="margin-top:8px;">
-                                    <input type="checkbox" id="include-colliders" checked>
-                                    <label for="include-colliders">Include Colliders</label>
-                                </div>
-                                <div>
-                                    <label for="collider-type">Type:</label>
-                                    <select id="collider-type">
-                                        <option value="box">Box</option>
-                                        <option value="mesh">Mesh</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="property-group">
-                                <div class="group-label">Gradients</div>
-                                <div class="button-group">
-                                    <input type="color" id="gradient-color1" value="#ff7e5f" style="flex:1;">
-                                    <input type="color" id="gradient-color2" value="#feb47b" style="flex:1;">
-                                </div>
-                                <div class="button-group">
-                                    <button id="apply-gradient-vertical" style="flex:1;">Vertical</button>
-                                    <button id="apply-gradient-horizontal" style="flex:1;">Horizontal</button>
-                                </div>
-                            </div>
-                            <div class="property-group">
-                                <div class="group-label">Fog</div>
-                                <div>
-                                    <label for="fog-color">Color:</label>
-                                    <input type="color" id="fog-color" value="#cccccc">
-                                    <div>
-                                        <label for="fog-near">Near:</label>
-                                        <input type="range" id="fog-near" min="1" max="50" value="10">
-                                        <span id="fog-near-value">10</span>
-                                    </div>
-                                    <div>
-                                        <label for="fog-far">Far:</label>
-                                        <input type="range" id="fog-far" min="50" max="200" value="100">
-                                        <span id="fog-far-value">100</span>
-                                    </div>
-                                    <div class="button-group">
-                                        <button id="apply-fog" style="flex:1;">Apply</button>
-                                        <button id="remove-fog" style="flex:1;">Remove</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="property-group">
-                                <div class="group-label">View Options</div>
-                                <button id="toggle-grid">Toggle Grid</button>
-                                <button id="toggle-axes">Toggle Axes</button>
-                                <button id="reset-background">Reset BG</button>
-                            </div>
-                        </div>
-                    </div>
+                     <div id="scene-panel" class="control-group panel-section">
+                         <div class="panel-header">
+                             <div class="panel-title"><h3>Scene</h3></div>
+                             <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button></div>
+                         </div>
+                         <div class="panel-content">
+                             <div class="property-group">
+                                 <div class="group-label">Background</div>
+                                 <div>
+                                     <label for="background-color">Color:</label>
+                                     <input type="color" id="background-color" value="#808080">
+                                 </div>
+                                 <div>
+                                     <label>Theme:</label>
+                                     <select id="theme-selector">
+                                         <option value="default">Default</option>
+                                         <option value="sunset">Sunset</option>
+                                         <option value="night">Night</option>
+                                         <option value="dawn">Dawn</option>
+                                         <option value="overcast">Overcast</option>
+                                     </select>
+                                     <div class="button-group theme-button-group">
+                                         <button id="apply-theme">Apply</button>
+                                         <button id="cycle-themes">Cycle</button>
+                                     </div>
+                                 </div>
+                                 <div>
+                                     <label for="brightness-adjust">Brightness:</label>
+                                     <input type="range" id="brightness-adjust" min="0.1" max="3" step="0.1" value="1.0">
+                                     <span id="brightness-value">1.0</span>
+                                     <button id="adjust-brightness">Apply Brightness</button>
+                                 </div>
+                                 <div>
+                                     <label for="background-image-url">Image URL:</label>
+                                     <input type="text" id="background-image-url" placeholder="https://...">
+                                     <button id="apply-image-background">Set Image BG</button>
+                                 </div>
+                             </div>
+                             <div class="property-group">
+                                 <div class="group-label">Terrain</div>
+                                 <div>
+                                     <label for="terrain-height">Height:</label>
+                                     <input type="range" id="terrain-height" min="0.1" max="2" step="0.1" value="0.25" data-tooltip="**Terrain Height**\nAdjust the height of the terrain">
+                                     <span id="terrain-height-value">0.25</span>
+                                 </div>
+                             </div>
+                             <div class="property-group">
+                                 <div class="group-label">Texture Paint (Shift+Click)</div>
+                                 <div class="button-group">
+                                     <button id="paint-grass" class="paint-button icon-button" data-type="grass" data-tooltip="**Grass Paint**\nPaint grass texture on terrain"> <i class="fas fa-leaf"></i></button>
+                                     <button id="paint-dirt" class="paint-button icon-button" data-type="dirt" data-tooltip="**Dirt Paint**\nPaint dirt texture on terrain"> <i class="fas fa-square"></i></button>
+                                     <button id="paint-stone" class="paint-button icon-button" data-type="stone" data-tooltip="**Stone Paint**\nPaint stone texture on terrain"> <i class="fas fa-square"></i></button>
+                                     <button id="paint-water" class="paint-button icon-button" data-type="water" data-tooltip="**Water Paint**\nPaint water texture on terrain"> <i class="fas fa-square"></i></button>
+                                     <button id="paint-sand" class="paint-button icon-button" data-type="sand" data-tooltip="**Sand Paint**\nPaint sand texture on terrain"> <i class="fas fa-square"></i></button>
+                                 </div>
+                             </div>
+                             <div class="property-group">
+                                 <div class="group-label">Gradients</div>
+                                 <div class="button-group">
+                                     <input type="color" id="gradient-color1" value="#ff7e5f" data-tooltip="**Gradient Color 1**\nFirst color for the background gradient">
+                                     <input type="color" id="gradient-color2" value="#feb47b" data-tooltip="**Gradient Color 2**\nSecond color for the background gradient">
+                                 </div>
+                                 <div class="button-group">
+                                     <button id="apply-gradient-vertical" data-tooltip="**Vertical Gradient**\nApply vertical color gradient to background">Vertical</button>
+                                     <button id="apply-gradient-horizontal" data-tooltip="**Horizontal Gradient**\nApply horizontal color gradient to background">Horizontal</button>
+                                 </div>
+                             </div>
+                             <div class="property-group">
+                                 <div class="group-label">Fog</div>
+                                 <div>
+                                     <label for="fog-color">Color:</label>
+                                     <input type="color" id="fog-color" value="#cccccc" data-tooltip="**Fog Color**\nColor of the fog effect">
+                                     <div>
+                                         <label for="fog-near">Near:</label>
+                                         <input type="range" id="fog-near" min="1" max="50" value="10" data-tooltip="**Fog Near**\nDistance where fog starts to appear">
+                                         <span id="fog-near-value">10</span>
+                                     </div>
+                                     <div>
+                                         <label for="fog-far">Far:</label>
+                                         <input type="range" id="fog-far" min="50" max="200" value="100" data-tooltip="**Fog Far**\nDistance where fog becomes fully opaque">
+                                         <span id="fog-far-value">100</span>
+                                     </div>
+                                     <div class="button-group">
+                                         <button id="apply-fog" data-tooltip="**Apply Fog**\nAdd atmospheric fog effect to scene">Apply</button>
+                                         <button id="remove-fog" data-tooltip="**Remove Fog**\nRemove fog effect from the scene">Remove</button>
+                                     </div>
+                                 </div>
+                             </div>
+                             <div class="property-group">
+                                 <div class="group-label">View Options</div>
+                                 <button id="toggle-grid" data-tooltip="**Toggle Grid**\nShow/hide the grid helper\nfor object placement">Toggle Grid</button>
+                                 <button id="toggle-axes" data-tooltip="**Toggle Axes**\nShow/hide XYZ axes helper\nfor orientation reference">Toggle Axes</button>
+                                 <button id="reset-background" data-tooltip="**Reset Background**\nReset to solid color\nbackground">Reset BG</button>
+                             </div>
+                         </div>
+                     </div>
+                     <div id="export-panel" class="control-group panel-section">
+                         <div class="panel-header">
+                             <div class="panel-title"><h3>Export</h3></div>
+                             <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button></div>
+                         </div>
+                         <div class="panel-content">
+                             <div class="property-group">
+                                 <div class="button-group">
+                                     <button id="export-obj" class="icon-button" title="Export OBJ"><i class="fas fa-file-export"></i> OBJ</button>
+                                     <button id="export-stl" class="icon-button" title="Export STL"><i class="fas fa-file-export"></i> STL</button>
+                                     <button id="export-unity" class="icon-button" title="Export Unity"><i class="fab fa-unity"></i> Unity</button>
+                                 </div>
+                                 <div class="collider-checkbox-row">
+                                     <input type="checkbox" id="include-colliders" checked data-tooltip="**Include Colliders**\nInclude collision meshes when exporting">
+                                     <label for="include-colliders">Include Colliders</label>
+                                 </div>
+                                 <div>
+                                     <label for="collider-type">Type:</label>
+                                     <select id="collider-type" data-tooltip="**Collider Type**\nChoose between box or mesh colliders for export">
+                                         <option value="box">Box</option>
+                                         <option value="mesh">Mesh</option>
+                                     </select>
+                                 </div>
+                             </div>
+                         </div>
+                     </div>
 
 
 <div id="materials-panel" class="control-group panel-section">
@@ -305,9 +309,113 @@
         <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button></div>
     </div>
     <div class="panel-content">
+        <!-- Two-Tone Material Builder -->
+        <div class="material-builder">
+            <canvas id="material-builder-canvas" width="320" height="260"></canvas>
+            
+            <div class="property-group">
+                <div class="row mb-8">
+                    <label class="w-70">Top Colour</label>
+                    <div class="sw" id="builder-swA" style="background:#3ecfb2;">
+                        <input type="color" id="builder-colA" value="#3ecfb2">
+                    </div>
+                    <label class="w-70">Bot Colour</label>
+                    <div class="sw" id="builder-swB" style="background:#c94b6e;">
+                        <input type="color" id="builder-colB" value="#c94b6e">
+                    </div>
+                </div>
+                <div class="row mb-8">
+                    <label class="w-70">Split</label>
+                    <input type="range" id="builder-split" min="0" max="100" value="50">
+                    <span id="builder-splitV" class="w-34">50%</span>
+                </div>
+                <div class="row mb-8">
+                    <label class="w-70">Rotate</label>
+                    <input type="range" id="builder-rot" min="0" max="3" value="0" step="1">
+                    <span id="builder-rotV" class="w-34">0°</span>
+                </div>
+                <div class="row mb-8">
+                    <label class="w-70">Outline</label>
+                    <div class="seg" id="builder-outlineSeg">
+                        <button class="active" data-v="on">On</button>
+                        <button data-v="off">Off</button>
+                    </div>
+                </div>
+                <div class="title">Top Dither</div>
+                <div class="row mb-6">
+                    <label class="w-72">Mode</label>
+                    <select id="builder-tDitherMode">
+                        <option value="none">Off</option>
+                        <option value="random">Random</option>
+                        <option value="h">H-Lines</option>
+                        <option value="v">V-Lines</option>
+                        <option value="hv" selected>HV</option>
+                    </select>
+                </div>
+                <div class="row mb-6">
+                    <label class="w-72">Space</label>
+                    <input type="range" id="builder-tDitherSpace" min="2" max="16" value="6" step="1">
+                    <span id="builder-tDitherSpaceV" class="w-28">6</span>
+                </div>
+                <div class="row mb-6">
+                    <label class="w-72">Thick</label>
+                    <input type="range" id="builder-tDitherThick" min="1" max="8" value="1" step="1">
+                    <span id="builder-tDitherThickV" class="w-28">1</span>
+                </div>
+                <div class="row mb-6">
+                    <label class="w-72">Bright</label>
+                    <input type="range" id="builder-tDitherBright" min="-100" max="100" value="100" step="5">
+                    <span id="builder-tDitherBrightV" class="w-28">100</span>
+                </div>
+                <div class="row mb-12">
+                    <label class="w-72">Blend</label>
+                    <input type="range" id="builder-tDitherAlpha" min="0" max="100" value="50" step="5">
+                    <span id="builder-tDitherAlphaV" class="w-28">50</span>
+                </div>
+
+                <div class="title">Bottom Dither</div>
+                <div class="row mb-6">
+                    <label class="w-72">Mode</label>
+                    <select id="builder-bDitherMode">
+                        <option value="none" selected>Off</option>
+                        <option value="random">Random</option>
+                        <option value="h">H-Lines</option>
+                        <option value="v">V-Lines</option>
+                        <option value="hv">HV</option>
+                    </select>
+                </div>
+                <div class="row mb-6">
+                    <label class="w-72">Space</label>
+                    <input type="range" id="builder-bDitherSpace" min="2" max="16" value="4" step="1">
+                    <span id="builder-bDitherSpaceV" class="w-28">4</span>
+                </div>
+                <div class="row mb-6">
+                    <label class="w-72">Thick</label>
+                    <input type="range" id="builder-bDitherThick" min="1" max="8" value="1" step="1">
+                    <span id="builder-bDitherThickV" class="w-28">1</span>
+                </div>
+                <div class="row mb-6">
+                    <label class="w-72">Bright</label>
+                    <input type="range" id="builder-bDitherBright" min="-100" max="100" value="-100" step="5">
+                    <span id="builder-bDitherBrightV" class="w-28">-100</span>
+                </div>
+                <div class="row mb-12">
+                    <label class="w-72">Blend</label>
+                    <input type="range" id="builder-bDitherAlpha" min="0" max="100" value="70" step="5">
+                    <span id="builder-bDitherAlphaV" class="w-28">70</span>
+                </div>
+                <div class="row">
+                    <button id="builder-save" class="btn"><i class="fas fa-save"></i> Save Material</button>
+                    <button id="builder-download" class="btn"><i class="fas fa-download"></i> PNG</button>
+                </div>
+            </div>
+        </div>
+        
+        <hr class="sep">
+        
         <div class="property-group">
-            <button id="create-material-btn" class="btn primary" style="width:100%; margin-bottom:12px;">
-                <i class="fas fa-plus"></i> Create Material
+            <button id="create-material-btn" class="btn primary">
+                <i class="fas fa-plus"></i> Create Standard Material
             </button>
         </div>
         <div id="materials-content"></div>
@@ -317,7 +425,7 @@
                 <input type="checkbox" id="pixel-effect-enabled">
                 <label for="pixel-effect-enabled">Enable Pixel Effects</label>
             </div>
-            <div class="pixel-effect-controls" id="pixel-effects-controls" style="display:none;">
+            <div class="pixel-effect-controls" id="pixel-effects-controls">
                 <div class="pixel-slider-group">
                     <label>Pixel Size:</label>
                     <input type="range" id="pixel-size" min="1" max="32" value="4">
@@ -345,12 +453,22 @@
                             <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button></div>
                         </div>
                         <div class="panel-content">
-                            <div>
-                                <label for="object-color">Color:</label>
-                                <input type="color" id="object-color">
-                            </div>
-                            <div>
-                                <label for="object-scale-x">Scale X:</label>
+                            <div class="property-group">
+                                <label>Material:</label>
+                                <div class="material-dropdown-wrapper" id="prop-material-selector">
+                                    <div class="material-selector" id="prop-material-btn">
+                                        <span class="selected-material-text" id="prop-material-text">Select Material</span>
+                                        <span class="dropdown-arrow"><i class="fas fa-chevron-down"></i></span>
+                                    </div>
+                                    <div class="material-dropdown-list" id="prop-material-dropdown"></div>
+                                 </div>
+                              </div>
+                              <div>
+                                  <label>Current Material:</label>
+                                  <span id="current-material-name" title="Material applied to the selected object">—</span>
+                              </div>
+                              <div>
+                                  <label for="object-scale-x">Scale X:</label>
                                 <input type="range" id="object-scale-x" min="1" max="5" value="1">
                                 <span id="object-scale-x-value">1</span>
                             </div>
@@ -385,8 +503,10 @@
 <div class="panel-content">
     <div class="property-group">
         <label for="layer-name">Layer Name:</label>
-        <input type="text" id="layer-name" placeholder="New layer">
-        <button id="add-layer" style="width:100%; margin-top:6px;">Add Layer</button>
+        <span class="layer-name-row">
+            <input type="text" id="layer-name" placeholder="New layer">
+            <button id="add-layer" class="add-layer-btn" title="Add layer"><i class="fas fa-plus"></i></button>
+        </span>
     </div>
     
     <!-- Material Selector (moved from materials panel) -->
@@ -400,12 +520,7 @@
             <div class="material-dropdown-list" id="material-dropdown-list"></div>
         </div>
     </div>
-    
-    <!-- Scene Objects List -->
-    <div class="property-group">
-        <label>Scene Objects:</label>
-        <div id="scene-objects-list" style="max-height: 200px; overflow-y: auto; margin-top: 8px;"></div>
-    </div>
+
                             <div id="layers-list"></div>
                             <div class="property-group">
                                 <label for="current-layer">Current:</label>
@@ -413,6 +528,8 @@
                             </div>
                         </div>
                     </div>
+                
+                
                 </div>
             </div>
         </div>
@@ -425,7 +542,7 @@
     <script src="js/notifications.js"></script>
     <script src="js/tutorialConfig.js"></script>
     <script src="js/tutorialSystem.js"></script>
-    <script type="module" src="js/app.js?v=4"></script>
+    <script type="module" src="js/3d/app3d.js"></script>
 
     <!-- Settings Modal -->
     <div id="settings-modal" class="modal-overlay">
@@ -471,7 +588,7 @@
                         <div class="settings-group">
                             <h3>Data</h3>
                             <div class="property-group">
-                                <button id="setting-clear-state" class="settings-btn" style="width:100%;">Clear All Saved Data</button>
+                                <button id="setting-clear-state" class="settings-btn">Clear All Saved Data</button>
                                 <div class="setting-description">Remove all saved settings and state from browser storage</div>
                             </div>
                         </div>
@@ -485,7 +602,7 @@
                                 <div class="setting-description">Show interactive tutorial on startup</div>
                             </div>
                             <div class="property-group">
-                                <button id="setting-start-tutorial" class="settings-btn" style="width:100%;">Start Tutorial</button>
+                                <button id="setting-start-tutorial" class="settings-btn">Start Tutorial</button>
                                 <div class="setting-description">Launch the interactive tutorial to learn the interface</div>
                             </div>
                         </div>

@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Isometric · Grid Snap · Dither</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #111116;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Courier New', monospace;
+  gap: 28px;
+  color: #888;
+}
+h1 { font-size: 10px; letter-spacing: 0.26em; text-transform: uppercase; color: #333; font-weight: 400; }
+canvas { display: block; cursor: grab; touch-action: none; }
+canvas.dragging { cursor: grabbing; }
+.hint { font-size: 10px; letter-spacing: 0.08em; color: #2a2a2a; }
+.ctrl { display: flex; flex-direction: column; gap: 11px; width: 360px; }
+.row { display: flex; align-items: center; gap: 10px; }
+.lbl { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #3a3a3a; width: 86px; flex-shrink: 0; }
+.sw { width: 22px; height: 22px; border-radius: 4px; border: 1px solid #222; cursor: pointer; position: relative; overflow: hidden; flex-shrink: 0; }
+.sw input[type=color] { position: absolute; inset: -6px; opacity: 0; cursor: pointer; width: 150%; height: 150%; }
+input[type=range] { flex: 1; -webkit-appearance: none; appearance: none; height: 2px; background: #1c1c1c; border-radius: 2px; outline: none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; background: #666; cursor: pointer; }
+input[type=range]::-moz-range-thumb { width: 13px; height: 13px; border-radius: 50%; background: #666; cursor: pointer; border: none; }
+.val { font-size: 10px; color: #3a3a3a; width: 38px; text-align: right; }
+.sep { border: none; border-top: 1px solid #1a1a1a; }
+.seg { display: flex; border: 1px solid #222; border-radius: 5px; overflow: hidden; flex: 1; }
+.seg button { flex: 1; padding: 5px 0; font-size: 10px; font-family: 'Courier New', monospace; letter-spacing: 0.06em; background: transparent; border: none; border-right: 1px solid #1e1e1e; color: #3a3a3a; cursor: pointer; text-transform: uppercase; }
+.seg button:last-child { border-right: none; }
+.seg button.active { background: #1c1c1c; color: #999; }
+.dl { display: inline-flex; align-items: center; gap: 8px; font-size: 10px; font-family: 'Courier New', monospace; letter-spacing: 0.12em; text-transform: uppercase; color: #555; text-decoration: none; padding: 8px 18px; border: 1px solid #222; border-radius: 5px; cursor: pointer; background: transparent; }
+.dl:hover { background: #161616; color: #999; }
+.dl svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+
+<h1>Isometric · Grid Snap · Dither</h1>
+<canvas id="c" width="520" height="420"></canvas>
+<p class="hint">Drag the cube to any tile</p>
+
+<div class="ctrl">
+  <div class="row">
+    <span class="lbl">Top</span>
+    <div class="sw" id="swA" style="background:#3ecfb2"><input type="color" id="colA" value="#3ecfb2"></div>
+  </div>
+  <div class="row">
+    <span class="lbl">Bottom</span>
+    <div class="sw" id="swB" style="background:#c94b6e"><input type="color" id="colB" value="#c94b6e"></div>
+  </div>
+  <hr class="sep">
+  <div class="row">
+    <span class="lbl">Split</span>
+    <input type="range" id="split" min="0" max="100" value="50" step="1">
+    <span class="val" id="splitV">50%</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Tile size</span>
+    <input type="range" id="size" min="36" max="80" value="54" step="1">
+    <span class="val" id="sizeV">54</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Grid</span>
+    <input type="range" id="gridN" min="3" max="9" value="6" step="1">
+    <span class="val" id="gridV">6×6</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Rotate</span>
+    <input type="range" id="rot" min="0" max="3" value="0" step="1">
+    <span class="val" id="rotV">0°</span>
+  </div>
+  <hr class="sep">
+  <div class="row">
+    <span class="lbl">Outline</span>
+    <div class="seg" id="outlineSeg">
+      <button class="active" data-v="on">On</button>
+      <button data-v="off">Off</button>
+    </div>
+  </div>
+  <hr class="sep">
+  <div class="row"><span class="lbl" style="color:#3ecfb2;font-size:9px;letter-spacing:.18em">TOP DITHER</span></div>
+  <div class="row">
+    <span class="lbl">Mode</span>
+    <div class="seg" id="tDitherSeg">
+      <button data-v="none">Off</button>
+      <button data-v="random">Noise</button>
+      <button data-v="h">H</button>
+      <button data-v="v">V</button>
+      <button class="active" data-v="hv">Cross</button>
+    </div>
+  </div>
+  <div class="row">
+    <span class="lbl">Space</span>
+    <input type="range" id="tSpace" min="2" max="16" value="6" step="1">
+    <span class="val" id="tSpaceV">6</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Thick</span>
+    <input type="range" id="tThick" min="1" max="6" value="1" step="0.5">
+    <span class="val" id="tThickV">1</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Bright</span>
+    <input type="range" id="tBright" min="-100" max="100" value="100">
+    <span class="val" id="tBrightV">100</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Blend</span>
+    <input type="range" id="tBlend" min="5" max="100" value="50">
+    <span class="val" id="tBlendV">50%</span>
+  </div>
+  <hr class="sep">
+  <div class="row"><span class="lbl" style="color:#c94b6e;font-size:9px;letter-spacing:.18em">BOT DITHER</span></div>
+  <div class="row">
+    <span class="lbl">Mode</span>
+    <div class="seg" id="bDitherSeg">
+      <button data-v="none">Off</button>
+      <button class="active" data-v="random">Noise</button>
+      <button data-v="h">H</button>
+      <button data-v="v">V</button>
+      <button data-v="hv">Cross</button>
+    </div>
+  </div>
+  <div class="row">
+    <span class="lbl">Space</span>
+    <input type="range" id="bSpace" min="2" max="16" value="4" step="1">
+    <span class="val" id="bSpaceV">4</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Thick</span>
+    <input type="range" id="bThick" min="1" max="6" value="1" step="0.5">
+    <span class="val" id="bThickV">1</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Bright</span>
+    <input type="range" id="bBright" min="-100" max="100" value="-100">
+    <span class="val" id="bBrightV">-100</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Blend</span>
+    <input type="range" id="bBlend" min="5" max="100" value="70">
+    <span class="val" id="bBlendV">70%</span>
+  </div>
+  <hr class="sep">
+  <div class="row" style="justify-content:center">
+    <button class="dl" id="dlBtn">
+      <svg viewBox="0 0 24 24"><path d="M12 3v13m0 0-4-4m4 4 4-4M3 21h18"/></svg>
+      Download PNG
+    </button>
+    <button class="dl" id="dlHtml" style="margin-left:8px">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Download HTML
+    </button>
+  </div>
+</div>
+
+<script>
+(function(){
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+
+let colorA   = '#3ecfb2';
+let colorB   = '#c94b6e';
+let splitPct = 0.5;
+let S        = 54;
+let rotStep  = 0;
+let GRID     = 6;
+let showOutline = true;
+// Per-half dither params: mode, space (px gap between lines), thick (px linewidth), bright (-1..1), alpha (0..1)
+let topDither = { mode: 'hv',     space: 6, thick: 1, bright:  1.0, alpha: 0.5 };
+let botDither = { mode: 'random', space: 4, thick: 1, bright: -1.0, alpha: 0.7 };
+
+let cubeCol = 2, cubeRow = 2;
+let dragActive = false, ghostCol = 2, ghostRow = 2;
+
+function hexToRgb(h) {
+  return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
+}
+function shaded(hex, f) {
+  const [r,g,b] = hexToRgb(hex);
+  return `rgb(${Math.min(255,r*f|0)},${Math.min(255,g*f|0)},${Math.min(255,b*f|0)})`;
+}
+function shadedRgb(hex, f) {
+  const [r,g,b] = hexToRgb(hex);
+  return [Math.min(255,r*f|0), Math.min(255,g*f|0), Math.min(255,b*f|0)];
+}
+
+// Compute dither line/dot colour: blend base colour toward white (bright>0) or black (bright<0)
+function ditherStroke(baseHex, lightFactor, dParams) {
+  const [r,g,b] = shadedRgb(baseHex, lightFactor);
+  let dr, dg, db;
+  if (dParams.bright >= 0) {
+    const t = dParams.bright;
+    dr = (r + (255-r)*t)|0; dg = (g + (255-g)*t)|0; db = (b + (255-b)*t)|0;
+  } else {
+    const t = -dParams.bright;
+    dr = (r*(1-t))|0; dg = (g*(1-t))|0; db = (b*(1-t))|0;
+  }
+  return `rgba(${dr},${dg},${db},${dParams.alpha})`;
+}
+
+function rotVert([x,y,z], n) { for(let i=0;i<n;i++) [x,y]=[1-y,x]; return [x,y,z]; }
+function rotDir([nx,ny,nz], n) { let x=nx,y=ny; for(let i=0;i<n;i++) [x,y]=[-y,x]; return [x,y,nz]; }
+function isoProj([x,y,z], sc, cx, cy) {
+  return [cx+(x-y)*sc, cy+(x+y)*0.5*sc-z*sc];
+}
+
+function canvasCX() { return canvas.width/2; }
+function canvasCY() { return canvas.height/2 + S*0.3; }
+
+// ── Isometric-correct dither ──────────────────────────────────────────────────
+//
+// Strategy: draw hatch lines parameterically along the projected face edges.
+// For each face we know two tangent vectors in 3D (the face's U and V axes).
+// "Horizontal" lines on a face = lines along the U axis, spaced along V.
+// "Vertical"   lines on a face = lines along the V axis, spaced along U.
+// We step t from 0..1 in increments of (thick / faceHeight) in 3D, project
+// the endpoints, and stroke them — so they always follow the iso perspective.
+
+function drawHatchLines(verts3d, uAxis, vAxis, origin3d, uLen, vLen, drawU, drawV, proj, color, light, dParams) {
+  // Period in 0..1 face-space = (space + thick) pixels / face-size
+  const period = Math.max(0.001, (dParams.space + dParams.thick) / S);
+  const start  = (dParams.thick * 0.5) / S;
+  ctx.strokeStyle = ditherStroke(color, light, dParams);
+  ctx.lineWidth   = dParams.thick;
+  ctx.setLineDash([]);
+
+  if (drawV) {
+    // Lines parallel to vAxis, marching along uAxis
+    for (let t = start; t < 1.0; t += period) {
+      const a3 = [
+        origin3d[0] + uAxis[0]*t*uLen + vAxis[0]*0,
+        origin3d[1] + uAxis[1]*t*uLen + vAxis[1]*0,
+        origin3d[2] + uAxis[2]*t*uLen + vAxis[2]*0,
+      ];
+      const b3 = [
+        origin3d[0] + uAxis[0]*t*uLen + vAxis[0]*1*vLen,
+        origin3d[1] + uAxis[1]*t*uLen + vAxis[1]*1*vLen,
+        origin3d[2] + uAxis[2]*t*uLen + vAxis[2]*1*vLen,
+      ];
+      const a2 = proj(a3), b2 = proj(b3);
+      ctx.beginPath();
+      ctx.moveTo(a2[0], a2[1]);
+      ctx.lineTo(b2[0], b2[1]);
+      ctx.stroke();
+    }
+  }
+
+  if (drawU) {
+    // Lines parallel to uAxis, marching along vAxis
+    for (let t = start; t < 1.0; t += period) {
+      const a3 = [
+        origin3d[0] + uAxis[0]*0       + vAxis[0]*t*vLen,
+        origin3d[1] + uAxis[1]*0       + vAxis[1]*t*vLen,
+        origin3d[2] + uAxis[2]*0       + vAxis[2]*t*vLen,
+      ];
+      const b3 = [
+        origin3d[0] + uAxis[0]*1*uLen  + vAxis[0]*t*vLen,
+        origin3d[1] + uAxis[1]*1*uLen  + vAxis[1]*t*vLen,
+        origin3d[2] + uAxis[2]*1*uLen  + vAxis[2]*t*vLen,
+      ];
+      const a2 = proj(a3), b2 = proj(b3);
+      ctx.beginPath();
+      ctx.moveTo(a2[0], a2[1]);
+      ctx.lineTo(b2[0], b2[1]);
+      ctx.stroke();
+    }
+  }
+}
+
+function drawRandomDither(verts3d, proj, color, light, dParams) {
+  // Seed-stable pseudo-random dots projected onto the face
+  const pts2d = verts3d.map(proj);
+  const xs = pts2d.map(p=>p[0]), ys = pts2d.map(p=>p[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+
+  let seed = 0xdeadbeef;
+  function rand() { seed = (seed*1664525+1013904223)&0xffffffff; return (seed>>>0)/0xffffffff; }
+
+  const step = dParams.space;
+  ctx.fillStyle = ditherStroke(color, light, dParams);
+
+  // Clip to face polygon
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(pts2d[0][0], pts2d[0][1]);
+  for(let i=1;i<pts2d.length;i++) ctx.lineTo(pts2d[i][0], pts2d[i][1]);
+  ctx.closePath();
+  ctx.clip();
+
+  for(let sy = minY; sy < maxY; sy += step) {
+    for(let sx = minX; sx < maxX; sx += step) {
+      if(rand() > 0.5) ctx.fillRect(sx, sy, dParams.thick, dParams.thick);
+    }
+  }
+  ctx.restore();
+}
+
+// ── Face definitions — each face has its own U/V axes in 3D ──────────────────
+// The axes define what "horizontal" and "vertical" mean on each face.
+// U = across, V = up/along for that face.
+// For the top face: U = world X, V = world Y (both horizontal in 3D).
+// For side faces: one world horizontal axis + Z (vertical).
+//
+// "H lines" = lines running parallel to the U axis (stripes along V direction)
+// "V lines" = lines running parallel to the V axis (stripes along U direction)
+//
+// On the TOP face:
+//   U = X direction → H-lines are diagonal-left stripes
+//   V = Y direction → V-lines are diagonal-right stripes
+// On the RIGHT face (x=1 side, normal +x):
+//   U = Y direction (across the face) → H-lines match the top's diagonal look
+//   V = Z direction (vertical)       → V-lines are vertical stripes
+// On the LEFT face (y=1 side, normal +y):
+//   U = X direction → H-lines continue consistently
+//   V = Z direction → V-lines are vertical
+
+// Face table: for each visible face, define its origin corner, U-axis, V-axis
+// These are in LOCAL cube space (before base offset), unit vectors
+const FACE_INFO = {
+  // top: z=1 plane. origin=(0,0,1), U=+x, V=+y
+  top:   { origin:[0,0,1], u:[1,0,0], v:[0,1,0] },
+  // right face: x=1. origin=(1,0,0), U=+y (across), V=+z (up)
+  right: { origin:[1,0,0], u:[0,1,0], v:[0,0,1] },
+  // front face: y=1. origin=(0,1,0), U=+x (across), V=+z (up)
+  front: { origin:[0,1,0], u:[1,0,0], v:[0,0,1] },
+  // left face: x=0. origin=(0,1,0), U=-y, V=+z
+  left:  { origin:[0,1,0], u:[0,-1,0], v:[0,0,1] },
+  // back face: y=0. origin=(1,0,0), U=-x, V=+z
+  back:  { origin:[1,0,0], u:[-1,0,0], v:[0,0,1] },
+};
+
+// ── Draw cube ─────────────────────────────────────────────────────────────────
+function drawCube(col, row, alpha) {
+  const ox = canvasCX(), oy = canvasCY();
+  ctx.globalAlpha = alpha;
+
+  const splitZ = Math.max(0.001, Math.min(0.999, splitPct));
+  const bx = col, by = row;
+
+  // All 8 vertices of this cube tile (shifted to grid position)
+  const base = [
+    [0,0,1],[1,0,1],[1,1,1],[0,1,1],
+    [0,0,0],[1,0,0],[1,1,0],[0,1,0],
+  ].map(([x,y,z]) => [x+bx, y+by, z]);
+
+  // Apply rotation around tile centre
+  const rv = base.map(([x,y,z]) => {
+    let lx = x-(bx+0.5), ly = y-(by+0.5);
+    for(let i=0;i<rotStep;i++) [lx,ly]=[-ly,lx];
+    return [lx+(bx+0.5), ly+(by+0.5), z];
+  });
+
+  const proj = v => isoProj(v, S, ox, oy);
+
+  const allFaces = [
+    { key:'top',   vi:[0,1,2,3], n:[0,0,1],   light:1.12 },
+    { key:'front', vi:[3,2,6,7], n:[0,1,0],   light:0.72 },
+    { key:'right', vi:[1,5,6,2], n:[1,0,0],   light:0.88 },
+    { key:'left',  vi:[0,3,7,4], n:[-1,0,0],  light:0.65 },
+    { key:'back',  vi:[4,5,1,0], n:[0,-1,0],  light:0.55 },
+    { key:'bot',   vi:[7,6,5,4], n:[0,0,-1],  light:0.50 },
+  ];
+
+  const visible = allFaces.filter(f => {
+    const [nx,ny,nz] = rotDir(f.n, rotStep);
+    return nx+ny+nz > 0;
+  });
+  // Draw sides first, top last
+  visible.sort((a,b) => (a.n[2]===1?1:0)-(b.n[2]===1?1:0));
+
+  visible.forEach(({ key, vi, light }) => {
+    const verts3d = vi.map(i => rv[i]);
+    drawFace(verts3d, key, light, splitZ, proj, bx, by);
+  });
+
+  ctx.globalAlpha = 1;
+}
+
+function drawFace(verts3d, faceKey, light, splitZ, proj, bx, by) {
+  const zs   = verts3d.map(v=>v[2]);
+  const maxZ = Math.max(...zs), minZ = Math.min(...zs);
+  const n    = verts3d.length;
+
+  function fillRegion(pts3d, color) {
+    if(pts3d.length < 3) return;
+    const pts = pts3d.map(proj);
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.closePath();
+    ctx.fillStyle = shaded(color, light);
+    ctx.fill();
+  }
+
+  function hatchRegion(pts3d, fKey, color, hatchLight, dParams) {
+    if(pts3d.length < 3 || dParams.mode === 'none') return;
+
+    // Clip to this sub-polygon
+    const pts2d = pts3d.map(proj);
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(pts2d[0][0], pts2d[0][1]);
+    for(let i=1;i<pts2d.length;i++) ctx.lineTo(pts2d[i][0], pts2d[i][1]);
+    ctx.closePath();
+    ctx.clip();
+
+    if(dParams.mode === 'random') {
+      drawRandomDither(pts3d, proj, color, hatchLight, dParams);
+      ctx.restore();
+      return;
+    }
+
+    // Get face local axes, rotated to match cube rotation
+    const fi = FACE_INFO[fKey] || FACE_INFO['top'];
+    // Rotate U and V axes by rotStep
+    function rotAxis([ax,ay,az]) {
+      let x=ax,y=ay;
+      for(let i=0;i<rotStep;i++) [x,y]=[-y,x];
+      return [x,y,az];
+    }
+    const uDir = rotAxis(fi.u);
+    const vDir = rotAxis(fi.v);
+    // Origin in world space
+    const oriLocal = fi.origin;
+    const oriRotated = (() => {
+      let x=oriLocal[0]-(0.5), y=oriLocal[1]-(0.5);
+      for(let i=0;i<rotStep;i++) [x,y]=[-y,x];
+      return [x+0.5+bx, y+0.5+by, oriLocal[2]];
+    })();
+
+    const drawU = dParams.mode === 'h' || dParams.mode === 'hv';
+    const drawV = dParams.mode === 'v' || dParams.mode === 'hv';
+
+    drawHatchLines(pts3d, uDir, vDir, oriRotated, S, S, drawU, drawV, proj, color, hatchLight, dParams);
+    ctx.restore();
+  }
+
+  function outlinePoly(pts3d) {
+    if(!showOutline) return;
+    const pts = pts3d.map(proj);
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth   = 1.4;
+    ctx.setLineDash([]);
+    ctx.stroke();
+  }
+
+  function cross(a, b) {
+    const t = (splitZ-a[2])/(b[2]-a[2]);
+    return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, splitZ];
+  }
+
+  // ── Trivial: entire face is one colour ────────────────────────────────────
+  if(splitZ >= maxZ) {
+    fillRegion(verts3d, colorB);
+    hatchRegion(verts3d, faceKey, colorB, light, botDither);
+    outlinePoly(verts3d);
+    return;
+  }
+  if(splitZ <= minZ) {
+    fillRegion(verts3d, colorA);
+    hatchRegion(verts3d, faceKey, colorA, light, topDither);
+    outlinePoly(verts3d);
+    return;
+  }
+
+  // ── Clip face at splitZ ────────────────────────────────────────────────────
+  const upper=[], lower=[], seam=[];
+  for(let i=0;i<n;i++) {
+    const a=verts3d[i], b=verts3d[(i+1)%n];
+    const aUp=a[2]>splitZ, bUp=b[2]>splitZ;
+    if(aUp) upper.push(a); else lower.push(a);
+    if(aUp!==bUp){const cp=cross(a,b);upper.push(cp);lower.push(cp);seam.push(cp);}
+  }
+
+  fillRegion(upper, colorA);
+  hatchRegion(upper, faceKey, colorA, light, topDither);
+  fillRegion(lower, colorB);
+  hatchRegion(lower, faceKey, colorB, light, botDither);
+
+  // Seam line
+  if(seam.length===2 && showOutline) {
+    const [p0,p1] = seam.map(proj);
+    ctx.beginPath(); ctx.moveTo(p0[0],p0[1]); ctx.lineTo(p1[0],p1[1]);
+    ctx.strokeStyle='rgba(0,0,0,0.45)'; ctx.lineWidth=1.4; ctx.setLineDash([]); ctx.stroke();
+  }
+
+  outlinePoly(verts3d);
+}
+
+// ── Grid ──────────────────────────────────────────────────────────────────────
+function drawGrid() {
+  const ox=canvasCX(), oy=canvasCY();
+  for(let col=0;col<GRID;col++) {
+    for(let row=0;row<GRID;row++) {
+      const pts=[[col,row,0],[col+1,row,0],[col+1,row+1,0],[col,row+1,0]].map(v=>isoProj(v,S,ox,oy));
+      const isGhost=dragActive&&col===ghostCol&&row===ghostRow;
+      const isCur=col===cubeCol&&row===cubeRow&&dragActive;
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0],pts[0][1]);
+      pts.slice(1).forEach(p=>ctx.lineTo(p[0],p[1]));
+      ctx.closePath();
+      ctx.fillStyle=isGhost?'rgba(62,207,178,0.15)':'rgba(255,255,255,0.02)';
+      ctx.fill();
+      ctx.strokeStyle=isGhost?'rgba(62,207,178,0.6)':(isCur?'rgba(255,255,255,0.1)':'rgba(255,255,255,0.08)');
+      ctx.lineWidth=isGhost?1.2:0.6;
+      ctx.setLineDash([]);
+      ctx.stroke();
+    }
+  }
+}
+
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawGrid();
+  if(dragActive){
+    drawCube(cubeCol,cubeRow,0.25);
+    drawCube(ghostCol,ghostRow,(ghostCol!==cubeCol||ghostRow!==cubeRow)?1.0:0.55);
+  } else {
+    drawCube(cubeCol,cubeRow,1.0);
+  }
+}
+
+// ── Interaction ───────────────────────────────────────────────────────────────
+function screenToGrid(mx,my) {
+  const ox=canvasCX(),oy=canvasCY(),dx=mx-ox,dy=my-oy;
+  return [(dx/S+2*dy/S)/2, (2*dy/S-dx/S)/2];
+}
+function clamp(c,r){return[Math.max(0,Math.min(GRID-1,Math.round(c))),Math.max(0,Math.min(GRID-1,Math.round(r)))];}
+function getPos(e){const r=canvas.getBoundingClientRect();if(e.touches)return[e.touches[0].clientX-r.left,e.touches[0].clientY-r.top];return[e.clientX-r.left,e.clientY-r.top];}
+function hitCube(mx,my){
+  const ox=canvasCX(),oy=canvasCY(),bx=cubeCol,by=cubeRow;
+  const all=[[bx,by,0],[bx+1,by,0],[bx+1,by+1,0],[bx,by+1,0],[bx,by,1],[bx+1,by,1],[bx+1,by+1,1],[bx,by+1,1]].map(v=>isoProj(v,S,ox,oy));
+  const xs=all.map(p=>p[0]),ys=all.map(p=>p[1]);
+  return mx>=Math.min(...xs)&&mx<=Math.max(...xs)&&my>=Math.min(...ys)&&my<=Math.max(...ys);
+}
+
+canvas.addEventListener('mousedown',e=>{const[mx,my]=getPos(e);if(hitCube(mx,my)){dragActive=true;ghostCol=cubeCol;ghostRow=cubeRow;canvas.classList.add('dragging');draw();}});
+canvas.addEventListener('touchstart',e=>{const[mx,my]=getPos(e);if(hitCube(mx,my)){e.preventDefault();dragActive=true;ghostCol=cubeCol;ghostRow=cubeRow;draw();}},{passive:false});
+function onMove(e){if(!dragActive)return;const[mx,my]=getPos(e);const[c,r]=screenToGrid(mx,my);const[gc,gr]=clamp(c-0.5,r-0.5);if(gc!==ghostCol||gr!==ghostRow){ghostCol=gc;ghostRow=gr;draw();}}
+canvas.addEventListener('mousemove',onMove);
+canvas.addEventListener('touchmove',e=>{e.preventDefault();onMove(e);},{passive:false});
+function onUp(){if(!dragActive)return;dragActive=false;cubeCol=ghostCol;cubeRow=ghostRow;canvas.classList.remove('dragging');draw();}
+window.addEventListener('mouseup',onUp);
+window.addEventListener('touchend',onUp);
+
+// ── Controls ──────────────────────────────────────────────────────────────────
+function seg(id,cb){
+  document.getElementById(id).addEventListener('click',e=>{
+    const btn=e.target.closest('button');if(!btn)return;
+    document.querySelectorAll('#'+id+' button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    cb(btn.dataset.v);
+  });
+}
+seg('outlineSeg',v=>{showOutline=v==='on';draw();});
+seg('tDitherSeg',v=>{topDither.mode=v;draw();});
+seg('bDitherSeg',v=>{botDither.mode=v;draw();});
+document.getElementById('colA').addEventListener('input',e=>{colorA=e.target.value;document.getElementById('swA').style.background=colorA;draw();});
+document.getElementById('colB').addEventListener('input',e=>{colorB=e.target.value;document.getElementById('swB').style.background=colorB;draw();});
+document.getElementById('split').addEventListener('input',e=>{splitPct=e.target.value/100;document.getElementById('splitV').textContent=e.target.value+'%';draw();});
+document.getElementById('size').addEventListener('input',e=>{S=+e.target.value;document.getElementById('sizeV').textContent=e.target.value;draw();});
+document.getElementById('gridN').addEventListener('input',e=>{GRID=+e.target.value;document.getElementById('gridV').textContent=e.target.value+'×'+e.target.value;cubeCol=Math.min(cubeCol,GRID-1);cubeRow=Math.min(cubeRow,GRID-1);ghostCol=cubeCol;ghostRow=cubeRow;draw();});
+document.getElementById('rot').addEventListener('input',e=>{rotStep=+e.target.value;document.getElementById('rotV').textContent=(rotStep*90)+'°';draw();});
+// Top dither sliders
+document.getElementById('tSpace').addEventListener('input',e=>{topDither.space=+e.target.value;document.getElementById('tSpaceV').textContent=e.target.value;draw();});
+document.getElementById('tThick').addEventListener('input',e=>{topDither.thick=+e.target.value;document.getElementById('tThickV').textContent=e.target.value;draw();});
+document.getElementById('tBright').addEventListener('input',e=>{topDither.bright=+e.target.value/100;document.getElementById('tBrightV').textContent=e.target.value;draw();});
+document.getElementById('tBlend').addEventListener('input',e=>{topDither.alpha=+e.target.value/100;document.getElementById('tBlendV').textContent=e.target.value+'%';draw();});
+// Bottom dither sliders
+document.getElementById('bSpace').addEventListener('input',e=>{botDither.space=+e.target.value;document.getElementById('bSpaceV').textContent=e.target.value;draw();});
+document.getElementById('bThick').addEventListener('input',e=>{botDither.thick=+e.target.value;document.getElementById('bThickV').textContent=e.target.value;draw();});
+document.getElementById('bBright').addEventListener('input',e=>{botDither.bright=+e.target.value/100;document.getElementById('bBrightV').textContent=e.target.value;draw();});
+document.getElementById('bBlend').addEventListener('input',e=>{botDither.alpha=+e.target.value/100;document.getElementById('bBlendV').textContent=e.target.value+'%';draw();});
+
+// ── Download PNG ──────────────────────────────────────────────────────────────
+document.getElementById('dlBtn').addEventListener('click',()=>{
+  const scale=2;
+  const w=canvas.width, h=canvas.height;
+  canvas.width=w*scale; canvas.height=h*scale;
+  S*=scale;
+  ctx.fillStyle='#111116';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  draw();
+  const url=canvas.toDataURL('image/png');
+  canvas.width=w; canvas.height=h;
+  S/=scale;
+  draw();
+  const a=document.createElement('a');
+  a.download='isometric-dither.png';
+  a.href=url; a.click();
+});
+
+// ── Download HTML ─────────────────────────────────────────────────────────────
+document.getElementById('dlHtml').addEventListener('click',()=>{
+  const src=document.documentElement.outerHTML;
+  const blob=new Blob([src],{type:'text/html'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.download='isometric-cube.html';
+  a.href=url; a.click();
+  URL.revokeObjectURL(url);
+});
+
+draw();
+})();
+</script>
+</body>
+</html>
