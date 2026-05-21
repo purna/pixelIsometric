@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Isometric Drawing Tool v8 (Fixed Title & Custom Materials)</title>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #0d0d10;
+            font-family: 'Space Mono', monospace;
+            color: #4a4a60;
+            user-select: none;
+        }
+
+        #app-layout {
+            display: flex;
+            flex-direction: column;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* ── TOP TOOLBAR ───────────────────────────────── */
+        #toolbar {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #1f1f28;
+            background: #111115;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            z-index: 10;
+        }
+
+        .tb-section {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-right: 1px solid #1f1f28;
+        }
+
+        .tb-label {
+            font-size: 10px;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: #55556a;
+            white-space: nowrap;
+        }
+
+        .tool-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border: 1px solid #2a2a38;
+            border-radius: 4px;
+            cursor: pointer;
+            background: transparent;
+            color: #7a7a9a;
+            font-size: 10px;
+            font-family: 'Space Mono', monospace;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            transition: all .15s ease;
+            white-space: nowrap;
+        }
+
+        .tool-btn:hover {
+            background: #191920;
+            color: #a0a0c0;
+            border-color: #4a4a60;
+        }
+
+        .tool-btn.active {
+            background: #1c1c24;
+            color: #3ecfb2;
+            border-color: #3ecfb2;
+        }
+
+        .tool-btn.col-btn.active {
+            color: #4eff91;
+            border-color: #4eff91;
+        }
+
+        .color-dot {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: transform .1s;
+        }
+
+        .color-dot:hover {
+            transform: scale(1.15);
+        }
+
+        .color-dot.active {
+            border-color: #fff;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 60px;
+            height: 3px;
+            background: #2a2a38;
+            border-radius: 2px;
+            outline: none;
+            accent-color: #3ecfb2;
+        }
+
+        input[type="color"] {
+            background: none;
+            border: 1px solid #2a2a38;
+            cursor: pointer;
+            height: 20px;
+            width: 30px;
+            padding: 0;
+        }
+
+        .tb-mini {
+            padding: 4px 8px;
+            border: 1px solid #2a2a38;
+            border-radius: 3px;
+            font-size: 10px;
+            font-family: 'Space Mono', monospace;
+            color: #7a7a9a;
+            background: transparent;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .tb-mini:hover {
+            color: #fff;
+            border-color: #3ecfb2;
+        }
+
+        /* ── LAYER BAR ─────────────────────────────────── */
+        #layer-bar {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #14141a;
+            background: #09090c;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .layer-tab {
+            padding: 5px 16px;
+            font-size: 10px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: #4a4a60;
+            cursor: pointer;
+            border-right: 1px solid #14141a;
+            border-bottom: 2px solid transparent;
+            transition: all .15s;
+        }
+
+        .layer-tab:hover {
+            color: #7a7a9a;
+        }
+
+        .layer-tab.active-cube {
+            color: #3ecfb2;
+            border-bottom-color: #3ecfb2;
+        }
+
+        .layer-tab.active-col {
+            color: #4eff91;
+            border-bottom-color: #4eff91;
+        }
+
+        #layer-hint {
+            flex: 1;
+            padding: 5px 16px;
+            font-size: 10px;
+            color: #3a3a4a;
+            letter-spacing: .08em;
+            text-align: right;
+        }
+
+        /* ── MAIN CONTAINER ────────────────────────────── */
+        #main-container {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            width: 100%;
+        }
+
+        /* ── WORKSPACE ─────────────────────────────────── */
+        #workspace {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        #viewport-container {
+            flex: 1;
+            position: relative;
+            outline: none;
+            min-height: 0;
+        }
+
+        /* ── Floating Zoom Menu ────────────────────────────────── */
+        #zoom-floating-menu {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: rgba(13, 13, 18, 0.88);
+            border: 1px solid #2a2a3c;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 4px;
+            z-index: 10;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(6px);
+        }
+
+        .zoom-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: #999;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+            font-size: 14px;
+        }
+
+        .zoom-btn:hover {
+            background: #1c1c28;
+            color: #3ecfb2;
+            border-color: #3a3a52;
+        }
+
+        .zoom-btn:active {
+            background: #111116;
+        }
+
+        /* ── RIGHT HAND PANEL (Bar + Drawer Combined) ───── */
+        #right-panel {
+            width: 320px;
+            background: #0d0d10;
+            border-left: 1px solid #1a1a22;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+
+        #right-panel::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        #right-panel::-webkit-scrollbar-thumb {
+            background: #2a2a38;
+        }
+
+        /* MATERIAL BAR (Now vertically stacked sections) */
+        #mat-bar {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 16px;
+            border-bottom: 1px solid #1a1a22;
+        }
+
+        .mat-section-title {
+            font-size: 10px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: #55556a;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mat-add-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .mat-add-btn {
+            background: transparent;
+            border: 1px dashed #3a3a4a;
+            color: #3ecfb2;
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .mat-add-btn:hover {
+            border-color: #3ecfb2;
+            background: #14141c;
+        }
+
+        .mat-chips-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .mat-chip {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 8px;
+            border: 1px solid #1a1a22;
+            background: #111115;
+            transition: all .18s ease;
+            width: calc(33.33% - 6px);
+            min-width: 76px;
+        }
+
+        .mat-chip:hover {
+            background: #14141c;
+            border-color: #2a2a38;
+        }
+
+        .mat-chip.active {
+            background: #13131c;
+            border-color: var(--chip-color, #3ecfb2);
+        }
+
+        .mat-chip.active .mat-label {
+            color: var(--chip-color, #3ecfb2);
+        }
+
+        .mat-icon {
+            width: 44px;
+            height: 38px;
+            position: relative;
+        }
+
+        .mat-icon svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .mat-label {
+            font-size: 8px;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: #4a4a60;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            text-align: center;
+        }
+
+        /* MATERIAL SETTINGS DRAWER */
+        #mat-drawer {
+            background: #0e0e14;
+            flex: 1;
+        }
+
+        .drawer-inner {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 16px;
+        }
+
+        .drawer-col {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .d-title {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: .18em;
+            color: var(--dt-color, #7a7a9a);
+            border-bottom: 1px solid #1f1f28;
+            padding-bottom: 4px;
+            margin-bottom: 4px;
+            white-space: nowrap;
+        }
+
+        .d-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            font-size: 10px;
+            color: #7a7a9a;
+            min-height: 20px;
+            white-space: nowrap;
+        }
+
+        .d-row input[type="text"] {
+            background: #0f0f14;
+            color: #fff;
+            border: 1px solid #2a2a38;
+            padding: 4px 6px;
+            font-family: 'Space Mono';
+            font-size: 10px;
+            width: 100%;
+            border-radius: 3px;
+        }
+
+        .d-row input[type="text"]:focus {
+            outline: none;
+            border-color: #3ecfb2;
+        }
+
+        .d-row input[type="range"] {
+            width: 110px;
+        }
+
+        .d-row input[type="color"] {
+            height: 20px;
+            width: 28px;
+        }
+
+        .d-row select {
+            background: #0f0f14;
+            color: #7a7a9a;
+            border: 1px solid #2a2a38;
+            padding: 2px 4px;
+            font-family: 'Space Mono';
+            font-size: 9px;
+            text-transform: uppercase;
+            width: 110px;
+        }
+
+        .drawer-action-btn {
+            background: #1c1c24;
+            border: 1px solid #3ecfb2;
+            color: #3ecfb2;
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            padding: 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            margin-top: 4px;
+            text-align: center;
+        }
+
+        .drawer-action-btn:hover {
+            background: #3ecfb2;
+            color: #0d0d10;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* ── STATUS BAR ────────────────────────────────── */
+        #statusbar {
+            padding: 5px 16px;
+            border-top: 1px solid #14141a;
+            background: #0d0d10;
+            font-size: 10px;
+            letter-spacing: .08em;
+            color: #55556a;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .hint-overlay {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #3ecfb2;
+            font-size: 11px;
+            pointer-events: none;
+            letter-spacing: .05em;
+            background: rgba(13, 13, 16, .8);
+            padding: 4px 12px;
+            border-radius: 4px;
+            border: 1px solid #1f1f28;
+            white-space: nowrap;
+        }
+
+        /* Isometric cube SVG faces */
+        .iso-top {
+            fill-opacity: 1;
+        }
+
+        .iso-left {
+            fill-opacity: .7;
+        }
+
+        .iso-right {
+            fill-opacity: .5;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app-layout">
+
+        <div id="toolbar">
+            <div class="tb-section">
+                <span class="tb-label">Collider</span>
+                <button class="tool-btn col-btn" id="btn-col-top">Top</button>
+                <button class="tool-btn col-btn" id="btn-col-left">Left</button>
+                <button class="tool-btn col-btn" id="btn-col-right">Right</button>
+                <button class="tool-btn col-btn" id="btn-col-line">Line</button>
+            </div>
+            <div class="tb-section">
+                <span class="tb-label">Erase</span>
+                <button class="tool-btn" id="btn-erase">Erase</button>
+            </div>
+            <div class="tb-section" style="gap:4px">
+                <span class="tb-label">Height</span>
+                <button class="tb-mini" id="btn-height-down">▼</button>
+                <span id="height-label"
+                    style="font-size:11px;color:#3ecfb2;min-width:18px;text-align:center;font-weight:bold">0</span>
+                <button class="tb-mini" id="btn-height-up">▲</button>
+            </div>
+            <div class="tb-section">
+                <span class="tb-label">Rotate</span>
+                <button class="tool-btn" id="btn-rot-cw">⟳ CW</button>
+                <button class="tool-btn" id="btn-rot-ccw">⟲ CCW</button>
+            </div>
+
+            <div class="tb-section" style="gap:7px;flex:1;justify-content:flex-end;border-right:none">
+                <button class="tb-mini" id="btn-clear">Clear</button>
+            </div>
+        </div>
+
+        <div id="layer-bar">
+            <div class="layer-tab active-cube" id="tab-cube">● Cube layer</div>
+            <div class="layer-tab" id="tab-col">◎ Collider layer</div>
+            <div id="layer-hint">Painting Cubes</div>
+        </div>
+
+        <div id="main-container">
+            <div id="workspace">
+                <div id="viewport-container">
+                    <div class="hint-overlay">Left Click: Action&nbsp;•&nbsp;Right Click+Drag: Orbit&nbsp;•&nbsp;Scroll:
+                        Zoom</div>
+
+                    <div id="zoom-floating-menu">
+                        <button class="zoom-btn" onclick="zoomIn()" title="Zoom In">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                        <button class="zoom-btn" onclick="zoomOut()" title="Zoom Out">
+                            <i class="fa-solid fa-minus"></i>
+                        </button>
+                        <button class="zoom-btn" onclick="resetZoom()" title="Reset Auto Layout">
+                            <i class="fa-solid fa-arrows-to-dot"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="right-panel">
+                <div id="mat-bar"></div>
+                <div id="mat-drawer"></div>
+            </div>
+        </div>
+
+        <div id="statusbar"><span id="status-msg">select a material, then click a cell</span></div>
+    </div>
+
+    <script type="importmap">
+    { 
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // ── CONSTANTS ──────────────────────────────────────────
+        const GRID_N = 7;
+        const CELL_SIZE = 2;
+        let activeLayer = 'cube';
+        let activeHeightIndex = 0;
+        let lineStartNode = null;
+        let camRot = 0;
+        let activeTool = '';
+
+        const activeCubes = new Map();
+        const activeColliders = new Map();
+        const activeLines = [];
+
+        // ── GLSL INJECTIONS FOR SHARED CUSTOM SHADERS ──────────
+        const ditherGLSL = `
+        if (dMode > 0) {
+            bool isDither = false;
+            vec2 scaledUv = myUv * (100.0 / dSpace);
+            float lineThreshold = dThick / dSpace;
+            if (dMode == 1) {
+                vec2 gridUv = floor(scaledUv);
+                float noise = fract(sin(dot(gridUv, vec2(12.9898,78.233)))*43758.5453);
+                isDither = noise > 0.5;
+            } else if (dMode == 2) {
+                isDither = fract(scaledUv.y) < lineThreshold;
+            } else if (dMode == 3) {
+                isDither = fract(scaledUv.x) < lineThreshold;
+            } else if (dMode == 4) {
+                isDither = (fract(scaledUv.y) < lineThreshold) || (fract(scaledUv.x) < lineThreshold);
+            }
+            if (isDither) {
+                vec3 targetCol;
+                if (dInkMode == 1) {
+                    float baseLum = dot(splitBase, vec3(0.299,0.587,0.114));
+                    float fragLum = dot(gl_FragColor.rgb, vec3(0.299,0.587,0.114));
+                    float lightingScale = fragLum / max(baseLum, 0.001);
+                    targetCol = dInkColor * lightingScale;
+                } else {
+                    vec3 brightShift = dBright > 0.0 ? vec3(1.0) : vec3(0.0);
+                    targetCol = mix(gl_FragColor.rgb, brightShift, abs(dBright));
+                }
+                gl_FragColor.rgb = mix(gl_FragColor.rgb, targetCol, dAlpha);
+            }
+        }
+        `;
+
+        const ditherSolidGLSL = `
+        if (dMode > 0) {
+            bool isDither = false;
+            vec2 scaledUv = myUv * (100.0 / dSpace);
+            float lineThreshold = dThick / dSpace;
+            if (dMode == 1) {
+                vec2 gridUv = floor(scaledUv);
+                float noise = fract(sin(dot(gridUv, vec2(12.9898,78.233)))*43758.5453);
+                isDither = noise > 0.5;
+            } else if (dMode == 2) {
+                isDither = fract(scaledUv.y) < lineThreshold;
+            } else if (dMode == 3) {
+                isDither = fract(scaledUv.x) < lineThreshold;
+            } else if (dMode == 4) {
+                isDither = (fract(scaledUv.y) < lineThreshold) || (fract(scaledUv.x) < lineThreshold);
+            }
+            if (isDither) {
+                vec3 targetCol;
+                if (dInkMode == 1) {
+                    vec3 fragLumLuma = vec3(dot(gl_FragColor.rgb, vec3(0.299,0.587,0.114)));
+                    targetCol = dInkColor * max(fragLumLuma, vec3(0.001));
+                } else {
+                    vec3 brightShift = dBright > 0.0 ? vec3(1.0) : vec3(0.0);
+                    targetCol = mix(gl_FragColor.rgb, brightShift, abs(dBright));
+                }
+                gl_FragColor.rgb = mix(gl_FragColor.rgb, targetCol, dAlpha);
+            }
+        }
+        `;
+
+        const ditherWaterGLSL = `
+        if (dDMode > 0) {
+            bool isDither = false;
+            vec2 scaledUv = myUv * (100.0 / dDSpace);
+            float lineThreshold = dDThick / dDSpace;
+            if (dDMode == 1) {
+                vec2 gridUv = floor(scaledUv);
+                float noise = fract(sin(dot(gridUv, vec2(12.9898,78.233)))*43758.5453);
+                isDither = noise > 0.5;
+            } else if (dDMode == 2) {
+                isDither = fract(scaledUv.y) < lineThreshold;
+            } else if (dDMode == 3) {
+                isDither = fract(scaledUv.x) < lineThreshold;
+            } else if (dDMode == 4) {
+                isDither = (fract(scaledUv.y) < lineThreshold) || (fract(scaledUv.x) < lineThreshold);
+            }
+            if (isDither) {
+                vec3 targetCol;
+                if (dDInkMode == 1) {
+                    vec3 fragLumLuma = vec3(dot(gl_FragColor.rgb, vec3(0.299,0.587,0.114)));
+                    targetCol = dDInkColor * max(fragLumLuma, vec3(0.001));
+                } else {
+                    vec3 brightShift = dDBright > 0.0 ? vec3(1.0) : vec3(0.0);
+                    targetCol = mix(gl_FragColor.rgb, brightShift, abs(dDBright));
+                }
+                gl_FragColor.rgb = mix(gl_FragColor.rgb, targetCol, dDAlpha);
+            }
+        }
+        `;
+
+        // Helper Utility
+        const $ = id => document.getElementById(id);
+
+        // ── SETTINGS DRAWER & EDITING HANDLERS ───────────────────
+        function readDrawerSettings(blob) {
+            const s = blob.settings;
+            if (blob.type === 'cube-dither') {
+                return {
+                    colorA: $('dColA')?.value ?? s.colorA,
+                    colorB: $('dColB')?.value ?? s.colorB,
+                    splitY: parseFloat($('dSplitY')?.value ?? s.splitY * 100) / 100,
+                    tMode: parseInt($('dtMode')?.value ?? s.tMode),
+                    tInkMode: parseInt($('dtInkMode')?.value ?? s.tInkMode),
+                    tInkColor: $('dtInkCol')?.value ?? s.tInkColor,
+                    tSpace: parseFloat($('dtSpace')?.value ?? s.tSpace),
+                    tThick: parseFloat($('dtThick')?.value ?? s.tThick),
+                    tBright: parseFloat($('dtBright')?.value ?? s.tBright * 100) / 100,
+                    tAlpha: parseFloat($('dtAlpha')?.value ?? s.tAlpha * 100) / 100,
+                    bMode: parseInt($('dbMode')?.value ?? s.bMode),
+                    bInkMode: parseInt($('dbInkMode')?.value ?? s.bInkMode),
+                    bInkColor: $('dbInkCol')?.value ?? s.bInkColor,
+                    bSpace: parseFloat($('dbSpace')?.value ?? s.bSpace),
+                    bThick: parseFloat($('dbThick')?.value ?? s.bThick),
+                    bBright: parseFloat($('dbBright')?.value ?? s.bBright * 100) / 100,
+                    bAlpha: parseFloat($('dbAlpha')?.value ?? s.bAlpha * 100) / 100,
+                };
+            }
+            if (blob.type === 'cube-solid') {
+                return {
+                    color:       $('sColor')?.value ?? s.color,
+                    dMode:       parseInt($('sDMode')?.value ?? s.dMode),
+                    dInkMode:    parseInt($('sDInkMode')?.value ?? s.dInkMode),
+                    dInkColor:   ($('sDInkCol')?.value ?? s.dInkColor),
+                    dSpace:      parseFloat($('sDSpace')?.value ?? s.dSpace),
+                    dThick:      parseFloat($('sDThick')?.value ?? s.dThick),
+                    dBright:     parseFloat($('sDBright')?.value ?? s.dBright * 100) / 100,
+                    dAlpha:      parseFloat($('sDAlpha')?.value ?? s.dAlpha * 100) / 100,
+                };
+            }
+            if (blob.type === 'cube-water') {
+                return {
+                    opacity:     parseFloat($('wOpacity')?.value ?? s.opacity * 100) / 100,
+                    dDMode:      parseInt($('dDMode')?.value ?? s.dDMode),
+                    dDInkMode:   parseInt($('dDInkMode')?.value ?? s.dDInkMode),
+                    dDInkColor:  ($('dDInkCol')?.value ?? s.dDInkColor),
+                    dDSpace:     parseFloat($('dDSpace')?.value ?? s.dDSpace),
+                    dDThick:     parseFloat($('dDThick')?.value ?? s.dDThick),
+                    dDBright:    parseFloat($('dDBright')?.value ?? s.dDBright * 100) / 100,
+                    dDAlpha:     parseFloat($('dDAlpha')?.value ?? s.dDAlpha * 100) / 100,
+                };
+            }
+            if (blob.type === 'cube-river') {
+                return {
+                    colorA: $('rColA')?.value ?? s.colorA,
+                    colorB: $('rColB')?.value ?? s.colorB,
+                    colorRiver: $('rColRiver')?.value ?? s.colorRiver,
+                    colorBank: $('rColBank')?.value ?? s.colorBank,
+                    riverWidth: parseFloat($('rWidth')?.value ?? s.riverWidth * 100) / 100,
+                    pStart: [parseFloat($('rSX')?.value ?? s.pStart[0] * 100) / 100,
+                    parseFloat($('rSZ')?.value ?? s.pStart[1] * 100) / 100],
+                    pEnd: [parseFloat($('rEX')?.value ?? s.pEnd[0] * 100) / 100,
+                    parseFloat($('rEZ')?.value ?? s.pEnd[1] * 100) / 100],
+                    tMode: parseInt($('rtMode')?.value ?? s.tMode),
+                    tInkMode: parseInt($('rtInkMode')?.value ?? s.tInkMode),
+                    tInkColor: $('rtInkCol')?.value ?? s.tInkColor,
+                    tSpace: parseFloat($('rtSpace')?.value ?? s.tSpace),
+                    tThick: parseFloat($('rtThick')?.value ?? s.tThick),
+                    tBright: parseFloat($('rtBright')?.value ?? s.tBright * 100) / 100,
+                    tAlpha: parseFloat($('rtAlpha')?.value ?? s.tAlpha * 100) / 100,
+                    bMode: parseInt($('rbMode')?.value ?? s.bMode),
+                    bInkMode: parseInt($('rbInkMode')?.value ?? s.bInkMode),
+                    bInkColor: $('rbInkCol')?.value ?? s.bInkColor,
+                    bSpace: parseFloat($('rbSpace')?.value ?? s.bSpace),
+                    bThick: parseFloat($('rbThick')?.value ?? s.bThick),
+                    bBright: parseFloat($('rbBright')?.value ?? s.bBright * 100) / 100,
+                    bAlpha: parseFloat($('rbAlpha')?.value ?? s.bAlpha * 100) / 100,
+                };
+            }
+            return { ...s };
+        }
+
+        // ── DRAWER CONTENT BUILDER ───────────────────────────────────────────────
+        function renderPropertyControls(mid) {
+            const drawer = $('mat-drawer');
+            if (!drawer) return;
+            const blob = materialRegistry.get(mid);
+            if (!blob) { drawer.innerHTML = '<div class="d-placeholder">Pick a material</div>'; return; }
+
+            const s = blob.settings;
+            const makeRange = (id, val, min, max, step) =>
+                `<div class="d-reveal" id="rng-${id}">
+                   <label>${id}</label><span class="d-val" id="${id}V">${val}</span>
+                   <input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${val}">
+                 </div>`;
+            const setRange = (id, val, min, max, step, toFixed) =>
+                `<input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${val}"
+                        oninput="$('${id}V').textContent=parseFloat(this.value).toFixed(${toFixed})">`;
+
+            let html = `<div class="d-label-row"><label for="mLabel">Name:</label>
+                          <input id="mLabel" value="${blob.label}" style="flex:1"></div>`;
+
+            if (blob.type === 'cube-dither') {
+                html += `<div class="d-sep">Palette</div>
+                    <div class="d-row"><label>Col A</label><input type="color" id="dColA" value="${s.colorA}"></div>
+                    <div class="d-row"><label>Col B</label><input type="color" id="dColB" value="${s.colorB}"></div>
+                    <div class="d-row"><label>Split</label><input type="range" id="dSplitY" min="0" max="100" value="${Math.round(s.splitY*100)}"><span class="d-val" id="dSplitYV">${Math.round(s.splitY*100)}</span></div>
+                    <div class="d-sep">Top Hatch</div>
+                    <div class="d-row"><label>Mode</label>
+                      ${[1,2,3,4].map(m => `<button class="d-btn${s.tMode===m?' on':''}" data-id="dtMode" data-val="${m}">${m}</button>`).join('')}
+                    </div>
+                    <div class="d-row"><label>Ink</label>
+                      ${['Off','Luma'].map((l,i) => `<button class="d-btn${s.tInkMode===i?' on':''}" data-id="dtInkMode" data-val="${i}">${l}</button>`).join('')}
+                    </div>
+                    <div class="d-row"><label>Ink col</label><input type="color" id="dtInkCol" value="${s.tInkColor}"></div>
+                    <div class="d-row"><label>Space</label>${setRange('dtSpace',s.tSpace,1,30,0.5,1)}<span class="d-val" id="dtSpaceV">${s.tSpace}</span></div>
+                    <div class="d-row"><label>Thick</label>${setRange('dtThick',s.tThick,1,10,0.5,1)}<span class="d-val" id="dtThickV">${s.tThick}</span></div>
+                    <div class="d-row"><label>Brite</label>${setRange('dtBright',s.tBright,-2,2,0.05,2)}<span class="d-val" id="dtBrightV">${s.tBright}</span></div>
+                    <div class="d-row"><label>Alpha</label>${setRange('dtAlpha',s.tAlpha,0,1,0.05,2)}<span class="d-val" id="dtAlphaV">${s.tAlpha}</span></div>
+                    <div class="d-sep">Bot Hatch</div>
+                    <div class="d-row"><label>Mode</label>
+                      ${[1,2,3,4].map(m => `<button class="d-btn${s.bMode===m?' on':''}" data-id="dbMode" data-val="${m}">${m}</button>`).join('')}
+                    </div>
+                    <div class="d-row"><label>Ink</label>
+                      ${['Off','Luma'].map((l,i) => `<button class="d-btn${s.bInkMode===i?' on':''}" data-id="dbInkMode" data-val="${i}">${l}</button>`).join('')}
+                    </div>
+                    <div class="d-row"><label>Ink col</label><input type="color" id="dbInkCol" value="${s.bInkColor}"></div>
+                    <div class="d-row"><label>Space</label>${setRange('dbSpace',s.bSpace,1,30,0.5,1)}<span class="d-val" id="dbSpaceV">${s.bSpace}</span></div>
+                    <div class="d-row"><label>Thick</label>${setRange('dbThick',s.bThick,1,10,0.5,1)}<span class="d-val" id="dbThickV">${s.bThick}</span></div>
+                    <div class="d-row"><label>Brite</label>${setRange('dbBright',s.bBright,-2,2,0.05,2)}<span class="d-val" id="dbBrightV">${s.bBright}</span></div>
+                    <div class="d-row"><label>Alpha</label>${setRange('dbAlpha',s.bAlpha,0,1,0.05,2)}<span class="d-val" id="dbAlphaV">${s.bAlpha}</span></div>`;
+            } else if (blob.type === 'cube-solid') {
+                html += `<div class="d-sep">Colour</div>
+                    <div class="d-row"><label>Base</label><input type="color" id="sColor" value="${s.color}"></div>
+                    <div class="d-sep">Hatch</div>
+                    <div class="d-row"><label>Mode</label>
+                      ${[null,1,2,3,4].map((m,i) => `<button class="d-btn${s.dMode===+(m??0)===0?'' :s.dMode===m?' on':''}" data-id="sDMode" data-val="${m??0}">${m ? m : '\u2014'}</button>`).join('')}
+                    </div>
+                    <div class="d-row"><label>Ink</label>
+                      ${['Off','Luma'].map((l,i) => `<button class="d-btn${s.dInkMode===i?' on':''}" data-id="sDInkMode" data-val="${i}">${l}</button>`).join('')}
+                    </div>
+                    <div class="d-row"><label>Ink col</label><input type="color" id="sDInkCol" value="${s.dInkColor}"></div>
+                    <div class="d-row"><label>Space</label>${setRange('sDSpace',s.dSpace,1,30,0.5,1)}<span class="d-val" id="sDSpaceV">${s.dSpace}</span></div>
+                    <div class="d-row"><label>Thick</label>${setRange('sDThick',s.dThick,1,10,0.5,1)}<span class="d-val" id="sDThickV">${s.dThick}</span></div>
+                    <div class="d-row"><label>Brite</label>${setRange('sDBright',s.dBright,-2,2,0.05,2)}<span class="d-val" id="sDBrightV">${s.dBright}</span></div>
+                    <div class="d-row"><label>Alpha</label>${setRange('sDAlpha',s.dAlpha,0,1,0.05,2)}<span class="d-val" id="sDAlphaV">${s.dAlpha}</span></div>`;
+            } else if (blob.type === 'cube-water') {
+                html += `<div class="d-sep">Body</div>
+                    <div class="d-row"><label>Alpha</label>${setRange('wOpacity',s.opacity,0,1,0.05,2)}<span class="d-val" id="wOpacityV">${s.opacity}</span></div>
+                    <div class="d-sep">Hatch</div>
+                    <div class="d-row"><label>Mode</label>
+                      ${[null,1,2,3,4].map((m,i) => `<button class="d-btn${s.dDMode===+(m??0)===0?'' :s.dDMode===m?' on':''}" data-id="dDMode" data-val="${m??0}">${m ? m : '\u2014'}</button>`).join('')}
+                    </div>
+                    <div class="d-row"><label>Ink</label>
+                      ${['Off','Luma'].map((l,i) => `<button class="d-btn${s.dDInkMode===i?' on':''}" data-id="dDInkMode" data-val="${i}">${l}</button>`).join('')}
+                    </div>
+                    <div class="d-row"><label>Ink col</label><input type="color" id="dDInkCol" value="${s.dDInkColor}"></div>
+                    <div class="d-row"><label>Space</label>${setRange('dDSpace',s.dDSpace,1,30,0.5,1)}<span class="d-val" id="dDSpaceV">${s.dDSpace}</span></div>
+                    <div class="d-row"><label>Thick</label>${setRange('dDThick',s.dDThick,1,10,0.5,1)}<span class="d-val" id="dDThickV">${s.dDThick}</span></div>
+                    <div class="d-row"><label>Brite</label>${setRange('dDBright',s.dDBright,-2,2,0.05,2)}<span class="d-val" id="dDBrightV">${s.dDBright}</span></div>
+                    <div class="d-row"><label>Alpha</label>${setRange('dDAlpha',s.dDAlpha,0,1,0.05,2)}<span class="d-val" id="dDAlphaV">${s.dDAlpha}</span></div>`;
+            } else if (blob.type === 'cube-river') {
+                html += `<div class="d-sep">Palette</div>
+                    <div class="d-row"><label>Col A</label><input type="color" id="rColA" value="${s.colorA}"></div>
+                    <div class="d-row"><label>Col B</label><input type="color" id="rColB" value="${s.colorB}"></div>
+                    <div class="d-row"><label>River</label><input type="color" id="rColRiver" value="${s.colorRiver}"></div>
+                    <div class="d-row"><label>Bank</label><input type="color" id="rColBank" value="${s.colorBank}"></div>
+                    <div class="d-row"><label>Width</label>${setRange('rWidth',s.riverWidth,1,99,1,0)}<span class="d-val" id="rWidthV">${s.riverWidth}</span></div>
+                    <div class="d-row"><label>Start</label>
+                      <input type="number" id="rSX" value="${Math.round(s.pStart[0]*100)}" style="width:44px">
+                      <input type="number" id="rSZ" value="${Math.round(s.pStart[1]*100)}" style="width:44px">
+                    </div>
+                    <div class="d-row"><label>End</label>
+                      <input type="number" id="rEX" value="${Math.round(s.pEnd[0]*100)}" style="width:44px">
+                      <input type="number" id="rEZ" value="${Math.round(s.pEnd[1]*100)}" style="width:44px">
+                    </div>
+                    <div class="d-sep">Top Hatch</div>
+                    <div class="d-row"><label>Mode</label>
+                      ${[1,2,3,4].map(m => `<button class="d-btn${s.tMode===m?' on':''}" data-id="rtMode" data-val="${m}">${m}</button>`).join('')}
+                    </div>
+                    <div class="d-row"><label>Ink</label>
+                      ${['Off','Luma'].map((l,i) => `<button class="d-btn${s.tInkMode===i?' on':''}" data-id="rtInkMode" data-val="${i}">${l}</button>`).join('')}
+                    </div>
+                    <div class="d-row"><label>Ink col</label><input type="color" id="rtInkCol" value="${s.tInkColor}"></div>
+                    <div class="d-row"><label>Space</label>${setRange('rtSpace',s.tSpace,1,30,0.5,1)}<span class="d-val" id="rtSpaceV">${s.tSpace}</span></div>
+                    <div class="d-row"><label>Thick</label>${setRange('rtThick',s.tThick,1,10,0.5,1)}<span class="d-val" id="rtThickV">${s.tThick}</span></div>
+                    <div class="d-row"><label>Brite</label>${setRange('rtBright',s.tBright,-2,2,0.05,2)}<span class="d-val" id="rtBrightV">${s.tBright}</span></div>
+                    <div class="d-row"><label>Alpha</label>${setRange('rtAlpha',s.tAlpha,0,1,0.05,2)}<span class="d-val" id="rtAlphaV">${s.tAlpha}</span></div>
+                    <div class="d-sep">Bot Hatch</div>
+                    <div class="d-row"><label>Mode</label>
+                      ${[1,2,3,4].map(m => `<button class="d-btn${s.bMode===m?' on':''}" data-id="rbMode" data-val="${m}">${m}</button>`).join('')}
+                    </div>
+                    <div class="d-row"><label>Ink</label>
+                      ${['Off','Luma'].map((l,i) => `<button class="d-btn${s.bInkMode===i?' on':''}" data-id="rbInkMode" data-val="${i}">${l}</button>`).join('')}
+                    </div>
+                    <div class="d-row"><label>Ink col</label><input type="color" id="rbInkCol" value="${s.bInkColor}"></div>
+                    <div class="d-row"><label>Space</label>${setRange('rbSpace',s.bSpace,1,30,0.5,1)}<span class="d-val" id="rbSpaceV">${s.bSpace}</span></div>
+                    <div class="d-row"><label>Thick</label>${setRange('rbThick',s.bThick,1,10,0.5,1)}<span class="d-val" id="rbThickV">${s.bThick}</span></div>
+                    <div class="d-row"><label>Brite</label>${setRange('rbBright',s.bBright,-2,2,0.05,2)}<span class="d-val" id="rbBrightV">${s.bBright}</span></div>
+                    <div class="d-row"><label>Alpha</label>${setRange('rbAlpha',s.bAlpha,0,1,0.05,2)}<span class="d-val" id="rbAlphaV">${s.bAlpha}</span></div>`;
+            }
+
+            html += `<button class="drawer-action-btn" id="btn-save-pal">SAVE AS NEW MATERIAL</button>`;
+            drawer.innerHTML = html;
+
+            // wire range readouts
+            drawer.querySelectorAll('.d-reveal input[type="range"]').forEach(inp => {
+                const vEl = $(inp.id + 'V');
+                if (vEl) inp.addEventListener('input', () => { vEl.textContent = inp.value; });
+            });
+            // wire toggle buttons
+            drawer.querySelectorAll('.d-btn[data-id]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const bid = btn.dataset.id, bval = parseInt(btn.dataset.val);
+                    const target = $(bid);
+                    if (target) target.value = bval;
+                    drawer.querySelectorAll(`.d-btn[data-id="${bid}"]`).forEach(b => b.classList.remove('on'));
+                    btn.classList.add('on');
+                });
+            });
+            // wire save button
+            const saveBtn = drawer.querySelector('#btn-save-pal');
+            if (saveBtn) saveBtn.addEventListener('click', saveCurrentAsNewMaterial);
+        }
+
+        // ── SECTIONS (order and title only; which types are registered) ────────────
+        const SECTIONS = [
+            { label: 'Cubes',    typeIds: ['cube-solid', 'cube-dither'] },
+            { label: 'Special',  typeIds: ['cube-water', 'cube-river']  }
+        ];
+
+        function rebuildMaterialBarUI() {
+            const bar = $('mat-bar');
+            if (!bar) return;
+            bar.innerHTML = '';
+
+            SECTIONS.forEach(sec => {
+                const sectionDiv = document.createElement('div');
+                sectionDiv.innerHTML = `
+                    <div class="mat-section-title">
+                        <span>${sec.label}</span>
+                    </div>
+                    <div class="mat-add-grid">
+                        ${sec.typeIds.map(t => {
+                            const base = BASE_TYPES[t];
+                            const count = Array.from(materialRegistry.values()).filter(m => m.type === t).length;
+                            return `<button class="mat-add-btn" data-type="${t}">+${base.label} <small>(${count})</small></button>`;
+                        }).join('')}
+                    </div>
+                    <div class="mat-chips-grid" data-section="${sec.label}"></div>`;
+
+                bar.appendChild(sectionDiv);
+
+                // Chip swap pooling: dynamically render real chips.
+                const chipGrid = sectionDiv.querySelector('.mat-chips-grid');
+                if (!chipGrid) return;
+                const materials = Array.from(materialRegistry.values())
+                    .filter(m => sec.typeIds.includes(m.type));
+
+                materials.forEach(blob => {
+                    const base = BASE_TYPES[blob.type];
+                    const isActive = blob.id === activeTool;
+                    const chip = document.createElement('div');
+                    chip.className = 'mat-chip' + (isActive ? ' active' : '');
+                    chip.title = base.statusHint;
+                    chip.dataset.mid = blob.id;
+                    chip.innerHTML = `
+                        ${base.iconSVG(base.accentColor)}
+                        <span class="mat-label">${blob.label}</span>`;
+
+                    chip.querySelector('.mat-label').addEventListener('dblclick', () => {
+                        const nv = prompt('Rename material:', blob.label);
+                        if (nv && nv.trim()) {
+                            blob.label = nv.trim();
+                            chip.querySelector('.mat-label').textContent = blob.label;
+                        }
+                    });
+                    chip.addEventListener('click', () => setTool(blob.id));
+                    chipGrid.appendChild(chip);
+                });
+            });
+
+            // wire add buttons
+            bar.querySelectorAll('.mat-add-btn').forEach(btn => {
+                const typeId = btn.dataset.type;
+                if (typeId) btn.addEventListener('click', () => {
+                    generateNewMaterialInstance(typeId);
+                    rebuildMaterialBarUI();
+                });
+            });
+
+            renderPropertyControls(activeTool);
+        }
+
+        function setTool(mid) {
+            activeTool = mid;
+            const bar = $('mat-bar');
+            bar?.querySelectorAll('.mat-chip').forEach(c => {
+                c.classList.toggle('active', c.dataset.mid === mid);
+            });
+            const blob = materialRegistry.get(mid);
+            if (blob) {
+                const base = BASE_TYPES[blob.type];
+                $('status-msg').textContent = base.statusHint;
+                renderPropertyControls(mid);
+            }
+        }
+
+        function saveCurrentAsNewMaterial() {
+            const activeBlob = materialRegistry.get(activeTool);
+            if (!activeBlob) { alert('No active material to save'); return; }
+
+            const labelEl = $('mLabel');
+            const customName = labelEl?.value?.trim();
+            const newSettings = readDrawerSettings(activeBlob);
+
+            const newBlob = generateNewMaterialInstance(activeBlob.type, newSettings, customName || undefined);
+            if (!newBlob) return;
+
+            rebuildMaterialBarUI();
+            setTool(newBlob.id);
+        }
+
+        function syncLiveSettings() {
+            const activeBlob = materialRegistry.get(activeTool);
+            if (!activeBlob) return;
+
+            const labelEl = $('mLabel');
+            if (labelEl) {
+                activeBlob.label = labelEl.value.trim() || "Untitled";
+                const chipLabel = document.querySelector(`.mat-chip.active .mat-label`);
+                if (chipLabel) chipLabel.textContent = activeBlob.label;
+            }
+
+            activeBlob.settings = readDrawerSettings(activeBlob);
+        }
+
+        // ── PROGRAMMATIC BLOB DATABASES ─────────────────────────
+        const materialRegistry = new Map();
+
+        const BASE_TYPES = {
+            'cube-dither': {
+                label: 'Dither', accentColor: '#e8a838', statusHint: 'Dither uniform block customizer',
+                iconSVG: (col) => `<svg viewBox="0 0 52 44" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="hatch-d" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="4" stroke="${col}" stroke-width="1.2" stroke-opacity=".55"/></pattern><clipPath id="clip-top-d"><polygon points="26,2 50,14 26,26 2,14"/></clipPath><clipPath id="clip-left-d"><polygon points="2,14 26,26 26,42 2,30"/></clipPath><clipPath id="clip-right-d"><polygon points="50,14 26,26 26,42 50,30"/></clipPath></defs><polygon class="iso-top" points="26,2 50,14 26,26 2,14" fill="${col}" fill-opacity=".9"/><rect x="0" y="0" width="52" height="44" fill="url(#hatch-d)" clip-path="url(#clip-top-d)" opacity=".7"/><polygon class="iso-left" points="2,14 26,26 26,42 2,30" fill="${col}" fill-opacity=".55"/><rect x="0" y="0" width="52" height="44" fill="url(#hatch-d)" clip-path="url(#clip-left-d)" opacity=".4"/><polygon class="iso-right" points="50,14 26,26 26,42 50,30" fill="${col}" fill-opacity=".38"/><polygon points="26,2 50,14 26,26 2,14" fill="none" stroke="#000" stroke-width="1.2"/><polygon points="2,14 26,26 26,42 2,30" fill="none" stroke="#000" stroke-width="1.2"/><polygon points="50,14 26,26 26,42 50,30" fill="none" stroke="#000" stroke-width="1.2"/><line x1="26" y1="26" x2="26" y2="42" stroke="#000" stroke-width="1.2"/></svg>`,
+                defaultSettings: () => ({
+                    colorA: '#3ecfb2', colorB: '#c94b6e', splitY: 0.0,
+                    tMode: 4, tInkMode: 0, tInkColor: '#ffffff', tSpace: 6.0, tThick: 1.0, tBright: 1.0, tAlpha: 0.5,
+                    bMode: 1, bInkMode: 0, bInkColor: '#000000', bSpace: 4.0, bThick: 1.0, bBright: -1.0, bAlpha: 0.7
+                }),
+                createThreeMaterial(blob) {
+                    const mat = new THREE.MeshStandardMaterial({ roughness: 0.6, metalness: 0.1 });
+                    mat.onBeforeCompile = (shader) => {
+                        shader.uniforms.colorA = { get value() { return new THREE.Color(blob.settings.colorA); } };
+                        shader.uniforms.colorB = { get value() { return new THREE.Color(blob.settings.colorB); } };
+                        shader.uniforms.splitY = { get value() { return blob.settings.splitY; } };
+                        shader.uniforms.tMode = { get value() { return blob.settings.tMode; } };
+                        shader.uniforms.tInkMode = { get value() { return blob.settings.tInkMode; } };
+                        shader.uniforms.tInkColor = { get value() { return new THREE.Color(blob.settings.tInkColor); } };
+                        shader.uniforms.tSpace = { get value() { return blob.settings.tSpace; } };
+                        shader.uniforms.tThick = { get value() { return blob.settings.tThick; } };
+                        shader.uniforms.tBright = { get value() { return blob.settings.tBright; } };
+                        shader.uniforms.tAlpha = { get value() { return blob.settings.tAlpha; } };
+                        shader.uniforms.bMode = { get value() { return blob.settings.bMode; } };
+                        shader.uniforms.bInkMode = { get value() { return blob.settings.bInkMode; } };
+                        shader.uniforms.bInkColor = { get value() { return new THREE.Color(blob.settings.bInkColor); } };
+                        shader.uniforms.bSpace = { get value() { return blob.settings.bSpace; } };
+                        shader.uniforms.bThick = { get value() { return blob.settings.bThick; } };
+                        shader.uniforms.bBright = { get value() { return blob.settings.bBright; } };
+                        shader.uniforms.bAlpha = { get value() { return blob.settings.bAlpha; } };
+
+                        shader.vertexShader = `varying float vLocalY; varying vec2 myUv;\n${shader.vertexShader}`
+                            .replace(`#include <begin_vertex>`, `#include <begin_vertex>\nvLocalY=position.y;\nmyUv=uv;`);
+                        shader.fragmentShader = `
+                        uniform vec3 colorA,colorB; uniform float splitY;
+                        uniform int tMode,tInkMode; uniform vec3 tInkColor; uniform float tSpace,tThick,tBright,tAlpha;
+                        uniform int bMode,bInkMode; uniform vec3 bInkColor; uniform float bSpace,bThick,bBright,bAlpha;
+                        varying float vLocalY; varying vec2 myUv;\n${shader.fragmentShader}`
+                            .replace(`vec4 diffuseColor = vec4( diffuse, opacity );`, `
+                            bool isTop = vLocalY > splitY;
+                            vec3 splitBase = isTop ? colorA : colorB;
+                            vec4 diffuseColor = vec4(splitBase, opacity);`)
+                            .replace(`#include <dithering_fragment>`, `#include <dithering_fragment>
+                            int dMode=isTop?tMode:bMode; int dInkMode=isTop?tInkMode:bInkMode;
+                            vec3 dInkColor=isTop?tInkColor:bInkColor; float dSpace=isTop?tSpace:bSpace;
+                            float dThick=isTop?tThick:bThick; float dBright=isTop?tBright:bBright; float dAlpha=isTop?tAlpha:bAlpha;
+                            ${ditherGLSL}`);
+                    };
+                    return mat;
+                }
+            },
+            'cube-solid': {
+                label: 'Solid', accentColor: '#3ecfb2', statusHint: 'Solid structural voxel block',
+                iconSVG: (col) => `<svg viewBox="0 0 52 44" xmlns="http://www.w3.org/2000/svg"><polygon class="iso-top" points="26,2 50,14 26,26 2,14" fill="${col}" fill-opacity=".95"/><polygon class="iso-left" points="2,14 26,26 26,42 2,30" fill="${col}" fill-opacity=".6"/><polygon class="iso-right" points="50,14 26,26 26,42 50,30" fill="${col}" fill-opacity=".42"/><polygon points="26,2 50,14 26,26 2,14" fill="none" stroke="#000" stroke-width="1.2"/><polygon points="2,14 26,26 26,42 2,30" fill="none" stroke="#000" stroke-width="1.2"/><polygon points="50,14 26,26 26,42 50,30" fill="none" stroke="#000" stroke-width="1.2"/><line x1="26" y1="26" x2="26" y2="42" stroke="#000" stroke-width="1.2"/></svg>`,
+                defaultSettings: () => ({ color: '#3ecfb2', dMode: 0, dInkMode: 0, dInkColor: '#ffffff', dSpace: 6.0, dThick: 1.0, dBright: 1.0, dAlpha: 0.5 }),
+                createThreeMaterial(blob) {
+                    const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(blob.settings.color), roughness: 0.6, metalness: 0.1 });
+                    mat.onBeforeCompile = (shader) => {
+                        shader.uniforms.colorBase = { get value() { return new THREE.Color(blob.settings.color); } };
+                        shader.uniforms.dMode    = { get value() { return blob.settings.dMode; } };
+                        shader.uniforms.dInkMode = { get value() { return blob.settings.dInkMode; } };
+                        shader.uniforms.dInkColor= { get value() { return new THREE.Color(blob.settings.dInkColor); } };
+                        shader.uniforms.dSpace   = { get value() { return blob.settings.dSpace; } };
+                        shader.uniforms.dThick   = { get value() { return blob.settings.dThick; } };
+                        shader.uniforms.dBright  = { get value() { return blob.settings.dBright; } };
+                        shader.uniforms.dAlpha   = { get value() { return blob.settings.dAlpha; } };
+                        shader.vertexShader = `varying float vLocalY;\nvarying vec2 myUv;\n${shader.vertexShader}`
+                            .replace(`#include <begin_vertex>`, `#include <begin_vertex>\nvLocalY=position.y;\nmyUv=uv;`);
+                        shader.fragmentShader = `
+                            uniform vec3 colorBase;
+                            uniform int dMode;
+                            uniform int dInkMode;
+                            uniform vec3 dInkColor;
+                            uniform float dSpace, dThick, dBright, dAlpha;
+                            varying float vLocalY; varying vec2 myUv;\n${shader.fragmentShader}`
+                            .replace(`vec4 diffuseColor = vec4( diffuse, opacity );`,
+                                `vec4 diffuseColor = vec4(colorBase, opacity);`)
+                            .replace(`#include <dithering_fragment>`, `#include <dithering_fragment>\n${ditherSolidGLSL}`);
+                    };
+                    return mat;
+                }
+            },
+            'cube-water': {
+                label: 'Water', accentColor: '#5b9bd5', statusHint: 'Transparent aquatic volume fluid block',
+                iconSVG: (col) => `<svg viewBox="0 0 52 44" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="wave-w" patternUnits="userSpaceOnUse" width="8" height="4"><path d="M0 2 Q2 0 4 2 Q6 4 8 2" fill="none" stroke="${col}" stroke-width="1" stroke-opacity=".8"/></pattern><clipPath id="clip-top-w"><polygon points="26,2 50,14 26,26 2,14"/></clipPath></defs><polygon class="iso-top" points="26,2 50,14 26,26 2,14" fill="${col}" fill-opacity=".35"/><rect x="0" y="0" width="52" height="44" fill="url(#wave-w)" clip-path="url(#clip-top-w)"/><polygon class="iso-left" points="2,14 26,26 26,42 2,30" fill="${col}" fill-opacity=".22"/><polygon class="iso-right" points="50,14 26,26 26,42 50,30" fill="${col}" fill-opacity=".16"/><polygon points="26,2 50,14 26,26 2,14" fill="none" stroke="#88ccee" stroke-width="1.2"/><polygon points="2,14 26,26 26,42 2,30" fill="none" stroke="#88ccee" stroke-width="1.2"/><polygon points="50,14 26,26 26,42 50,30" fill="none" stroke="#88ccee" stroke-width="1.2"/><line x1="26" y1="26" x2="26" y2="42" stroke="#88ccee" stroke-width="1.2"/></svg>`,
+                defaultSettings: () => ({ opacity: 0.50, dDMode: 0, dDInkMode: 0, dDInkColor: '#ffffff', dDSpace: 6.0, dDThick: 1.0, dDBright: 1.0, dDAlpha: 0.5 }),
+                createThreeMaterial(blob) {
+                    const mat = new THREE.MeshStandardMaterial({ color: 0x33b9e5, transparent: true, roughness: 0.1, metalness: 0.1 });
+                    mat.onBeforeCompile = (shader) => {
+                        shader.uniforms.dDMode    = { get value() { return blob.settings.dDMode; } };
+                        shader.uniforms.dDInkMode = { get value() { return blob.settings.dDInkMode; } };
+                        shader.uniforms.dDInkColor= { get value() { return new THREE.Color(blob.settings.dDInkColor); } };
+                        shader.uniforms.dDSpace   = { get value() { return blob.settings.dDSpace; } };
+                        shader.uniforms.dDThick   = { get value() { return blob.settings.dDThick; } };
+                        shader.uniforms.dDBright  = { get value() { return blob.settings.dDBright; } };
+                        shader.uniforms.dDAlpha   = { get value() { return blob.settings.dDAlpha; } };
+                        shader.vertexShader = `varying vec2 myUv;\n${shader.vertexShader}`
+                            .replace(`#include <begin_vertex>`, `#include <begin_vertex>\nmyUv=uv;`);
+                        shader.fragmentShader = `
+                            uniform int dDMode;
+                            uniform int dDInkMode;
+                            uniform vec3 dDInkColor;
+                            uniform float dDSpace, dDThick, dDBright, dDAlpha;
+                            varying vec2 myUv;\n${shader.fragmentShader}`
+                            .replace(`#include <dithering_fragment>`, `#include <dithering_fragment>\n${ditherWaterGLSL}`);
+                    };
+                    return mat;
+                }
+            },
+            'cube-river': {
+                label: 'River', accentColor: '#4ba3c9', statusHint: 'Dynamic directional procedural flow path voxel',
+                iconSVG: (col) => `<svg viewBox="0 0 52 44" xmlns="http://www.w3.org/2000/svg"><defs><clipPath id="clip-top-r"><polygon points="26,2 50,14 26,26 2,14"/></clipPath></defs><polygon class="iso-top" points="26,2 50,14 26,26 2,14" fill="#2d6e3e" fill-opacity=".9"/><polygon points="10,8 42,8 42,20 10,20" fill="${col}" fill-opacity=".85" clip-path="url(#clip-top-r)"/><polygon class="iso-left" points="2,14 26,26 26,42 2,30" fill="#2d6e3e" fill-opacity=".55"/><polygon class="iso-right" points="50,14 26,26 26,42 50,30" fill="#2d6e3e" fill-opacity=".38"/><polygon points="26,2 50,14 26,26 2,14" fill="none" stroke="#000" stroke-width="1.2"/><polygon points="2,14 26,26 26,42 2,30" fill="none" stroke="#000" stroke-width="1.2"/><polygon points="50,14 26,26 26,42 50,30" fill="none" stroke="#000" stroke-width="1.2"/><line x1="26" y1="26" x2="26" y2="42" stroke="#000" stroke-width="1.2"/></svg>`,
+                defaultSettings: () => ({
+                    colorA: '#3ecfb2', colorB: '#c94b6e', colorRiver: '#1d557a', colorBank: '#a3d39c', riverWidth: 0.20,
+                    pStart: [0.0, -1.0], pEnd: [1.0, 0.0],
+                    tMode: 4, tInkMode: 0, tInkColor: '#ffffff', tSpace: 6.0, tThick: 1.0, tBright: 1.0, tAlpha: 0.5,
+                    bMode: 1, bInkMode: 0, bInkColor: '#000000', bSpace: 4.0, bThick: 1.0, bBright: -1.0, bAlpha: 0.7
+                }),
+                createThreeMaterial(blob) {
+                    const mat = new THREE.MeshStandardMaterial({ roughness: 0.6, metalness: 0.1 });
+                    mat.onBeforeCompile = (shader) => {
+                        shader.uniforms.colorA = { get value() { return new THREE.Color(blob.settings.colorA); } };
+                        shader.uniforms.colorB = { get value() { return new THREE.Color(blob.settings.colorB); } };
+                        shader.uniforms.colorRiver = { get value() { return new THREE.Color(blob.settings.colorRiver); } };
+                        shader.uniforms.colorBank = { get value() { return new THREE.Color(blob.settings.colorBank); } };
+                        shader.uniforms.riverWidth = { get value() { return blob.settings.riverWidth; } };
+                        shader.uniforms.pStart = { get value() { return new THREE.Vector2(blob.settings.pStart[0], blob.settings.pStart[1]); } };
+                        shader.uniforms.pEnd = { get value() { return new THREE.Vector2(blob.settings.pEnd[0], blob.settings.pEnd[1]); } };
+                        shader.uniforms.tMode = { get value() { return blob.settings.tMode; } };
+                        shader.uniforms.tInkMode = { get value() { return blob.settings.tInkMode; } };
+                        shader.uniforms.tInkColor = { get value() { return new THREE.Color(blob.settings.tInkColor); } };
+                        shader.uniforms.tSpace = { get value() { return blob.settings.tSpace; } };
+                        shader.uniforms.tThick = { get value() { return blob.settings.tThick; } };
+                        shader.uniforms.tBright = { get value() { return blob.settings.tBright; } };
+                        shader.uniforms.tAlpha = { get value() { return blob.settings.tAlpha; } };
+                        shader.uniforms.bMode = { get value() { return blob.settings.bMode; } };
+                        shader.uniforms.bInkMode = { get value() { return blob.settings.bInkMode; } };
+                        shader.uniforms.bInkColor = { get value() { return new THREE.Color(blob.settings.bInkColor); } };
+                        shader.uniforms.bSpace = { get value() { return blob.settings.bSpace; } };
+                        shader.uniforms.bThick = { get value() { return blob.settings.bThick; } };
+                        shader.uniforms.bBright = { get value() { return blob.settings.bBright; } };
+                        shader.uniforms.bAlpha = { get value() { return blob.settings.bAlpha; } };
+
+                        shader.vertexShader = `varying vec3 vLocalPos; varying vec2 myUv;\n${shader.vertexShader}`
+                            .replace(`#include <begin_vertex>`, `#include <begin_vertex>\nvLocalPos=position.xyz;\nmyUv=uv;`);
+                        shader.fragmentShader = `
+                        uniform vec3 colorA,colorB,colorRiver,colorBank; uniform float riverWidth; uniform vec2 pStart,pEnd;
+                        uniform int tMode,tInkMode; uniform vec3 tInkColor; uniform float tSpace,tThick,tBright,tAlpha;
+                        uniform int bMode,bInkMode; uniform vec3 bInkColor; uniform float bSpace,bThick,bBright,bAlpha;
+                        varying vec3 vLocalPos; varying vec2 myUv;\n${shader.fragmentShader}`
+                            .replace(`vec4 diffuseColor = vec4( diffuse, opacity );`, `
+                            bool isTopFace=(vLocalPos.y>0.99); bool isPath=false;
+                            vec3 splitBase = isTopFace ? colorA : colorB;
+                            if(isTopFace){
+                                vec2 p=vLocalPos.xz; vec2 ba=pEnd-pStart; vec2 pa=p-pStart;
+                                float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.);
+                                float dist=length(pa-ba*h);
+                                if(dist<riverWidth){ splitBase=colorRiver; isPath=true; }
+                                else if(dist<riverWidth+0.08){ splitBase=colorBank; }
+                            }
+                            vec4 diffuseColor=vec4(splitBase,opacity);`)
+                            .replace(`#include <dithering_fragment>`, `#include <dithering_fragment>
+                            bool useTop=(isTopFace&&!isPath);
+                            int dMode=useTop?tMode:bMode; int dInkMode=useTop?tInkMode:bInkMode;
+                            vec3 dInkColor=useTop?tInkColor:bInkColor; float dSpace=useTop?tSpace:bSpace;
+                            float dThick=useTop?tThick:bThick; float dBright=useTop?tBright:bBright; float dAlpha=useTop?tAlpha:bAlpha;
+                            ${ditherGLSL}`);
+                    };
+                    return mat;
+                }
+            }
+        };
+
+        function generateNewMaterialInstance(typeId, customSettings = null, customName = null) {
+            const base = BASE_TYPES[typeId];
+            if (!base) return null;
+            const uid = 'mat_blob_' + Math.random().toString(36).substring(2, 11);
+
+            let totalOfType = 0;
+            materialRegistry.forEach(m => { if (m.type === typeId) totalOfType++; });
+            const name = customName || `${base.label} ${totalOfType + 1}`;
+
+            const blob = {
+                id: uid,
+                type: typeId,
+                label: name,
+                settings: customSettings ? JSON.parse(JSON.stringify(customSettings)) : base.defaultSettings(),
+                threeMaterial: null
+            };
+            blob.threeMaterial = base.createThreeMaterial(blob);
+            materialRegistry.set(uid, blob);
+            return blob;
+        }
+
+        // Global Core Shared Line Materials
+        const blackOutlineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+        const faceColliderMaterial = new THREE.MeshStandardMaterial({ color: 0x4eff91, transparent: true, opacity: 0.15, side: THREE.DoubleSide, roughness: 0.5 });
+        const colliderLineMat = new THREE.LineBasicMaterial({ color: 0x4eff91, linewidth: 3, transparent: true, opacity: 0.2 });
+
+        // ── SCENE SETUP ────────────────────────────────────────
+        const container = document.getElementById('viewport-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2('#0d0d10', 0.02);
+        const aspect = container.clientWidth / container.clientHeight;
+        let frustumSize = 16;
+        const camera = new THREE.OrthographicCamera(
+            -frustumSize * aspect / 2, frustumSize * aspect / 2, frustumSize / 2, -frustumSize / 2, 1, 1000);
+        camera.position.set(20, 20, 20);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.mouseButtons = { ORBIT: THREE.MOUSE.RIGHT, ZOOM: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.RIGHT };
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        const halfGridSize = (GRID_N * CELL_SIZE) / 2;
+        const interactionPlaneGeo = new THREE.PlaneGeometry(GRID_N * CELL_SIZE, GRID_N * CELL_SIZE);
+        interactionPlaneGeo.rotateX(-Math.PI / 2);
+        const interactionPlane = new THREE.Mesh(interactionPlaneGeo, new THREE.MeshBasicMaterial({ visible: false }));
+        scene.add(interactionPlane);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+        const dLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dLight.position.set(10, 20, 4);
+        scene.add(dLight);
+        const hLight = new THREE.HemisphereLight(0x88aaff, 0x3a2a1a, 0.4); scene.add(hLight);
+        const gridHelper = new THREE.GridHelper(GRID_N * CELL_SIZE, GRID_N, 0x3ecfb2, 0x2a2a3a);
+        gridHelper.position.y = -0.01;
+        scene.add(gridHelper);
+
+        const tileOutlineGroup = new THREE.Group();
+        const outlineMat = new THREE.LineBasicMaterial({ color: 0x3a3a4a });
+        for (let c = 0; c < GRID_N; c++) {
+            for (let r = 0; r < GRID_N; r++) {
+                const wx = (c * CELL_SIZE) + CELL_SIZE / 2 - halfGridSize, wz = (r * CELL_SIZE) + CELL_SIZE / 2 - halfGridSize, hx = CELL_SIZE / 2;
+                const pts = [new THREE.Vector3(wx - hx, 0, wz - hx), new THREE.Vector3(wx + hx, 0, wz - hx), new THREE.Vector3(wx + hx, 0, wz + hx), new THREE.Vector3(wx - hx, 0, wz + hx), new THREE.Vector3(wx - hx, 0, wz - hx)];
+                tileOutlineGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), outlineMat));
+            }
+        }
+        scene.add(tileOutlineGroup);
+
+        // Previews
+        const previewCubeContainer = new THREE.Group();
+        scene.add(previewCubeContainer);
+        const previewColliderFace = new THREE.Mesh(new THREE.PlaneGeometry(CELL_SIZE, CELL_SIZE), new THREE.MeshBasicMaterial({ color: 0x4eff91, transparent: true, opacity: 0.5, side: THREE.DoubleSide }));
+        previewColliderFace.visible = false;
+        scene.add(previewColliderFace);
+        const previewNode = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), new THREE.MeshBasicMaterial({ color: 0x4eff91 }));
+        previewNode.visible = false;
+        scene.add(previewNode);
+        const previewLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0x4eff91 }));
+        previewLine.visible = false;
+        scene.add(previewLine);
+
+        // ── AUXILIARY COORDINATE MATH ──────────────────────────
+        // Table produced by: for CW steps, newX = oldZ, newZ = -oldX; for CCW steps, newX = -oldZ, newZ = oldX
+        // ── Grid Rotation ─────────────────────────────────────
+
+        // Rotate a grid cell (cx,cz) for camRot steps clockwise.
+        // For CW steps: newX = oldZ, newZ = -oldX
+        function rotCW(cx, cz) {
+            switch (camRot) {
+                case 0: return { cx, cz };
+                case 1: return { cx: cz,  cz: -cx };
+                case 2: return { cx: -cx, cz: -cz };
+                case 3: return { cx: -cz, cz:  cx };
+            }
+        }
+
+        // ── Grid Fingerprinting ──────────────────────────────────────────────
+        // World X/Z → snapped cell index + snapped cell-centre world position.
+        // Handles arbitrary camRot by first un-rotating the world hit back into
+        // original grid space, flooring to a cell index, then snapping.
+        function getGridCoordinates(pt) {
+            const wx = pt.x, wz = pt.z;
+
+            // Apply un-rotation (reverse of rotCW) to get the original cell hit
+            let gx, gz;
+            switch (camRot) {
+                case 0: gx = wx;         gz = wz;          break;
+                case 1: gx = -wz;        gz = wx;          break;
+                case 2: gx = -wx;        gz = -wz;         break;
+                case 3: gx = wz;         gz = -wx;         break;
+            }
+            const cx = Math.floor((gx + halfGridSize) / CELL_SIZE);
+            const cz = Math.floor((gz + halfGridSize) / CELL_SIZE);
+            if (cx < 0 || cx >= GRID_N || cz < 0 || cz >= GRID_N) return null;
+
+            // Snap to the exact centre of the computed cell
+            const snappedX = cx * CELL_SIZE + CELL_SIZE / 2 - halfGridSize;
+            const snappedZ = cz * CELL_SIZE + CELL_SIZE / 2 - halfGridSize;
+
+            return { gridX: cx, gridZ: cz, worldX: snappedX, worldZ: snappedZ };
+        }
+
+        function rotateView(dir) {
+            camRot = (camRot + dir + 4) % 4;
+            $('status-msg').textContent = `Grid rotated → camRot = ${camRot}`;
+        }
+
+        $('btn-rot-cw').onclick  = () => rotateView(1);
+        $('btn-rot-ccw').onclick = () => rotateView(-1);
+
+        // ── Zoom helpers ────────────────────────────────────────────────────
+        function applyZoom() {
+            const a = container.clientWidth / container.clientHeight;
+            camera.left   = -frustumSize * a / 2;
+            camera.right  =  frustumSize * a / 2;
+            camera.top    =  frustumSize / 2;
+            camera.bottom = -frustumSize / 2;
+            camera.updateProjectionMatrix();
+        }
+
+        window.zoomIn  = () => { frustumSize = Math.max(2,  frustumSize * 0.5); applyZoom(); };
+        window.zoomOut = () => { frustumSize = Math.min(64, frustumSize * 2.0); applyZoom(); };
+        window.resetZoom = () => { frustumSize = 16; applyZoom(); };
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Initialize application default materials
+        const defaultDither = generateNewMaterialInstance('cube-dither', null, 'Dither Alpha');
+        generateNewMaterialInstance('cube-solid', null, 'Solid Voxel');
+        generateNewMaterialInstance('cube-water', null, 'Water Flow');
+        generateNewMaterialInstance('cube-river', null, 'River Bed');
+
+        rebuildMaterialBarUI();
+        setTool(defaultDither.id);
+    </script>
+</body>
+
+</html>

@@ -304,7 +304,7 @@ class MaterialsManagerBase {
                 this.selectMaterial(mat);
             });
             el.querySelector('.apply-material-btn').addEventListener('click', e => {
-                e.stopPropagation(); this._applyToSelected && this._applyToSelected(mat, selectedObjects); });
+                                e.stopPropagation(); this._applyToSelected && this._applyToSelected(mat, this._getSelectedObjects()); });
             el.querySelector('.edit-material-btn')?.addEventListener('click', e => { e.stopPropagation(); this.editMaterial(mat); });
             el.querySelector('.delete-material-btn')?.addEventListener('click', e => { e.stopPropagation(); this.deleteMaterial(mat); });
             this.container.appendChild(el);
@@ -337,7 +337,7 @@ class MaterialsManagerBase {
                 this.selectMaterial(mat);
             });
             el.querySelector('.apply-material-btn').addEventListener('click', e => {
-                e.stopPropagation(); this._applyToSelected && this._applyToSelected(mat, selectedObjects); });
+                                e.stopPropagation(); this._applyToSelected && this._applyToSelected(mat, this._getSelectedObjects()); });
             el.querySelector('.edit-material-btn')?.addEventListener('click', e => { e.stopPropagation(); this.editMaterial(mat); });
             el.querySelector('.delete-material-btn')?.addEventListener('click', e => { e.stopPropagation(); this.deleteMaterial(mat); });
             mc.appendChild(el);
@@ -350,6 +350,10 @@ class MaterialsManagerBase {
     }
 
     _applyToObj(obj, mat) {} // base no-op; 3D adapter overrides
+
+    _getSelectedObjects() { return this._selectedObjectsGetter ? this._selectedObjectsGetter() : []; }
+
+    setSelectedObjectsGetter(fn) { this._selectedObjectsGetter = fn; }
 
     // hook for 2D/3D consumers
     _applyToSelected = null; // set by consumer to (mat, selectedObjectsArray) => void

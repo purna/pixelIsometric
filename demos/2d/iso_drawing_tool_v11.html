@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iso Drawing Tool v11 - Flat Grid & Stamp Tray</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    body {
+      background: #0a0a0d;
+      font-family: 'Courier New', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      gap: 16px
+    }
+
+    /* ── Drawing App ─────────────────────────────── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 580px;
+      width: 100%;
+      max-width: 900px;
+      background: #111116;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #1e1e1e
+    }
+
+    #toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border-bottom: 1px solid #1e1e1e;
+      background: #0d0d10;
+      flex-shrink: 0;
+      flex-wrap: wrap
+    }
+
+    .tb-section {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 7px 10px;
+      border-right: 1px solid #1a1a1a
+    }
+
+    .tb-label {
+      font-size: 9px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #333;
+      margin-right: 2px;
+      white-space: nowrap
+    }
+
+    .tool-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 9px;
+      border: 1px solid #222;
+      border-radius: 4px;
+      cursor: pointer;
+      background: transparent;
+      color: #CCC;
+      font-size: 9px;
+      font-family: 'Courier New', monospace;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      transition: all .1s;
+      white-space: nowrap
+    }
+
+    .tool-btn svg {
+      flex-shrink: 0
+    }
+
+    .tool-btn:hover {
+      background: #161616;
+      color: #888;
+      border-color: #333
+    }
+
+    .tool-btn.active {
+      background: #1a1a1a;
+      color: #3ecfb2;
+      border-color: #3ecfb2
+    }
+
+    .tool-btn.col-btn.active {
+      color: #4eff91;
+      border-color: #4eff91
+    }
+
+    .color-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1.5px solid transparent;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform .1s
+    }
+
+    .color-dot:hover {
+      transform: scale(1.2)
+    }
+
+    .color-dot.active {
+      border-color: #fff
+    }
+
+    .tb-mini {
+      padding: 4px 8px;
+      border: 1px solid #1e1e1e;
+      border-radius: 3px;
+      font-size: 9px;
+      font-family: 'Courier New', monospace;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #333;
+      background: transparent;
+      cursor: pointer
+    }
+
+    .tb-mini:hover {
+      color: #888;
+      border-color: #333
+    }
+
+    .tb-save {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border: 1px solid #3ecfb2;
+      border-radius: 4px;
+      cursor: pointer;
+      background: rgba(62, 207, 178, 0.07);
+      color: #3ecfb2;
+      font-size: 9px;
+      font-family: 'Courier New', monospace;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      transition: all .15s;
+      white-space: nowrap
+    }
+
+    .tb-save:hover {
+      background: rgba(62, 207, 178, 0.16);
+      box-shadow: 0 0 10px rgba(62, 207, 178, 0.15)
+    }
+
+    .tb-save svg {
+      flex-shrink: 0
+    }
+
+    #layer-bar {
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid #1a1a1a;
+      background: #0a0a0c;
+      flex-shrink: 0
+    }
+
+    .layer-tab {
+      padding: 5px 14px;
+      font-size: 9px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: #C6C6C6;
+      cursor: pointer;
+      border-right: 1px solid #141414;
+      border-bottom: 2px solid transparent;
+      transition: all .1s
+    }
+
+    .layer-tab:hover {
+      color: #CCC
+    }
+
+    .layer-tab.active-cube {
+      color: #3ecfb2;
+      border-bottom-color: #3ecfb2
+    }
+
+    .layer-tab.active-col {
+      color: #4eff91;
+      border-bottom-color: #4eff91
+    }
+
+    #layer-hint {
+      flex: 1;
+      padding: 5px 12px;
+      font-size: 9px;
+      color: #1e1e1e;
+      letter-spacing: .08em
+    }
+
+    #cvwrap {
+      flex: 1;
+      position: relative;
+      overflow: hidden
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%
+    }
+
+    #c-grid {
+      z-index: 1
+    }
+
+    #c-cube {
+      z-index: 2
+    }
+
+    #c-col {
+      z-index: 3
+    }
+
+    #c-hit {
+      z-index: 4
+    }
+
+    #statusbar {
+      padding: 5px 12px;
+      border-top: 1px solid #141414;
+      background: #0d0d10;
+      font-size: 9px;
+      letter-spacing: .08em;
+      color: #C4C4C4;
+      flex-shrink: 0
+    }
+
+    /* ── Grid Panel ───────────────────────────────── */
+    #grid-panel {
+      width: 100%;
+      max-width: 900px;
+      background: #111116;
+      border: 1px solid #1e1e1e;
+      border-radius: 6px;
+      overflow: hidden
+    }
+
+    #grid-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      border-bottom: 1px solid #1a1a1a;
+      background: #0d0d10
+    }
+
+    #grid-header h2 {
+      font-size: 9px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: #C4C4C4;
+      font-weight: 400
+    }
+
+    #grid-header span {
+      font-size: 9px;
+      letter-spacing: .08em;
+      color: #222
+    }
+
+    #grid-canvas-wrap {
+      position: relative;
+      overflow: hidden;
+      cursor: crosshair
+    }
+
+    #grid-canvas-wrap canvas {
+      display: block
+    }
+
+    #gc-bg {
+      position: absolute;
+      top: 0;
+      left: 0
+    }
+
+    #gc-obj {
+      position: absolute;
+      top: 0;
+      left: 0
+    }
+
+    #gc-ui {
+      position: absolute;
+      top: 0;
+      left: 0
+    }
+
+    /* ── Stamp tray ───────────────────────────────── */
+    #stamp-tray {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border-top: 1px solid #1a1a1a;
+      background: #0a0a0c;
+      padding: 0;
+      overflow-x: auto;
+      min-height: 80px
+    }
+
+    #stamp-tray::-webkit-scrollbar {
+      height: 3px
+    }
+
+    #stamp-tray::-webkit-scrollbar-track {
+      background: #111
+    }
+
+    #stamp-tray::-webkit-scrollbar-thumb {
+      background: #222
+    }
+
+    .stamp-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 10px;
+      cursor: pointer;
+      border-right: 1px solid #141414;
+      flex-shrink: 0;
+      transition: background .1s;
+      position: relative;
+      min-width: 70px
+    }
+
+    .stamp-item:hover {
+      background: #161616
+    }
+
+    .stamp-item.active-stamp {
+      background: #141420
+    }
+
+    .stamp-item canvas {
+      border: 1px solid #222;
+      border-radius: 2px;
+      image-rendering: pixelated
+    }
+
+    .stamp-item.active-stamp canvas {
+      border-color: #3ecfb2
+    }
+
+    .stamp-label {
+      font-size: 8px;
+      letter-spacing: .08em;
+      color: #C6C6C6;
+      text-align: center;
+      white-space: nowrap
+    }
+
+    .stamp-item.active-stamp .stamp-label {
+      color: #3ecfb2
+    }
+
+    .stamp-del {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 12px;
+      height: 12px;
+      background: #1a1a1a;
+      border: 1px solid #C6C6C6;
+      border-radius: 2px;
+      font-size: 8px;
+      color: #333;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      line-height: 1
+    }
+
+    .stamp-item:hover .stamp-del {
+      display: flex
+    }
+
+    .stamp-del:hover {
+      color: #c94b6e;
+      border-color: #c94b6e
+    }
+
+    .stamp-empty {
+      padding: 16px 20px;
+      font-size: 9px;
+      letter-spacing: .1em;
+      color: #1e1e1e;
+      text-transform: uppercase
+    }
+
+    /* ── Materials Bar ───────────────────────────────── */
+    #mat-bar {
+      width: 100%;
+      max-width: 900px;
+      background: #111116;
+      border: 1px solid #1e1e1e;
+      border-radius: 6px;
+      overflow: hidden
+    }
+
+    #mat-bar-header {
+      display: flex;
+      align-items: stretch;
+      background: #0d0d10;
+      border-bottom: 1px solid #1a1a1a
+    }
+
+    .mat-icon-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      padding: 10px 14px;
+      cursor: pointer;
+      border-right: 1px solid #141414;
+      border-bottom: 3px solid transparent;
+      transition: all .15s;
+      flex-shrink: 0
+    }
+
+    .mat-icon-btn:hover {
+      background: #141418
+    }
+
+    .mat-icon-btn.active {
+      border-bottom-color: #3ecfb2;
+      background: #131320
+    }
+
+    .mat-icon-btn canvas {
+      display: block;
+      border-radius: 3px
+    }
+
+    .mat-icon-label {
+      font-size: 8px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #C6C6C6;
+      white-space: nowrap
+    }
+
+    .mat-icon-btn.active .mat-icon-label {
+      color: #3ecfb2
+    }
+
+    #mat-bar-hint {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      font-size: 9px;
+      letter-spacing: .1em;
+      color: #1e1e1e
+    }
+
+    #mat-panel {
+      display: none;
+      padding: 14px 16px;
+      background: #0f0f14;
+      border-top: 1px solid #1a1a1a
+    }
+
+    #mat-panel.open {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px 32px;
+      align-items: flex-start
+    }
+
+    /* panel sections */
+    .mp-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 180px
+    }
+
+    .mp-title {
+      font-size: 8px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: #3ecfb2;
+      border-bottom: 1px solid #1e1e28;
+      padding-bottom: 5px;
+      margin-bottom: 2px
+    }
+
+    .mp-title.pink {
+      color: #c94b6e
+    }
+
+    .mp-title.blue {
+      color: #4ba3c9
+    }
+
+    .mp-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 9px;
+      letter-spacing: .06em;
+      color: #444;
+      min-height: 22px
+    }
+
+    .mp-row label {
+      white-space: nowrap;
+      min-width: 72px
+    }
+
+    .mp-row input[type=range] {
+      flex: 1;
+      height: 2px;
+      accent-color: #3ecfb2;
+      background: #1c1c1c;
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer
+    }
+
+    .mp-row input[type=color] {
+      width: 32px;
+      height: 20px;
+      border: 1px solid #2a2a38;
+      background: none;
+      padding: 0;
+      cursor: pointer;
+      border-radius: 2px
+    }
+
+    .mp-row select {
+      background: #0f0f14;
+      color: #7a7a9a;
+      border: 1px solid #2a2a38;
+      padding: 3px 5px;
+      font-family: 'Courier New', monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      flex: 1
+    }
+
+    .mp-row .val {
+      min-width: 24px;
+      text-align: right;
+      color: #333;
+      font-size: 8px
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="app">
+    <div id="toolbar">
+
+      <div class="tb-section">
+        <span class="tb-label">Collider</span>
+        <button class="tool-btn col-btn" id="btn-col-top" onclick="setTool('col-top')">
+          <svg width="24" height="14" viewBox="0 0 30 18">
+            <polygon points="15,1 29,9 15,17 1,9" fill="none" stroke="currentColor" stroke-width="2" />
+          </svg>Top
+        </button>
+        <button class="tool-btn col-btn" id="btn-col-left" onclick="setTool('col-left')">
+          <svg width="16" height="24" viewBox="0 0 16 26">
+            <polygon points="15,25 1,17 1,1 15,9" fill="none" stroke="currentColor" stroke-width="2" />
+          </svg>Left
+        </button>
+        <button class="tool-btn col-btn" id="btn-col-right" onclick="setTool('col-right')">
+          <svg width="16" height="24" viewBox="0 0 16 26">
+            <polygon points="1,17 15,26 15,1 1,9" fill="none" stroke="currentColor" stroke-width="2" />
+          </svg>Right
+        </button>
+        <button class="tool-btn col-btn" id="btn-col-line" onclick="setTool('col-line')">
+          <svg width="24" height="18" viewBox="0 0 28 20" fill="none">
+            <line x1="3" y1="17" x2="25" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            <circle cx="3" cy="17" r="2.5" fill="currentColor" />
+            <circle cx="25" cy="3" r="2.5" fill="currentColor" />
+          </svg>Line
+        </button>
+      </div>
+
+
+
+
+      <div class="tb-section" style="flex:1;gap:5px">
+        <span class="tb-label">Color</span>
+        <div id="swatches" style="display:flex;gap:4px;align-items:center"></div>
+      </div>
+      <div class="tb-section" id="split-controls" style="gap:6px">
+        <span class="tb-label">Top</span>
+        <div id="swA"
+          style="width:14px;height:14px;border-radius:3px;background:#3ecfb2;border:1px solid #333;cursor:pointer;position:relative;overflow:hidden;flex-shrink:0">
+          <input type="color" id="colA" value="#3ecfb2"
+            style="position:absolute;inset:-6px;opacity:0;cursor:pointer;width:150%;height:150%">
+        </div>
+        <span class="tb-label" id="lbl-colB">Bot</span>
+        <div id="swB"
+          style="width:14px;height:14px;border-radius:3px;background:#c94b6e;border:1px solid #333;cursor:pointer;position:relative;overflow:hidden;flex-shrink:0">
+          <input type="color" id="colB" value="#c94b6e"
+            style="position:absolute;inset:-6px;opacity:0;cursor:pointer;width:150%;height:150%">
+        </div>
+        <span class="tb-label" id="lbl-split" style="margin-left:4px">Split</span>
+        <input type="range" id="split" min="0" max="100" value="50" step="1"
+          style="-webkit-appearance:none;appearance:none;width:52px;height:2px;background:#1c1c1c;border-radius:2px;outline:none">
+      </div>
+      <div class="tb-section" style="gap:6px">
+        <button class="tb-mini" onclick="clearAll()">Clear</button>
+        <button class="tb-save" id="btn-save" onclick="saveToGrid()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3v13m0 0-4-4m4 4 4-4" />
+            <rect x="3" y="17" width="18" height="4" rx="1" />
+          </svg>
+          Save to Grid
+        </button>
+      </div>
+    </div>
+
+    <div id="layer-bar">
+      <div class="layer-tab active-cube" id="tab-cube" onclick="setLayer('cube')">● Cube layer</div>
+      <div class="layer-tab" id="tab-col" onclick="setLayer('collider')">◎ Collider layer</div>
+      <div id="layer-hint">painting cubes</div>
+    </div>
+
+    <div id="cvwrap">
+      <canvas id="c-grid"></canvas>
+      <canvas id="c-cube"></canvas>
+      <canvas id="c-col"></canvas>
+      <canvas id="c-hit"></canvas>
+    </div>
+    <div id="statusbar"><span id="status-msg">click a tile to place a cube</span></div>
+  </div>
+
+
+  <div id="mat-bar">
+    <div id="mat-bar-header">
+      <!-- icons injected by JS -->
+      <div id="mat-bar-hint">← select a material to edit its settings</div>
+    </div>
+    <div id="mat-panel">
+      <!-- content swapped by JS per selection -->
+    </div>
+  </div>
+
+  <div id="grid-panel">
+    <div id="grid-header">
+      <h2>● Grid System</h2>
+      <span id="grid-status">select a stamp, then click the grid to place</span>
+    </div>
+
+    <div id="grid-canvas-wrap" style="height:340px">
+      <canvas id="gc-bg"></canvas>
+      <canvas id="gc-obj"></canvas>
+      <canvas id="gc-ui"></canvas>
+    </div>
+
+    <div id="stamp-tray">
+      <div class="stamp-empty" id="stamp-empty-msg">no saved objects yet — draw something and click "Save to Grid"</div>
+    </div>
+  </div>
+
+  <script>
+    const BLOCK_TYPES = {
+      'cube': { name: 'split', alpha: 1.0, getColors: () => ({ cA: colorA, cB: colorB, split: Math.max(0.001, Math.min(0.999, splitPct)) }) },
+      'cube-solid': { name: 'solid', alpha: 1.0, getColors: () => ({ cA: colorA, cB: colorA, split: 0.0 }) },
+      'cube-water': { name: 'water', alpha: 0.5, getColors: () => ({ cA: '#5caee6', cB: '#3582bd', split: 0.0 }) }
+    };
+
+    const GRID_N = 7;
+    let S = 42;
+    let colorA = '#3ecfb2';
+    let colorB = '#c94b6e';
+    let splitPct = 0.5;
+    let activeTool = 'cube';
+    let activeLayer = 'cube';
+    let lineStart = null;
+    let hoverTile = null;
+    let hoverDot = null;
+
+    let camRot = 0; // View Rotation Mapping: 0=0°, 1=90°CW, 2=180°, 3=90°CCW
+
+    const cGrid = document.getElementById('c-grid');
+    const cCube = document.getElementById('c-cube');
+    const cCol = document.getElementById('c-col');
+    const cHit = document.getElementById('c-hit');
+    const gx = cGrid.getContext('2d');
+    const cx = cCube.getContext('2d');
+    const lx = cCol.getContext('2d');
+
+    let W, H, OX, OY;
+    let cubes = {};
+    let colliders = [];
+    const PALETTE = ['#3ecfb2', '#c94b6e', '#5b9bd5', '#e8a838', '#9b7fd4', '#74c476', '#fa9fb5', '#aaaaaa'];
+
+    // ════════════════════════════════════════════════════════════════════════════
+    //  VIEW MAPPING ABSTRACTION LAYER
+    // ════════════════════════════════════════════════════════════════════════════
+    function getViewCell(c, r) {
+      if (camRot === 1) return { c: GRID_N - 1 - r, r: c };
+      if (camRot === 2) return { c: GRID_N - 1 - c, r: GRID_N - 1 - r };
+      if (camRot === 3) return { c: r, r: GRID_N - 1 - c };
+      return { c, r };
+    }
+    function getDataCell(vc, vr) {
+      if (camRot === 1) return { c: vr, r: GRID_N - 1 - vc };
+      if (camRot === 2) return { c: GRID_N - 1 - vc, r: GRID_N - 1 - vr };
+      if (camRot === 3) return { c: GRID_N - 1 - vr, r: vc };
+      return { c: vc, r: vr };
+    }
+    function getViewVertex(x, y) {
+      if (camRot === 1) return { x: GRID_N - y, y: x };
+      if (camRot === 2) return { x: GRID_N - x, y: GRID_N - y };
+      if (camRot === 3) return { x: y, y: GRID_N - x };
+      return { x, y };
+    }
+    function getDataVertex(vx, vy) {
+      if (camRot === 1) return { x: vy, y: GRID_N - vx };
+      if (camRot === 2) return { x: GRID_N - vx, y: GRID_N - vy };
+      if (camRot === 3) return { x: GRID_N - vy, y: vx };
+      return { x: vx, y: vy };
+    }
+    function getViewFace(type) {
+      if (type === 'top' || type === 'line') return type;
+      const map = { 'left': 'backLeft', 'backLeft': 'backRight', 'backRight': 'right', 'right': 'left' };
+      let v = type; for (let i = 0; i < camRot; i++) v = map[v];
+      return v;
+    }
+    function getDataFace(vType) {
+      if (vType === 'top' || vType === 'line') return vType;
+      const map = { 'left': 'right', 'right': 'backRight', 'backRight': 'backLeft', 'backLeft': 'left' };
+      let type = vType; for (let i = 0; i < camRot; i++) type = map[type];
+      return type;
+    }
+
+    function rotateView(dir) {
+      camRot = (camRot + dir + 4) % 4;
+      lineStart = null; hoverTile = null; hoverDot = null;
+      drawGrid(); drawCubes(); drawColliders();
+      const deg = camRot === 0 ? 0 : camRot === 1 ? 90 : camRot === 2 ? 180 : 270;
+      document.getElementById('status-msg').textContent = `✓ view rotated ${deg}°`;
+    }
+
+    function changeZ(dir) {
+      activeZ = Math.max(0, activeZ + dir);
+      document.getElementById('lbl-z-level').textContent = activeZ;
+      lineStart = null; hoverTile = null; hoverDot = null;
+      drawGrid(); drawCubes(); drawColliders();
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════
+
+    function iso(x, y, z) { return [OX + (x - y) * S, OY + (x + y) * 0.5 * S - z * S]; }
+    function hexToRgb(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
+    function shaded(hex, f) {
+      const [r, g, b] = hexToRgb(hex);
+      return `rgb(${Math.min(255, r * f | 0)},${Math.min(255, g * f | 0)},${Math.min(255, b * f | 0)})`;
+    }
+
+    function drawGrid() {
+      gx.clearRect(0, 0, W, H);
+      for (let col = 0; col < GRID_N; col++) {
+        for (let row = 0; row < GRID_N; row++) {
+          const pts = [iso(col, row, activeZ), iso(col + 1, row, activeZ), iso(col + 1, row + 1, activeZ), iso(col, row + 1, activeZ)];
+          const isHov = hoverTile && activeTool.startsWith('cube') && hoverTile.col === col && hoverTile.row === row;
+          gx.beginPath(); gx.moveTo(pts[0][0], pts[0][1]);
+          pts.slice(1).forEach(p => gx.lineTo(p[0], p[1])); gx.closePath();
+          gx.fillStyle = isHov ? 'rgba(62,207,178,0.12)' : 'rgba(255,255,255,0.02)'; gx.fill();
+          gx.strokeStyle = isHov ? 'rgba(62,207,178,0.5)' : 'rgba(255,255,255,0.07)'; gx.lineWidth = isHov ? 1 : 0.5; gx.stroke();
+        }
+      }
+    }
+
+    function drawFace(ctx2, verts3d, light, splitZ, cA, cB) {
+      const zs = verts3d.map(v => v[2]);
+      const maxZ = Math.max(...zs), minZ = Math.min(...zs), n = verts3d.length;
+      function proj(v) { return iso(v[0], v[1], v[2]); }
+      function fill(pts3d, color) {
+        if (pts3d.length < 3) return;
+        const pts = pts3d.map(proj);
+        ctx2.beginPath(); ctx2.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++)ctx2.lineTo(pts[i][0], pts[i][1]);
+        ctx2.closePath(); ctx2.fillStyle = shaded(color, light); ctx2.fill();
+      }
+      function outline(pts3d) {
+        const pts = pts3d.map(proj);
+        ctx2.beginPath(); ctx2.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++)ctx2.lineTo(pts[i][0], pts[i][1]);
+        ctx2.closePath(); ctx2.strokeStyle = 'rgba(0,0,0,0.4)'; ctx2.lineWidth = 1.2; ctx2.setLineDash([]); ctx2.stroke();
+      }
+      function crossPt(a, b) { const t = (splitZ - a[2]) / (b[2] - a[2]); return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, splitZ]; }
+      if (splitZ >= maxZ) { fill(verts3d, cB); outline(verts3d); return; }
+      if (splitZ <= minZ) { fill(verts3d, cA); outline(verts3d); return; }
+      const upper = [], lower = [], seam = [];
+      for (let i = 0; i < n; i++) {
+        const a = verts3d[i], b = verts3d[(i + 1) % n];
+        const aUp = a[2] > splitZ, bUp = b[2] > splitZ;
+        if (aUp) upper.push(a); else lower.push(a);
+        if (aUp !== bUp) { const cp = crossPt(a, b); upper.push(cp); lower.push(cp); seam.push(cp); }
+      }
+      fill(upper, cA); fill(lower, cB);
+      if (seam.length === 2) {
+        const [p0, p1] = seam.map(proj);
+        ctx2.beginPath(); ctx2.moveTo(p0[0], p0[1]); ctx2.lineTo(p1[0], p1[1]);
+        ctx2.strokeStyle = 'rgba(0,0,0,0.45)'; ctx2.lineWidth = 1.2; ctx2.stroke();
+      }
+      outline(verts3d);
+    }
+
+    function renderCube(ctx2, col, row, z, typeId, alphaMultiplier = 1.0) {
+      const config = BLOCK_TYPES[typeId]; if (!config) return;
+      const { cA, cB, split } = config.getColors();
+      ctx2.globalAlpha = config.alpha * alphaMultiplier;
+      const v = [[col, row, z + 1], [col + 1, row, z + 1], [col + 1, row + 1, z + 1], [col, row + 1, z + 1], [col, row, z], [col + 1, row, z], [col + 1, row + 1, z], [col, row + 1, z]];
+      drawFace(ctx2, [v[3], v[2], v[6], v[7]], 0.70, z + split, cA, cB);
+      drawFace(ctx2, [v[1], v[2], v[6], v[5]], 0.88, z + split, cA, cB);
+      drawFace(ctx2, [v[0], v[1], v[2], v[3]], 1.12, z + split, cA, cB);
+      ctx2.globalAlpha = 1;
+    }
+
+    function drawCubes() {
+      cx.clearRect(0, 0, W, H);
+      let viewArr = [];
+      for (const key in cubes) {
+        const parts = key.split(',').map(Number);
+        if (parts.length < 3) continue;
+        const [c, r, z] = parts;
+        const vCell = getViewCell(c, r);
+        viewArr.push({ vc: vCell.c, vr: vCell.r, vz: z, type: cubes[key] });
+      }
+      // Depth sorting sorts columns first, then builds up by Z layer height
+      viewArr.sort((a, b) => {
+        if ((a.vc + a.vr) !== (b.vc + b.vr)) return (a.vc + a.vr) - (b.vc + b.vr);
+        return a.vz - b.vz;
+      });
+      viewArr.forEach(cb => renderCube(cx, cb.vc, cb.vr, cb.vz, cb.type, 1.0));
+
+      if (hoverTile && activeTool.startsWith('cube')) {
+        let dCell = getDataCell(hoverTile.col, hoverTile.row);
+        if (!cubes[`${dCell.c},${dCell.r},${activeZ}`]) renderCube(cx, hoverTile.col, hoverTile.row, activeZ, activeTool, 0.35);
+      }
+    }
+
+    function colliderVerts(c) {
+      const col = c.col, row = c.row, z = c.z || 0;
+      if (c.type === 'top') return [iso(col, row, z + 1), iso(col + 1, row, z + 1), iso(col + 1, row + 1, z + 1), iso(col, row + 1, z + 1)];
+      if (c.type === 'left') return [iso(col, row + 1, z + 1), iso(col + 1, row + 1, z + 1), iso(col + 1, row + 1, z), iso(col, row + 1, z)];
+      if (c.type === 'right') return [iso(col + 1, row, z + 1), iso(col + 1, row + 1, z + 1), iso(col + 1, row + 1, z), iso(col + 1, row, z)];
+      if (c.type === 'backLeft') return [iso(col, row, z + 1), iso(col, row + 1, z + 1), iso(col, row + 1, z), iso(col, row, z)];
+      if (c.type === 'backRight') return [iso(col, row, z + 1), iso(col + 1, row, z + 1), iso(col + 1, row, z), iso(col, row, z)];
+      return [];
+    }
+
+    const COL_STROKE = 'rgba(78,255,145,0.9)', COL_FILL = 'rgba(78,255,145,0.07)', COL_GHOST = 'rgba(78,255,145,0.4)', COL_DOT = '#4eff91';
+    function drawOneCollider(ctx2, c, ghost) {
+      if (c.type === 'line') {
+        const z = c.z || 0;
+        const p1 = iso(c.x1, c.y1, z + 1), p2 = iso(c.x2, c.y2, z + 1);
+        ctx2.beginPath(); ctx2.moveTo(p1[0], p1[1]); ctx2.lineTo(p2[0], p2[1]);
+        ctx2.strokeStyle = ghost ? COL_GHOST : COL_STROKE; ctx2.lineWidth = ghost ? 1.5 : 2.5;
+        ctx2.setLineDash(ghost ? [5, 4] : []); ctx2.lineCap = 'round'; ctx2.stroke(); ctx2.setLineDash([]);
+        [p1, p2].forEach(p => { ctx2.beginPath(); ctx2.arc(p[0], p[1], 3.5, 0, Math.PI * 2); ctx2.fillStyle = ghost ? COL_GHOST : COL_DOT; ctx2.fill(); });
+        return;
+      }
+      const verts = colliderVerts(c); if (!verts.length) return;
+      ctx2.beginPath(); ctx2.moveTo(verts[0][0], verts[0][1]);
+      for (let i = 1; i < verts.length; i++)ctx2.lineTo(verts[i][0], verts[i][1]); ctx2.closePath();
+      ctx2.fillStyle = ghost ? 'rgba(78,255,145,0.04)' : COL_FILL; ctx2.fill();
+      ctx2.strokeStyle = ghost ? COL_GHOST : COL_STROKE; ctx2.lineWidth = ghost ? 1.2 : 2;
+      ctx2.setLineDash(ghost ? [5, 4] : []); ctx2.stroke(); ctx2.setLineDash([]);
+      if (!ghost) verts.forEach(p => { ctx2.beginPath(); ctx2.arc(p[0], p[1], 2.5, 0, Math.PI * 2); ctx2.fillStyle = COL_DOT; ctx2.fill(); });
+    }
+
+    function drawColliders() {
+      lx.clearRect(0, 0, W, H);
+      let viewColls = colliders.map(c => {
+        if (c.type === 'line') {
+          let p1 = getViewVertex(c.x1, c.y1); let p2 = getViewVertex(c.x2, c.y2);
+          return { type: 'line', x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, z: c.z };
+        } else {
+          let vCell = getViewCell(c.col, c.row);
+          return { type: getViewFace(c.type), col: vCell.c, row: vCell.r, z: c.z };
+        }
+      });
+      viewColls.forEach(c => drawOneCollider(lx, c, false));
+
+      if (hoverTile && (activeTool === 'col-top' || activeTool === 'col-left' || activeTool === 'col-right'))
+        drawOneCollider(lx, { type: activeTool.replace('col-', ''), col: hoverTile.col, row: hoverTile.row, z: activeZ }, true);
+
+      if (lineStart) {
+        const p = iso(lineStart.gx, lineStart.gy, activeZ + 1);
+        lx.beginPath(); lx.arc(p[0], p[1], 6, 0, Math.PI * 2); lx.fillStyle = 'rgba(78,255,145,0.2)'; lx.fill();
+        lx.strokeStyle = COL_DOT; lx.lineWidth = 1.8; lx.stroke();
+        if (hoverDot) drawOneCollider(lx, { type: 'line', x1: lineStart.gx, y1: lineStart.gy, x2: hoverDot.gx, y2: hoverDot.gy, z: activeZ }, true);
+      }
+      if (hoverDot && activeTool === 'col-line') {
+        const p = iso(hoverDot.gx, hoverDot.gy, activeZ + 1);
+        lx.beginPath(); lx.arc(p[0], p[1], 5, 0, Math.PI * 2); lx.fillStyle = 'rgba(78,255,145,0.55)'; lx.fill();
+      }
+    }
+
+    function nearestTile(mx, my) {
+      const adjustedMy = my + activeZ * S;
+      const xmy = (mx - OX) / S, xpy = (adjustedMy - OY) / (0.5 * S);
+      const col = Math.floor((xpy + xmy) / 2), row = Math.floor((xpy - xmy) / 2);
+      if (col >= 0 && col < GRID_N && row >= 0 && row < GRID_N) return { col, row }; return null;
+    }
+    function nearestVertex(mx, my) {
+      const adjustedMy = my + activeZ * S;
+      const xmy = (mx - OX) / S, xpy = (adjustedMy - OY + S) / (0.5 * S);
+      const vx = Math.round((xpy + xmy) / 2), vy = Math.round((xpy - xmy) / 2);
+      const snapped = iso(vx, vy, activeZ + 1);
+      if (Math.hypot(snapped[0] - mx, snapped[1] - my) < S * 0.55) return { gx: vx, gy: vy }; return null;
+    }
+
+    cHit.style.cursor = 'crosshair';
+    cHit.addEventListener('mousemove', e => {
+      const r = cHit.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+      if (activeTool === 'col-line') { hoverTile = null; hoverDot = nearestVertex(px, py); }
+      else { hoverDot = null; hoverTile = nearestTile(px, py); }
+      drawGrid(); drawCubes(); drawColliders();
+    });
+    cHit.addEventListener('mouseleave', () => { hoverTile = null; hoverDot = null; drawGrid(); drawCubes(); drawColliders(); });
+
+    cHit.addEventListener('click', e => {
+      const r = cHit.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+      if (activeTool.startsWith('cube')) {
+        const t = nearestTile(px, py); if (!t) return;
+        const d = getDataCell(t.col, t.row); const k = `${d.c},${d.r},${activeZ}`;
+        if (cubes[k] === activeTool) delete cubes[k]; else cubes[k] = activeTool; drawCubes();
+      } else if (activeTool === 'col-top' || activeTool === 'col-left' || activeTool === 'col-right') {
+        const t = nearestTile(px, py); if (!t) return;
+        const d = getDataCell(t.col, t.row); const dFace = getDataFace(activeTool.replace('col-', ''));
+        const idx = colliders.findIndex(c => c.type === dFace && c.col === d.c && c.row === d.r && c.z === activeZ);
+        if (idx >= 0) colliders.splice(idx, 1); else colliders.push({ type: dFace, col: d.c, row: d.r, z: activeZ });
+        drawColliders();
+      } else if (activeTool === 'col-line') {
+        const dot = nearestVertex(px, py); if (!dot) return;
+        if (!lineStart) { lineStart = dot; document.getElementById('status-msg').textContent = '◎ click second vertex to finish line'; }
+        else {
+          if (!(dot.gx === lineStart.gx && dot.gy === lineStart.gy)) {
+            let d1 = getDataVertex(lineStart.gx, lineStart.gy); let d2 = getDataVertex(dot.gx, dot.gy);
+            colliders.push({ type: 'line', x1: d1.x, y1: d1.y, x2: d2.x, y2: d2.y, z: activeZ });
+          }
+          lineStart = null; document.getElementById('status-msg').textContent = '◎ click a vertex to start next line';
+          drawColliders();
+        }
+      } else if (activeTool === 'erase') {
+        const t = nearestTile(px, py);
+        if (t) {
+          const d = getDataCell(t.col, t.row); delete cubes[`${d.c},${d.r},${activeZ}`];
+          colliders = colliders.filter(c => !(c.col === d.c && c.row === d.r && c.z === activeZ));
+        }
+        const dot = nearestVertex(px, py);
+        if (dot) {
+          const d = getDataVertex(dot.gx, dot.gy);
+          colliders = colliders.filter(c => !(c.type === 'line' && c.z === activeZ && ((c.x1 === d.x && c.y1 === d.y) || (c.x2 === d.x && c.y2 === d.y))));
+        }
+        drawCubes(); drawColliders();
+      }
+    });
+
+    const MSGS = { cube: 'click a tile to place / remove a split cube', 'cube-solid': 'click a tile to place a solid colour cube', 'cube-water': 'click a tile to place transparent water block', 'col-top': '◎ top face collider', 'col-left': '◎ left face collider', 'col-right': '◎ right face collider', 'col-line': '◎ line collider — click two vertices', erase: 'click to erase cube or collider' };
+    function setTool(t) {
+      activeTool = t; lineStart = null; hoverTile = null; hoverDot = null;
+      document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+      const map = { cube: 'btn-cube', 'cube-solid': 'btn-cube-solid', 'cube-water': 'btn-cube-water', 'col-top': 'btn-col-top', 'col-left': 'btn-col-left', 'col-right': 'btn-col-right', 'col-line': 'btn-col-line', erase: 'btn-erase' };
+      if (map[t]) document.getElementById(map[t]).classList.add('active');
+      setLayer(t.startsWith('col-') ? 'collider' : (t === 'erase' ? activeLayer : 'cube'));
+      document.getElementById('status-msg').textContent = MSGS[t] || '';
+
+      const splitCtrls = document.getElementById('split-controls');
+      if (t === 'cube') {
+        splitCtrls.style.opacity = '1'; splitCtrls.style.pointerEvents = 'auto';
+        document.getElementById('lbl-colB').style.display = ''; document.getElementById('swB').style.display = '';
+        document.getElementById('lbl-split').style.display = ''; document.getElementById('split').style.display = '';
+      } else if (t === 'cube-solid') {
+        splitCtrls.style.opacity = '1'; splitCtrls.style.pointerEvents = 'auto';
+        document.getElementById('lbl-colB').style.display = 'none'; document.getElementById('swB').style.display = 'none';
+        document.getElementById('lbl-split').style.display = 'none'; document.getElementById('split').style.display = 'none';
+      } else {
+        splitCtrls.style.opacity = '0.2'; splitCtrls.style.pointerEvents = 'none';
+      }
+      drawGrid(); drawCubes(); drawColliders();
+    }
+    function setLayer(layer) {
+      activeLayer = layer;
+      document.getElementById('tab-cube').className = 'layer-tab' + (layer === 'cube' ? ' active-cube' : '');
+      document.getElementById('tab-col').className = 'layer-tab' + (layer === 'collider' ? ' active-col' : '');
+      document.getElementById('layer-hint').textContent = layer === 'collider' ? 'painting colliders — green = physics boundaries' : 'painting cubes';
+    }
+
+    const sw = document.getElementById('swatches');
+    PALETTE.forEach((col, i) => {
+      const d = document.createElement('div');
+      d.className = 'color-dot' + (i === 0 ? ' active' : ''); d.style.background = col;
+      d.onclick = () => {
+        colorA = col; document.getElementById('swA').style.background = col; document.getElementById('colA').value = col;
+        document.querySelectorAll('.color-dot').forEach((s, j) => s.classList.toggle('active', j === i));
+        drawCubes();
+      }; sw.appendChild(d);
+    });
+    document.getElementById('colA').addEventListener('input', e => { colorA = e.target.value; document.getElementById('swA').style.background = colorA; drawCubes(); });
+    document.getElementById('colB').addEventListener('input', e => { colorB = e.target.value; document.getElementById('swB').style.background = colorB; drawCubes(); });
+    document.getElementById('split').addEventListener('input', e => { splitPct = e.target.value / 100; drawCubes(); });
+
+    function clearAll() {
+      if (activeLayer === 'collider') { colliders = []; lineStart = null; drawColliders(); }
+      else { cubes = {}; drawCubes(); }
+    }
+
+    function resize() {
+      const wrap = document.getElementById('cvwrap'); W = wrap.clientWidth; H = wrap.clientHeight;
+      [cGrid, cCube, cCol, cHit].forEach(c => { c.width = W; c.height = H; });
+      OX = W / 2 - S * (GRID_N / 2 - 0.5); OY = H * 0.28;
+      drawGrid(); drawCubes(); drawColliders();
+    }
+    new ResizeObserver(resize).observe(document.getElementById('cvwrap'));
+    resize();
+
+    // ════════════════════════════════════════════════════════════════════════════
+    //  BLOB SNAPSHOT + STAMP TRAY
+    // ════════════════════════════════════════════════════════════════════════════
+
+    let stamps = [];
+    let stampCounter = 0;
+    let activeStamp = null;
+
+    function renderSnapshot(scale = 2) {
+      if (Object.keys(cubes).length === 0) return null;
+
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const key in cubes) {
+        const parts = key.split(',').map(Number);
+        const c = parts[0], r = parts[1], z = parts[2];
+        const corners = [
+          [c, r, z], [c + 1, r, z], [c + 1, r + 1, z], [c, r + 1, z],
+          [c, r, z + 1], [c + 1, r, z + 1], [c + 1, r + 1, z + 1], [c, r + 1, z + 1],
+        ];
+        corners.forEach(([x, y, h]) => {
+          const [px, py] = iso(x, y, h);
+          minX = Math.min(minX, px); minY = Math.min(minY, py);
+          maxX = Math.max(maxX, px); maxY = Math.max(maxY, py);
+        });
+      }
+
+      const PAD = 6;
+      minX -= PAD; minY -= PAD; maxX += PAD; maxY += PAD;
+      const sw2 = (maxX - minX) * scale, sh2 = (maxY - minY) * scale;
+
+      const offscreen = document.createElement('canvas'); offscreen.width = sw2; offscreen.height = sh2;
+      const octx = offscreen.getContext('2d');
+
+      const savedOX = OX, savedOY = OY, savedS = S;
+      OX = (OX - minX) * scale; OY = (OY - minY) * scale; S *= scale;
+      octx.clearRect(0, 0, sw2, sh2);
+
+      let snapCubes = Object.keys(cubes).map(k => {
+        const parts = k.split(',').map(Number);
+        return { c: parts[0], r: parts[1], z: parts[2], key: k };
+      });
+      snapCubes.sort((a, b) => {
+        if ((a.c + a.r) !== (b.c + b.r)) return (a.c + a.r) - (b.c + b.r);
+        return a.z - b.z;
+      });
+
+      snapCubes.forEach(({ c, r, z, key }) => {
+        const typeId = cubes[key]; const config = BLOCK_TYPES[typeId];
+        if (config) {
+          const { cA, cB, split } = config.getColors(); octx.globalAlpha = config.alpha;
+          const v = [[c, r, z + 1], [c + 1, r, z + 1], [c + 1, r + 1, z + 1], [c, r + 1, z + 1], [c, r, z], [c + 1, r, z], [c + 1, r + 1, z], [c, r + 1, z]];
+          drawFace(octx, [v[3], v[2], v[6], v[7]], 0.70, z + split, cA, cB);
+          drawFace(octx, [v[1], v[2], v[6], v[5]], 0.88, z + split, cA, cB);
+          drawFace(octx, [v[0], v[1], v[2], v[3]], 1.12, z + split, cA, cB);
+        }
+      });
+      octx.globalAlpha = 1.0;
+
+      colliders.forEach(col => {
+        const z = col.z || 0;
+        if (col.type === 'line') {
+          const p1 = iso(col.x1, col.y1, z + 1), p2 = iso(col.x2, col.y2, z + 1);
+          octx.beginPath(); octx.moveTo(p1[0], p1[1]); octx.lineTo(p2[0], p2[1]);
+          octx.strokeStyle = 'rgba(78,255,145,0.9)'; octx.lineWidth = 2 * scale;
+          octx.setLineDash([]); octx.lineCap = 'round'; octx.stroke();
+        } else {
+          const faceVerts = colliderVerts(col);
+          if (!faceVerts.length) return;
+          octx.beginPath(); octx.moveTo(faceVerts[0][0], faceVerts[0][1]);
+          for (let i = 1; i < faceVerts.length; i++) octx.lineTo(faceVerts[i][0], faceVerts[i][1]);
+          octx.closePath();
+          octx.fillStyle = 'rgba(78,255,145,0.07)'; octx.fill();
+          octx.strokeStyle = 'rgba(78,255,145,0.9)'; octx.lineWidth = 1.5 * scale; octx.stroke();
+        }
+      });
+
+      OX = savedOX; OY = savedOY; S = savedS;
+      return { canvas: offscreen, w: sw2, h: sh2, scale };
+    }
+
+    function saveToGrid() {
+      if (Object.keys(cubes).length === 0) { document.getElementById('status-msg').textContent = '⚠ draw some cubes first'; return; }
+      const snap = renderSnapshot(2); if (!snap) return;
+
+      snap.canvas.toBlob(blob => {
+        const blobUrl = URL.createObjectURL(blob);
+        const id = ++stampCounter;
+        const stamp = {
+          id, blobUrl, dispW: snap.w / snap.scale, dispH: snap.h / snap.scale,
+          cubesSnap: JSON.parse(JSON.stringify(cubes)),
+          collidersSnap: JSON.parse(JSON.stringify(colliders)),
+        };
+        stamps.push(stamp); addStampToTray(stamp); selectStamp(id);
+        document.getElementById('status-msg').textContent = `✓ saved as object #${id} — click the grid to place`;
+      }, 'image/png');
+    }
+
+    function addStampToTray(stamp) {
+      document.getElementById('stamp-empty-msg').style.display = 'none';
+      const THUMB = 54;
+      const item = document.createElement('div');
+      item.className = 'stamp-item'; item.id = `stamp-item-${stamp.id}`;
+      item.onclick = () => selectStamp(stamp.id);
+
+      const tc = document.createElement('canvas');
+      const aspect = stamp.dispW / stamp.dispH;
+      if (aspect >= 1) { tc.width = THUMB; tc.height = Math.round(THUMB / aspect); }
+      else { tc.height = THUMB; tc.width = Math.round(THUMB * aspect); }
+      const tcx = tc.getContext('2d');
+      const img = new Image(); img.onload = () => tcx.drawImage(img, 0, 0, tc.width, tc.height); img.src = stamp.blobUrl;
+      tc.style.width = tc.width + 'px'; tc.style.height = tc.height + 'px';
+
+      const label = document.createElement('div'); label.className = 'stamp-label'; label.textContent = `#${stamp.id}`;
+      const del = document.createElement('div'); del.className = 'stamp-del'; del.title = 'remove'; del.textContent = '×';
+      del.onclick = (e) => { e.stopPropagation(); removeStamp(stamp.id); };
+
+      item.appendChild(del); item.appendChild(tc); item.appendChild(label);
+      document.getElementById('stamp-tray').appendChild(item);
+    }
+
+    function removeStamp(id) {
+      stamps = stamps.filter(s => s.id !== id);
+      const el = document.getElementById(`stamp-item-${id}`); if (el) el.remove();
+      if (activeStamp === id) { activeStamp = null; document.getElementById('grid-status').textContent = 'select a stamp to place'; }
+      if (stamps.length === 0) document.getElementById('stamp-empty-msg').style.display = '';
+      renderGridObjects();
+    }
+
+    function selectStamp(id) {
+      activeStamp = id; document.querySelectorAll('.stamp-item').forEach(el => el.classList.remove('active-stamp'));
+      const el = document.getElementById(`stamp-item-${id}`); if (el) el.classList.add('active-stamp');
+      document.getElementById('grid-status').textContent = `stamp #${id} selected — click the grid to place`;
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════
+    //  GRID SYSTEM
+    // ════════════════════════════════════════════════════════════════════════════
+    const GCOLS = 12, GROWS = 8;
+    let GS = 40; let GW, GH, GOX, GOY;
+    const gcBg = document.getElementById('gc-bg'); const gcObj = document.getElementById('gc-obj'); const gcUi = document.getElementById('gc-ui');
+    const gbx = gcBg.getContext('2d'); const gox = gcObj.getContext('2d'); const gux = gcUi.getContext('2d');
+    let placedObjects = []; let gridHoverCell = null;
+
+    function gIso(x, y, z) { return [GOX + (x - y) * GS, GOY + (x + y) * 0.5 * GS - z * GS]; }
+
+    function drawGridBg() {
+      gbx.clearRect(0, 0, GW, GH); gbx.fillStyle = '#0d0d10'; gbx.fillRect(0, 0, GW, GH);
+      for (let c = 0; c < GCOLS; c++) {
+        for (let r = 0; r < GROWS; r++) {
+          const pts = [gIso(c, r, 0), gIso(c + 1, r, 0), gIso(c + 1, r + 1, 0), gIso(c, r + 1, 0)];
+          const isHov = gridHoverCell && gridHoverCell.c === c && gridHoverCell.r === r;
+          gbx.beginPath(); gbx.moveTo(pts[0][0], pts[0][1]); pts.slice(1).forEach(p => gbx.lineTo(p[0], p[1])); gbx.closePath();
+          gbx.fillStyle = isHov ? 'rgba(62,207,178,0.08)' : 'rgba(255,255,255,0.015)'; gbx.fill();
+          gbx.strokeStyle = isHov ? 'rgba(62,207,178,0.35)' : 'rgba(255,255,255,0.06)'; gbx.lineWidth = isHov ? 0.8 : 0.4; gbx.stroke();
+        }
+      }
+    }
+
+    function renderGridObjects() {
+      gox.clearRect(0, 0, GW, GH);
+      const sorted = [...placedObjects].sort((a, b) => (a.gridCol + a.gridRow) - (b.gridCol + b.gridRow));
+      sorted.forEach(placed => {
+        const stamp = stamps.find(s => s.id === placed.stampId); if (!stamp) return;
+        const img = new Image(); img.onload = () => {
+          const anchor = gIso(placed.gridCol, placed.gridRow, 0);
+          gox.drawImage(img, anchor[0] - stamp.dispW / 2, anchor[1] - stamp.dispH * 0.82, stamp.dispW, stamp.dispH);
+        }; img.src = stamp.blobUrl;
+      });
+    }
+
+    function gridNearestCell(mx, my) {
+      const xmy = (mx - GOX) / GS, xpy = (my - GOY) / (0.5 * GS);
+      const c = Math.floor((xpy + xmy) / 2), r = Math.floor((xpy - xmy) / 2);
+      if (c >= 0 && c < GCOLS && r >= 0 && r < GROWS) return { c, r }; return null;
+    }
+
+    function drawGridUi() {
+      gux.clearRect(0, 0, GW, GH);
+      if (!gridHoverCell || !activeStamp) return;
+      const stamp = stamps.find(s => s.id === activeStamp); if (!stamp) return;
+      const img = new Image(); img.onload = () => {
+        gux.globalAlpha = 0.45; const anchor = gIso(gridHoverCell.c, gridHoverCell.r, 0);
+        gux.drawImage(img, anchor[0] - stamp.dispW / 2, anchor[1] - stamp.dispH * 0.82, stamp.dispW, stamp.dispH);
+        gux.globalAlpha = 1;
+      }; img.src = stamp.blobUrl;
+    }
+
+    gcUi.addEventListener('mousemove', e => {
+      const r = gcUi.getBoundingClientRect(); gridHoverCell = activeStamp ? gridNearestCell(e.clientX - r.left, e.clientY - r.top) : null;
+      drawGridBg(); drawGridUi();
+    });
+    gcUi.addEventListener('mouseleave', () => { gridHoverCell = null; drawGridBg(); gux.clearRect(0, 0, GW, GH); });
+    gcUi.addEventListener('click', e => {
+      if (!activeStamp) return;
+      const r = gcUi.getBoundingClientRect(); const cell = gridNearestCell(e.clientX - r.left, e.clientY - r.top); if (!cell) return;
+      placedObjects.push({ stampId: activeStamp, gridCol: cell.c, gridRow: cell.r }); renderGridObjects();
+    });
+    gcUi.addEventListener('contextmenu', e => {
+      e.preventDefault(); const r = gcUi.getBoundingClientRect(); const cell = gridNearestCell(e.clientX - r.left, e.clientY - r.top); if (!cell) return;
+      const idx = placedObjects.map((p, i) => ({ p, i })).reverse().find(({ p }) => p.gridCol === cell.c && p.gridRow === cell.r);
+      if (idx !== undefined) { placedObjects.splice(idx.i, 1); renderGridObjects(); }
+    });
+    gcUi.style.cursor = 'crosshair';
+
+    function resizeGrid() {
+      const wrap = document.getElementById('grid-canvas-wrap'); GW = wrap.clientWidth; GH = wrap.clientHeight;
+      [gcBg, gcObj, gcUi].forEach(c => { c.width = GW; c.height = GH; });
+      GOX = GW * 0.08; GOY = GH * 0.15; GS = Math.min(GW / (GCOLS * 1.5), GH / (GROWS * 1.5));
+      drawGridBg(); renderGridObjects();
+    }
+    new ResizeObserver(resizeGrid).observe(document.getElementById('grid-canvas-wrap'));
+    resizeGrid();
+
+    // ════════════════════════════════════════════════════════════════════════════
+    //  MATERIAL SYSTEM
+    // ════════════════════════════════════════════════════════════════════════════
+
+    // Per-material settings state
+    const MAT_DEFS = {
+      'cube': {
+        label: 'Split',
+        hint: 'two-colour split cube',
+        draw: (ctx, w, h, s) => drawBlobSplit(ctx, w, h, s),
+        settings: {
+          colA: '#3ecfb2', colB: '#c94b6e', split: 50,
+          tMode: 4, tInkMode: 0, tInkCol: '#ffffff', tSpace: 6, tThick: 1, tBright: 100, tAlpha: 50,
+          bMode: 1, bInkMode: 0, bInkCol: '#000000', bSpace: 4, bThick: 1, bBright: -100, bAlpha: 70
+        }
+      },
+      'cube-solid': {
+        label: 'Solid',
+        hint: 'flat single-colour cube',
+        draw: (ctx, w, h, s) => drawBlobSolid(ctx, w, h, s),
+        settings: {
+          colA: '#3ecfb2',
+          tMode: 4, tInkMode: 0, tInkCol: '#ffffff', tSpace: 6, tThick: 1, tBright: 100, tAlpha: 50,
+          bMode: 0, bInkMode: 0, bInkCol: '#000000', bSpace: 4, bThick: 1, bBright: -100, bAlpha: 70
+        }
+      },
+      'cube-water': {
+        label: 'Water',
+        hint: 'transparent animated water block',
+        draw: (ctx, w, h, s) => drawBlobWater(ctx, w, h, s),
+        settings: {
+          alpha: 50,
+          tMode: 2, tInkMode: 0, tInkCol: '#aaddff', tSpace: 5, tThick: 1, tBright: 60, tAlpha: 40,
+        }
+      },
+      'river': {
+        label: 'River',
+        hint: 'path / river tile plane',
+        draw: (ctx, w, h, s) => drawBlobRiver(ctx, w, h, s),
+        settings: {
+          colGround: '#3ecfb2', colPath: '#1d557a', colBank: '#a3d39c', pathWidth: 20,
+          startX: 0, startY: -100, endX: 100, endY: 0,
+          tMode: 4, tInkMode: 0, tInkCol: '#ffffff', tSpace: 6, tThick: 1, tBright: 100, tAlpha: 50,
+          bMode: 1, bInkMode: 0, bInkCol: '#000000', bSpace: 4, bThick: 1, bBright: -100, bAlpha: 70
+        }
+      }
+    };
+
+    let activeMat = null;
+
+    // ── Blob icon painters ──────────────────────────────────────────────────────
+    function isoTri(ctx, ox, oy, s, pts, fill, stroke) {
+      ctx.beginPath(); ctx.moveTo(ox + pts[0][0] * s, oy + pts[0][1] * s);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(ox + pts[i][0] * s, oy + pts[i][1] * s);
+      ctx.closePath();
+      if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+      if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = .8; ctx.stroke(); }
+    }
+    function hexShade(hex, f) {
+      const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+      return `rgb(${Math.min(255, r * f | 0)},${Math.min(255, g * f | 0)},${Math.min(255, b * f | 0)})`;
+    }
+    function drawIsoCube(ctx, cx, cy, s, cTop, cLeft, cRight) {
+      // top face
+      isoTri(ctx, cx, cy, s, [[-1, -.5], [0, -1], [1, -.5], [0, 0]], cTop, 'rgba(0,0,0,.3)');
+      // left face
+      isoTri(ctx, cx, cy, s, [[0, 0], [-1, -.5], [-1, .5], [0, 1]], cLeft, 'rgba(0,0,0,.3)');
+      // right face
+      isoTri(ctx, cx, cy, s, [[0, 0], [1, -.5], [1, .5], [0, 1]], cRight, 'rgba(0,0,0,.3)');
+    }
+    function drawBlobSplit(ctx, w, h, s) {
+      const cA = s.colA, cB = s.colB;
+      const sp = s.split / 100;
+      // simplified split: top face = cA, left/right blend based on split
+      ctx.clearRect(0, 0, w, h);
+      const cx = w / 2, cy = h * 0.45, sc = w * 0.35;
+      // draw split cube approximation using gradient
+      const splitY = cy - sc * 0.5 + sc * (1 - sp);
+      // top
+      isoTri(ctx, cx, cy, sc, [[-1, -.5], [0, -1], [1, -.5], [0, 0]], hexShade(cA, 1.1), 'rgba(0,0,0,.35)');
+      // left face split
+      const lPts = [[0, 0], [-1, -.5], [-1, .5], [0, 1]];
+      const lTop = hexShade(cA, .7), lBot = hexShade(cB, .7);
+      ctx.save();
+      isoTri(ctx, cx, cy, sc, lPts, null, null); ctx.clip();
+      const g1 = ctx.createLinearGradient(cx, cy - sc * .5, cx, cy + sc * .5);
+      g1.addColorStop(0, lTop); g1.addColorStop(sp, lTop);
+      g1.addColorStop(sp, lBot); g1.addColorStop(1, lBot);
+      ctx.fillStyle = g1; ctx.fill(); isoTri(ctx, cx, cy, sc, lPts, null, 'rgba(0,0,0,.35)'); ctx.restore();
+      // right face split
+      const rPts = [[0, 0], [1, -.5], [1, .5], [0, 1]];
+      const rTop = hexShade(cA, .88), rBot = hexShade(cB, .88);
+      ctx.save();
+      isoTri(ctx, cx, cy, sc, rPts, null, null); ctx.clip();
+      const g2 = ctx.createLinearGradient(cx, cy - sc * .5, cx, cy + sc * .5);
+      g2.addColorStop(0, rTop); g2.addColorStop(sp, rTop);
+      g2.addColorStop(sp, rBot); g2.addColorStop(1, rBot);
+      ctx.fillStyle = g2; ctx.fill(); isoTri(ctx, cx, cy, sc, rPts, null, 'rgba(0,0,0,.35)'); ctx.restore();
+    }
+    function drawBlobSolid(ctx, w, h, s) {
+      ctx.clearRect(0, 0, w, h);
+      const cx = w / 2, cy = h * 0.45, sc = w * 0.35, c = s.colA;
+      drawIsoCube(ctx, cx, cy, sc, hexShade(c, 1.1), hexShade(c, .7), hexShade(c, .88));
+    }
+    function drawBlobWater(ctx, w, h, s) {
+      ctx.clearRect(0, 0, w, h);
+      const cx = w / 2, cy = h * 0.45, sc = w * 0.35;
+      const a = (s.alpha || 50) / 100 * 0.7;
+      ctx.globalAlpha = a;
+      drawIsoCube(ctx, cx, cy, sc, hexShade('#5caee6', 1.05), hexShade('#3582bd', .75), hexShade('#4499cc', .9));
+      ctx.globalAlpha = 1;
+      // wave lines on top
+      const top = [[-1, -.5], [0, -1], [1, -.5], [0, 0]].map(p => [cx + p[0] * sc, cy + p[1] * sc]);
+      ctx.save();
+      ctx.beginPath(); ctx.moveTo(top[0][0], top[0][1]);
+      top.slice(1).forEach(p => ctx.lineTo(p[0], p[1])); ctx.closePath(); ctx.clip();
+      ctx.strokeStyle = 'rgba(200,235,255,.5)'; ctx.lineWidth = 1;
+      for (let i = 0; i < 3; i++) {
+        const yy = top[0][1] + i * (top[2][1] - top[0][1]) / 3;
+        ctx.beginPath(); ctx.moveTo(top[0][0], yy);
+        ctx.bezierCurveTo(cx - sc * .3, yy - 2, cx + sc * .3, yy + 2, top[2][0], yy + (top[2][1] - top[0][1]) / 3 * i / (i + 1));
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+    function drawBlobRiver(ctx, w, h, s) {
+      ctx.clearRect(0, 0, w, h);
+      // draw a simple flat top-down isometric tile with a path stripe
+      const cx = w / 2, cy = h * 0.5, sc = w * 0.38;
+      // flat rhombus
+      const pts = [[0, -.6], [1, 0], [0, .6], [-1, 0]];
+      isoTri(ctx, cx, cy, sc, pts, hexShade(s.colGround || '#3ecfb2', .9), 'rgba(0,0,0,.2)');
+      // path stripe
+      ctx.save();
+      isoTri(ctx, cx, cy, sc, pts, null, null); ctx.clip();
+      const pw = 0.18;
+      const sx = s.startX / 100, sy = s.startY / 100, ex = s.endX / 100, ey = s.endY / 100;
+      const p1 = [cx + (sx - sy) * sc * 0.9, cy + (sx + sy) * sc * 0.45];
+      const p2 = [cx + (ex - ey) * sc * 0.9, cy + (ex + ey) * sc * 0.45];
+      const dx = p2[0] - p1[0], dy = p2[1] - p1[1], len = Math.hypot(dx, dy) || 1;
+      const nx = -dy / len * sc * pw * 1.5, ny = dx / len * sc * pw * 1.5;
+      ctx.beginPath();
+      ctx.moveTo(p1[0] + nx, p1[1] + ny); ctx.lineTo(p2[0] + nx, p2[1] + ny);
+      ctx.lineTo(p2[0] - nx, p2[1] - ny); ctx.lineTo(p1[0] - nx, p1[1] - ny);
+      ctx.closePath(); ctx.fillStyle = hexShade(s.colPath || '#1d557a', .85); ctx.fill();
+      ctx.restore();
+    }
+
+    // ── Icon canvas builder ─────────────────────────────────────────────────────
+    function buildMatIcon(matId) {
+      const def = MAT_DEFS[matId];
+      const size = 48;
+      const btn = document.createElement('div');
+      btn.className = 'mat-icon-btn'; btn.dataset.mat = matId;
+      btn.title = def.hint;
+      const c = document.createElement('canvas'); c.width = size; c.height = size;
+      c.style.width = size + 'px'; c.style.height = size + 'px';
+      def.draw(c.getContext('2d'), size, size, def.settings);
+      const lbl = document.createElement('div'); lbl.className = 'mat-icon-label'; lbl.textContent = def.label;
+      btn.appendChild(c); btn.appendChild(lbl);
+      btn.addEventListener('click', () => selectMat(matId));
+      return btn;
+    }
+
+    function refreshMatIcon(matId) {
+      const def = MAT_DEFS[matId];
+      const btn = document.querySelector(`.mat-icon-btn[data-mat="${matId}"]`);
+      if (!btn) return;
+      const c = btn.querySelector('canvas');
+      c.getContext('2d').clearRect(0, 0, c.width, c.height);
+      def.draw(c.getContext('2d'), c.width, c.height, def.settings);
+    }
+
+    // ── Build the bar ───────────────────────────────────────────────────────────
+    (function initMatBar() {
+      const header = document.getElementById('mat-bar-header');
+      const hint = document.getElementById('mat-bar-hint');
+      Object.keys(MAT_DEFS).forEach(id => {
+        header.insertBefore(buildMatIcon(id), hint);
+      });
+    })();
+
+    // ── Panel HTML builders ─────────────────────────────────────────────────────
+    function ditherSection(prefix, titleText, titleClass, s, fields) {
+      const DITHER_MODES = ['Off', 'Noise', 'H-Lines', 'V-Lines', 'Crosshatch'];
+      const modeKey = prefix + 'Mode', inkKey = prefix + 'InkMode', inkColKey = prefix + 'InkCol';
+      const spKey = prefix + 'Space', thKey = prefix + 'Thick', brKey = prefix + 'Bright', alKey = prefix + 'Alpha';
+      return `
+  <div class="mp-section">
+    <div class="mp-title ${titleClass}">${titleText}</div>
+    <div class="mp-row"><label>Mode</label>
+      <select data-key="${modeKey}">
+        ${DITHER_MODES.map((m, i) => `<option value="${i}"${s[modeKey] == i ? ' selected' : ''}>${m}</option>`).join('')}
+      </select>
+    </div>
+    <div class="mp-row"><label>Ink Type</label>
+      <select data-key="${inkKey}">
+        <option value="0"${s[inkKey] == 0 ? ' selected' : ''}>Bright</option>
+        <option value="1"${s[inkKey] == 1 ? ' selected' : ''}>Color</option>
+      </select>
+    </div>
+    <div class="mp-row" data-inkmode-dep="${inkKey}" data-show="0"><label>Bright</label>
+      <input type="range" data-key="${brKey}" min="-100" max="100" value="${s[brKey]}">
+      <span class="val">${s[brKey]}</span>
+    </div>
+    <div class="mp-row" data-inkmode-dep="${inkKey}" data-show="1" style="display:none"><label>Ink Color</label>
+      <input type="color" data-key="${inkColKey}" value="${s[inkColKey]}">
+    </div>
+    <div class="mp-row"><label>Space</label>
+      <input type="range" data-key="${spKey}" min="2" max="16" value="${s[spKey]}">
+      <span class="val">${s[spKey]}</span>
+    </div>
+    <div class="mp-row"><label>Thick</label>
+      <input type="range" data-key="${thKey}" min="1" max="6" value="${s[thKey]}" step="0.5">
+      <span class="val">${s[thKey]}</span>
+    </div>
+    <div class="mp-row"><label>Blend</label>
+      <input type="range" data-key="${alKey}" min="5" max="100" value="${s[alKey]}">
+      <span class="val">${s[alKey]}</span>
+    </div>
+  </div>`;
+    }
+
+    function buildPanelHTML(matId) {
+      const s = MAT_DEFS[matId].settings;
+      if (matId === 'cube') return `
+    <div class="mp-section">
+      <div class="mp-title">Geometry</div>
+      <div class="mp-row"><label>Top Color</label><input type="color" data-key="colA" value="${s.colA}"></div>
+      <div class="mp-row"><label>Bot Color</label><input type="color" data-key="colB" value="${s.colB}"></div>
+      <div class="mp-row"><label>Split</label><input type="range" data-key="split" min="0" max="100" value="${s.split}"><span class="val">${s.split}</span></div>
+    </div>
+    ${ditherSection('t', 'Top Dither', '', s)}
+    ${ditherSection('b', 'Bottom Dither', 'pink', s)}
+  `;
+      if (matId === 'cube-solid') return `
+    <div class="mp-section">
+      <div class="mp-title">Geometry</div>
+      <div class="mp-row"><label>Color</label><input type="color" data-key="colA" value="${s.colA}"></div>
+    </div>
+    ${ditherSection('t', 'Dither', '', s)}
+  `;
+      if (matId === 'cube-water') return `
+    <div class="mp-section">
+      <div class="mp-title blue">Water</div>
+      <div class="mp-row"><label>Opacity</label><input type="range" data-key="alpha" min="10" max="100" value="${s.alpha}"><span class="val">${s.alpha}</span></div>
+    </div>
+    ${ditherSection('t', 'Surface Dither', 'blue', s)}
+  `;
+      if (matId === 'river') return `
+    <div class="mp-section">
+      <div class="mp-title">Terrain</div>
+      <div class="mp-row"><label>Ground Col</label><input type="color" data-key="colGround" value="${s.colGround}"></div>
+      <div class="mp-row"><label>Path Col</label><input type="color" data-key="colPath" value="${s.colPath}"></div>
+      <div class="mp-row"><label>Bank Col</label><input type="color" data-key="colBank" value="${s.colBank}"></div>
+      <div class="mp-row"><label>Path Width</label><input type="range" data-key="pathWidth" min="5" max="60" value="${s.pathWidth}"><span class="val">${s.pathWidth}</span></div>
+    </div>
+    <div class="mp-section">
+      <div class="mp-title">Path Layout</div>
+      <div class="mp-row"><label>Start X</label><input type="range" data-key="startX" min="-100" max="100" value="${s.startX}"><span class="val">${s.startX}</span></div>
+      <div class="mp-row"><label>Start Y</label><input type="range" data-key="startY" min="-100" max="100" value="${s.startY}"><span class="val">${s.startY}</span></div>
+      <div class="mp-row"><label>End X</label><input type="range" data-key="endX" min="-100" max="100" value="${s.endX}"><span class="val">${s.endX}</span></div>
+      <div class="mp-row"><label>End Y</label><input type="range" data-key="endY" min="-100" max="100" value="${s.endY}"><span class="val">${s.endY}</span></div>
+    </div>
+    ${ditherSection('t', 'Ground Dither', '', s)}
+    ${ditherSection('b', 'Path Dither', 'blue', s)}
+  `;
+      return '';
+    }
+
+    // ── Select + wire panel ─────────────────────────────────────────────────────
+    function selectMat(matId) {
+      const panel = document.getElementById('mat-panel');
+      const hint = document.getElementById('mat-bar-hint');
+
+      if (activeMat === matId) {
+        // toggle off
+        activeMat = null;
+        panel.classList.remove('open');
+        document.querySelectorAll('.mat-icon-btn').forEach(b => b.classList.remove('active'));
+        hint.textContent = '← select a material to edit its settings';
+        return;
+      }
+      activeMat = matId;
+      document.querySelectorAll('.mat-icon-btn').forEach(b => b.classList.toggle('active', b.dataset.mat === matId));
+      hint.textContent = MAT_DEFS[matId].hint;
+      panel.innerHTML = buildPanelHTML(matId);
+      panel.classList.add('open');
+      wirePanel(matId);
+    }
+
+    function wirePanel(matId) {
+      const panel = document.getElementById('mat-panel');
+      const s = MAT_DEFS[matId].settings;
+
+      // wire all range inputs
+      panel.querySelectorAll('input[type=range]').forEach(el => {
+        el.addEventListener('input', () => {
+          const k = el.dataset.key;
+          s[k] = parseFloat(el.value);
+          const valEl = el.nextElementSibling;
+          if (valEl && valEl.classList.contains('val')) valEl.textContent = el.value;
+          // sync to drawing tool state if relevant
+          syncMatToDrawingTool(matId, k);
+          refreshMatIcon(matId);
+        });
+      });
+
+      // wire color inputs
+      panel.querySelectorAll('input[type=color]').forEach(el => {
+        el.addEventListener('input', () => {
+          const k = el.dataset.key;
+          s[k] = el.value;
+          syncMatToDrawingTool(matId, k);
+          refreshMatIcon(matId);
+        });
+      });
+
+      // wire selects
+      panel.querySelectorAll('select').forEach(el => {
+        el.addEventListener('change', () => {
+          const k = el.dataset.key;
+          s[k] = parseInt(el.value);
+          // toggle inkmode dep rows
+          if (k.endsWith('InkMode')) {
+            const isColor = s[k] === 1;
+            panel.querySelectorAll(`[data-inkmode-dep="${k}"]`).forEach(row => {
+              const show = parseInt(row.dataset.show);
+              row.style.display = (show === s[k]) ? 'flex' : 'none';
+            });
+          }
+        });
+      });
+    }
+
+    // ── Sync material settings → drawing tool globals ──────────────────────────
+    function syncMatToDrawingTool(matId, changedKey) {
+      if (matId === 'cube' || matId === 'cube-solid') {
+        const s = MAT_DEFS[matId].settings;
+        if (changedKey === 'colA') {
+          colorA = s.colA;
+          document.getElementById('swA').style.background = colorA;
+          document.getElementById('colA').value = colorA;
+          drawCubes();
+        }
+        if (changedKey === 'colB' && matId === 'cube') {
+          colorB = s.colB;
+          document.getElementById('swB').style.background = colorB;
+          document.getElementById('colB').value = colorB;
+          drawCubes();
+        }
+        if (changedKey === 'split' && matId === 'cube') {
+          splitPct = s.split / 100;
+          document.getElementById('split').value = s.split;
+          drawCubes();
+        }
+      }
+    }
+
+  </script>
+</body>
+
+</html>

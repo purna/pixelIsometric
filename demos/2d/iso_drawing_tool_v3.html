@@ -1,41 +1,208 @@
-
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-#app{display:flex;flex-direction:column;height:640px;background:#111116;border-radius:var(--border-radius-lg);overflow:hidden;font-family:'Courier New',monospace}
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box
+  }
 
-#toolbar{display:flex;align-items:center;gap:0;border-bottom:1px solid #1e1e1e;background:#0d0d10;flex-shrink:0}
-.tb-section{display:flex;align-items:center;gap:4px;padding:7px 10px;border-right:1px solid #1a1a1a}
-.tb-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#333;margin-right:2px;white-space:nowrap}
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 640px;
+    background: #111116;
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    font-family: 'Courier New', monospace
+  }
 
-.tool-btn{display:flex;align-items:center;gap:5px;padding:5px 9px;border:1px solid #222;border-radius:4px;cursor:pointer;background:transparent;color:#555;font-size:9px;font-family:'Courier New',monospace;letter-spacing:.08em;text-transform:uppercase;transition:all .1s;white-space:nowrap}
-.tool-btn svg{width:18px;height:14px;flex-shrink:0}
-.tool-btn:hover{background:#161616;color:#888;border-color:#333}
-.tool-btn.active{background:#1a1a1a;color:#3ecfb2;border-color:#3ecfb2}
-.tool-btn.collider-btn.active{color:#4eff91;border-color:#4eff91}
+  #toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border-bottom: 1px solid #1e1e1e;
+    background: #0d0d10;
+    flex-shrink: 0
+  }
 
-.color-dot{width:14px;height:14px;border-radius:50%;border:1.5px solid transparent;cursor:pointer;flex-shrink:0;transition:transform .1s}
-.color-dot:hover{transform:scale(1.2)}
-.color-dot.active{border-color:#fff}
+  .tb-section {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 7px 10px;
+    border-right: 1px solid #1a1a1a
+  }
 
-.tb-mini{padding:4px 8px;border:1px solid #1e1e1e;border-radius:3px;font-size:9px;font-family:'Courier New',monospace;letter-spacing:.06em;text-transform:uppercase;color:#333;background:transparent;cursor:pointer}
-.tb-mini:hover{color:#888;border-color:#333}
+  .tb-label {
+    font-size: 9px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: #333;
+    margin-right: 2px;
+    white-space: nowrap
+  }
 
-#layer-bar{display:flex;align-items:center;gap:0;border-bottom:1px solid #1a1a1a;background:#0a0a0c;flex-shrink:0}
-.layer-tab{padding:5px 14px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#2a2a2a;cursor:pointer;border-right:1px solid #141414;border-bottom:2px solid transparent;transition:all .1s}
-.layer-tab:hover{color:#555}
-.layer-tab.active-cube{color:#3ecfb2;border-bottom-color:#3ecfb2}
-.layer-tab.active-collider{color:#4eff91;border-bottom-color:#4eff91}
+  .tool-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 9px;
+    border: 1px solid #222;
+    border-radius: 4px;
+    cursor: pointer;
+    background: transparent;
+    color: #CCC;
+    font-size: 9px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    transition: all .1s;
+    white-space: nowrap
+  }
 
-#cvwrap{flex:1;position:relative;overflow:hidden;cursor:crosshair}
-canvas{position:absolute;top:0;left:0}
-#c-grid{z-index:1}
-#c-cube{z-index:2}
-#c-collider{z-index:3}
-#c-hit{z-index:4;background:transparent}
+  .tool-btn svg {
+    width: 18px;
+    height: 14px;
+    flex-shrink: 0
+  }
 
-#statusbar{padding:5px 12px;border-top:1px solid #141414;background:#0d0d10;font-size:9px;letter-spacing:.08em;color:#2a2a2a;flex-shrink:0;display:flex;gap:16px}
-#status-msg{color:#3a3a3a}
-#collider-indicator{color:#4eff91;display:none}
+  .tool-btn:hover {
+    background: #161616;
+    color: #888;
+    border-color: #333
+  }
+
+  .tool-btn.active {
+    background: #1a1a1a;
+    color: #3ecfb2;
+    border-color: #3ecfb2
+  }
+
+  .tool-btn.collider-btn.active {
+    color: #4eff91;
+    border-color: #4eff91
+  }
+
+  .color-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform .1s
+  }
+
+  .color-dot:hover {
+    transform: scale(1.2)
+  }
+
+  .color-dot.active {
+    border-color: #fff
+  }
+
+  .tb-mini {
+    padding: 4px 8px;
+    border: 1px solid #1e1e1e;
+    border-radius: 3px;
+    font-size: 9px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: #333;
+    background: transparent;
+    cursor: pointer
+  }
+
+  .tb-mini:hover {
+    color: #888;
+    border-color: #333
+  }
+
+  #layer-bar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border-bottom: 1px solid #1a1a1a;
+    background: #0a0a0c;
+    flex-shrink: 0
+  }
+
+  .layer-tab {
+    padding: 5px 14px;
+    font-size: 9px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #C6C6C6;
+    cursor: pointer;
+    border-right: 1px solid #141414;
+    border-bottom: 2px solid transparent;
+    transition: all .1s
+  }
+
+  .layer-tab:hover {
+    color: #CCC
+  }
+
+  .layer-tab.active-cube {
+    color: #3ecfb2;
+    border-bottom-color: #3ecfb2
+  }
+
+  .layer-tab.active-collider {
+    color: #4eff91;
+    border-bottom-color: #4eff91
+  }
+
+  #cvwrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    cursor: crosshair
+  }
+
+  canvas {
+    position: absolute;
+    top: 0;
+    left: 0
+  }
+
+  #c-grid {
+    z-index: 1
+  }
+
+  #c-cube {
+    z-index: 2
+  }
+
+  #c-collider {
+    z-index: 3
+  }
+
+  #c-hit {
+    z-index: 4;
+    background: transparent
+  }
+
+  #statusbar {
+    padding: 5px 12px;
+    border-top: 1px solid #141414;
+    background: #0d0d10;
+    font-size: 9px;
+    letter-spacing: .08em;
+    color: #C6C6C6;
+    flex-shrink: 0;
+    display: flex;
+    gap: 16px
+  }
+
+  #status-msg {
+    color: #C4C4C4
+  }
+
+  #collider-indicator {
+    color: #4eff91;
+    display: none
+  }
 </style>
 
 <div id="app">
@@ -44,35 +211,44 @@ canvas{position:absolute;top:0;left:0}
       <span class="tb-label">Cube</span>
       <button class="tool-btn active" id="btn-cube" onclick="setTool('cube')">
         <svg viewBox="0 0 32 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <polygon points="16,2 30,9 16,16 2,9" fill="currentColor" opacity=".9"/>
-          <polygon points="2,9 16,16 16,26 2,19" fill="currentColor" opacity=".5"/>
-          <polygon points="30,9 16,16 16,26 30,19" fill="currentColor" opacity=".7"/>
+          <polygon points="16,2 30,9 16,16 2,9" fill="currentColor" opacity=".9" />
+          <polygon points="2,9 16,16 16,26 2,19" fill="currentColor" opacity=".5" />
+          <polygon points="30,9 16,16 16,26 30,19" fill="currentColor" opacity=".7" />
         </svg>Cube
       </button>
     </div>
     <div class="tb-section">
       <span class="tb-label">Collider</span>
       <button class="tool-btn collider-btn" id="btn-top" onclick="setTool('col-top')">
-        <svg viewBox="0 0 30 18" xmlns="http://www.w3.org/2000/svg"><polygon points="15,1 29,9 15,17 1,9" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Top
+        <svg viewBox="0 0 30 18" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="15,1 29,9 15,17 1,9" fill="none" stroke="currentColor" stroke-width="1.5" />
+        </svg>Top
       </button>
       <button class="tool-btn collider-btn" id="btn-left" onclick="setTool('col-left')">
-        <svg viewBox="0 0 16 26" xmlns="http://www.w3.org/2000/svg"><polygon points="15,26 1,17 1,1 15,9" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Left
+        <svg viewBox="0 0 16 26" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="15,26 1,17 1,1 15,9" fill="none" stroke="currentColor" stroke-width="1.5" />
+        </svg>Left
       </button>
       <button class="tool-btn collider-btn" id="btn-right" onclick="setTool('col-right')">
-        <svg viewBox="0 0 16 26" xmlns="http://www.w3.org/2000/svg"><polygon points="1,17 15,26 15,9 1,1" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>Right
+        <svg viewBox="0 0 16 26" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="1,17 15,26 15,9 1,1" fill="none" stroke="currentColor" stroke-width="1.5" />
+        </svg>Right
       </button>
       <button class="tool-btn collider-btn" id="btn-line" onclick="setTool('col-line')">
         <svg viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <line x1="3" y1="17" x2="25" y2="3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-          <circle cx="3" cy="17" r="2" fill="currentColor"/><circle cx="25" cy="3" r="2" fill="currentColor"/>
+          <line x1="3" y1="17" x2="25" y2="3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          <circle cx="3" cy="17" r="2" fill="currentColor" />
+          <circle cx="25" cy="3" r="2" fill="currentColor" />
         </svg>Line
       </button>
     </div>
     <div class="tb-section">
       <span class="tb-label">Erase</span>
       <button class="tool-btn" id="btn-erase" onclick="setTool('erase')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg">
-          <path d="M20 20H7L3 16l11-11 7 7-2.5 2.5"/><path d="M6 11l7 7"/>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+          xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 20H7L3 16l11-11 7 7-2.5 2.5" />
+          <path d="M6 11l7 7" />
         </svg>Erase
       </button>
     </div>
@@ -82,15 +258,20 @@ canvas{position:absolute;top:0;left:0}
     </div>
     <div class="tb-section" style="gap:6px">
       <span class="tb-label">Top</span>
-      <div id="swA" style="width:14px;height:14px;border-radius:3px;background:#3ecfb2;border:1px solid #333;cursor:pointer;position:relative;overflow:hidden;flex-shrink:0">
-        <input type="color" id="colA" value="#3ecfb2" style="position:absolute;inset:-6px;opacity:0;cursor:pointer;width:150%;height:150%">
+      <div id="swA"
+        style="width:14px;height:14px;border-radius:3px;background:#3ecfb2;border:1px solid #333;cursor:pointer;position:relative;overflow:hidden;flex-shrink:0">
+        <input type="color" id="colA" value="#3ecfb2"
+          style="position:absolute;inset:-6px;opacity:0;cursor:pointer;width:150%;height:150%">
       </div>
       <span class="tb-label">Bot</span>
-      <div id="swB" style="width:14px;height:14px;border-radius:3px;background:#c94b6e;border:1px solid #333;cursor:pointer;position:relative;overflow:hidden;flex-shrink:0">
-        <input type="color" id="colB" value="#c94b6e" style="position:absolute;inset:-6px;opacity:0;cursor:pointer;width:150%;height:150%">
+      <div id="swB"
+        style="width:14px;height:14px;border-radius:3px;background:#c94b6e;border:1px solid #333;cursor:pointer;position:relative;overflow:hidden;flex-shrink:0">
+        <input type="color" id="colB" value="#c94b6e"
+          style="position:absolute;inset:-6px;opacity:0;cursor:pointer;width:150%;height:150%">
       </div>
       <span class="tb-label" style="margin-left:4px">Split</span>
-      <input type="range" id="split" min="0" max="100" value="50" step="1" style="-webkit-appearance:none;appearance:none;width:52px;height:2px;background:#1c1c1c;border-radius:2px;outline:none">
+      <input type="range" id="split" min="0" max="100" value="50" step="1"
+        style="-webkit-appearance:none;appearance:none;width:52px;height:2px;background:#1c1c1c;border-radius:2px;outline:none">
       <button class="tb-mini" onclick="clearAll()">Clear</button>
     </div>
   </div>
@@ -98,7 +279,8 @@ canvas{position:absolute;top:0;left:0}
   <div id="layer-bar">
     <div class="layer-tab active-cube" id="tab-cube" onclick="setLayer('cube')">● Cube layer</div>
     <div class="layer-tab" id="tab-collider" onclick="setLayer('collider')">◎ Collider layer</div>
-    <div style="flex:1;padding:5px 12px;font-size:9px;color:#1e1e1e;letter-spacing:.08em" id="layer-hint">painting cubes on the scene</div>
+    <div style="flex:1;padding:5px 12px;font-size:9px;color:#1e1e1e;letter-spacing:.08em" id="layer-hint">painting cubes
+      on the scene</div>
   </div>
 
   <div id="cvwrap">
@@ -115,420 +297,420 @@ canvas{position:absolute;top:0;left:0}
 </div>
 
 <script>
-const GRID_N = 7;
-let S = 42;
-let colorA = '#3ecfb2', colorB = '#c94b6e', splitPct = 0.5;
-let activeLayer = 'cube';
-let activeTool = 'cube';
-let lineStart = null;
+  const GRID_N = 7;
+  let S = 42;
+  let colorA = '#3ecfb2', colorB = '#c94b6e', splitPct = 0.5;
+  let activeLayer = 'cube';
+  let activeTool = 'cube';
+  let lineStart = null;
 
-const cGrid = document.getElementById('c-grid');
-const cCube = document.getElementById('c-cube');
-const cCol  = document.getElementById('c-collider');
-const cHit  = document.getElementById('c-hit');
-const gx = cGrid.getContext('2d');
-const cx = cCube.getContext('2d');
-const lx = cCol.getContext('2d');
-const hx = cHit.getContext('2d');
+  const cGrid = document.getElementById('c-grid');
+  const cCube = document.getElementById('c-cube');
+  const cCol = document.getElementById('c-collider');
+  const cHit = document.getElementById('c-hit');
+  const gx = cGrid.getContext('2d');
+  const cx = cCube.getContext('2d');
+  const lx = cCol.getContext('2d');
+  const hx = cHit.getContext('2d');
 
-let W, H, OX, OY;
+  let W, H, OX, OY;
 
-let cubes = {};
-let colliders = [];
-let hoverTile = null;
-let hoverDot = null;
-let colLinePreview = null;
+  let cubes = {};
+  let colliders = [];
+  let hoverTile = null;
+  let hoverDot = null;
+  let colLinePreview = null;
 
-const PALETTE = [
-  '#3ecfb2','#c94b6e','#5b9bd5','#e8a838','#9b7fd4','#e06060','#74c476','#aaaaaa'
-];
-let colIdx = 0;
-
-function resize() {
-  const wrap = document.getElementById('cvwrap');
-  W = wrap.clientWidth; H = wrap.clientHeight;
-  [cGrid, cCube, cCol, cHit].forEach(c => { c.width = W; c.height = H; });
-  OX = W / 2; OY = H * 0.35;
-  drawGrid(); drawCubes(); drawColliders();
-}
-
-function hexToRgb(h) {
-  return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
-}
-function shaded(hex, f) {
-  const [r,g,b] = hexToRgb(hex);
-  return `rgb(${Math.min(255,r*f|0)},${Math.min(255,g*f|0)},${Math.min(255,b*f|0)})`;
-}
-function isoProj(x, y, z) {
-  return [ OX + (x - y) * S, OY + (x + y) * 0.5 * S - z * S ];
-}
-
-function drawGrid() {
-  gx.clearRect(0, 0, W, H);
-  for (let col = 0; col < GRID_N; col++) {
-    for (let row = 0; row < GRID_N; row++) {
-      const pts = [
-        isoProj(col,   row,   0),
-        isoProj(col+1, row,   0),
-        isoProj(col+1, row+1, 0),
-        isoProj(col,   row+1, 0),
-      ];
-      const isHov = hoverTile && activeTool === 'cube' && hoverTile.col === col && hoverTile.row === row;
-      gx.beginPath();
-      gx.moveTo(pts[0][0], pts[0][1]);
-      pts.slice(1).forEach(p => gx.lineTo(p[0], p[1]));
-      gx.closePath();
-      gx.fillStyle = isHov ? 'rgba(62,207,178,0.12)' : 'rgba(255,255,255,0.02)';
-      gx.fill();
-      gx.strokeStyle = isHov ? 'rgba(62,207,178,0.5)' : 'rgba(255,255,255,0.07)';
-      gx.lineWidth = isHov ? 1 : 0.5;
-      gx.stroke();
-    }
-  }
-}
-
-function drawFace(ctx2, verts3d, faceKey, light, splitZ, color1, color2) {
-  const zs = verts3d.map(v => v[2]);
-  const maxZ = Math.max(...zs), minZ = Math.min(...zs);
-  const n = verts3d.length;
-  const proj = ([x,y,z]) => isoProj(x, y, z);
-
-  function fill(pts3d, color) {
-    if (pts3d.length < 3) return;
-    const pts = pts3d.map(proj);
-    ctx2.beginPath();
-    ctx2.moveTo(pts[0][0], pts[0][1]);
-    for (let i = 1; i < pts.length; i++) ctx2.lineTo(pts[i][0], pts[i][1]);
-    ctx2.closePath();
-    ctx2.fillStyle = shaded(color, light);
-    ctx2.fill();
-  }
-
-  function outline(pts3d) {
-    const pts = pts3d.map(proj);
-    ctx2.beginPath();
-    ctx2.moveTo(pts[0][0], pts[0][1]);
-    for (let i = 1; i < pts.length; i++) ctx2.lineTo(pts[i][0], pts[i][1]);
-    ctx2.closePath();
-    ctx2.strokeStyle = 'rgba(0,0,0,0.35)';
-    ctx2.lineWidth = 1.2;
-    ctx2.stroke();
-  }
-
-  function crossPt(a, b) {
-    const t = (splitZ - a[2]) / (b[2] - a[2]);
-    return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, splitZ];
-  }
-
-  if (splitZ >= maxZ) { fill(verts3d, color2); outline(verts3d); return; }
-  if (splitZ <= minZ) { fill(verts3d, color1); outline(verts3d); return; }
-
-  const upper=[], lower=[], seam=[];
-  for (let i = 0; i < n; i++) {
-    const a=verts3d[i], b=verts3d[(i+1)%n];
-    const aUp=a[2]>splitZ, bUp=b[2]>splitZ;
-    if(aUp) upper.push(a); else lower.push(a);
-    if(aUp!==bUp){const cp=crossPt(a,b);upper.push(cp);lower.push(cp);seam.push(cp);}
-  }
-  fill(upper, color1); fill(lower, color2);
-  if(seam.length===2){
-    const [p0,p1]=seam.map(proj);
-    ctx2.beginPath();ctx2.moveTo(p0[0],p0[1]);ctx2.lineTo(p1[0],p1[1]);
-    ctx2.strokeStyle='rgba(0,0,0,0.45)';ctx2.lineWidth=1.2;ctx2.stroke();
-  }
-  outline(verts3d);
-}
-
-function renderCube(ctx2, col, row, alpha, cA, cB, split) {
-  ctx2.globalAlpha = alpha;
-  const bx = col, by = row;
-  const splitZ = Math.max(0.001, Math.min(0.999, split));
-
-  const verts = [
-    [0,0,1],[1,0,1],[1,1,1],[0,1,1],
-    [0,0,0],[1,0,0],[1,1,0],[0,1,0],
-  ].map(([x,y,z]) => [x+bx, y+by, z]);
-
-  const allFaces = [
-    { vi:[3,2,6,7], light:0.72 },
-    { vi:[1,5,6,2], light:0.88 },
-    { vi:[0,1,2,3], light:1.12 },
+  const PALETTE = [
+    '#3ecfb2', '#c94b6e', '#5b9bd5', '#e8a838', '#9b7fd4', '#e06060', '#74c476', '#aaaaaa'
   ];
-  allFaces.forEach(({vi, light}) => {
-    const v3 = vi.map(i => verts[i]);
-    drawFace(ctx2, v3, 'face', light, splitZ, cA, cB);
-  });
-  ctx2.globalAlpha = 1;
-}
+  let colIdx = 0;
 
-function drawCubes() {
-  cx.clearRect(0, 0, W, H);
-  for (const key in cubes) {
-    const [c, r] = key.split(',').map(Number);
-    renderCube(cx, c, r, 1, colorA, colorB, splitPct);
-  }
-  if (hoverTile && activeTool === 'cube' && !cubes[`${hoverTile.col},${hoverTile.row}`]) {
-    renderCube(cx, hoverTile.col, hoverTile.row, 0.4, colorA, colorB, splitPct);
-  }
-}
-
-const COL_COLOR = '#4eff91';
-const COL_FILL  = 'rgba(78,255,145,0.07)';
-const COL_STROKE= 'rgba(78,255,145,0.85)';
-
-function colliderFaceVerts(col, row, face) {
-  const bx = col, by = row;
-  if (face === 'top') {
-    return [
-      isoProj(bx,   by,   1),
-      isoProj(bx+1, by,   1),
-      isoProj(bx+1, by+1, 1),
-      isoProj(bx,   by+1, 1),
-    ];
-  } else if (face === 'left') {
-    return [
-      isoProj(bx,   by,   1),
-      isoProj(bx,   by+1, 1),
-      isoProj(bx,   by+1, 0),
-      isoProj(bx,   by,   0),
-    ];
-  } else if (face === 'right') {
-    return [
-      isoProj(bx+1, by,   1),
-      isoProj(bx+1, by+1, 1),
-      isoProj(bx+1, by+1, 0),
-      isoProj(bx+1, by,   0),
-    ];
-  }
-  return [];
-}
-
-function drawColliderShape(ctx2, c, ghost) {
-  if (c.type === 'line') {
-    const p1 = isoProj(c.x1, c.y1, 1);
-    const p2 = isoProj(c.x2, c.y2, 1);
-    ctx2.beginPath(); ctx2.moveTo(p1[0],p1[1]); ctx2.lineTo(p2[0],p2[1]);
-    ctx2.strokeStyle = ghost ? 'rgba(78,255,145,0.45)' : COL_STROKE;
-    ctx2.lineWidth = ghost ? 1.5 : 2;
-    ctx2.setLineDash(ghost ? [4,4] : []);
-    ctx2.lineCap = 'round'; ctx2.stroke(); ctx2.setLineDash([]);
-    [p1,p2].forEach(p => {
-      ctx2.beginPath(); ctx2.arc(p[0],p[1],3,0,Math.PI*2);
-      ctx2.fillStyle = ghost ? 'rgba(78,255,145,0.45)' : COL_COLOR;
-      ctx2.fill();
-    });
-  } else {
-    const verts = colliderFaceVerts(c.col, c.row, c.type);
-    if (!verts.length) return;
-    ctx2.beginPath();
-    ctx2.moveTo(verts[0][0],verts[0][1]);
-    verts.slice(1).forEach(p => ctx2.lineTo(p[0],p[1]));
-    ctx2.closePath();
-    ctx2.fillStyle = ghost ? 'rgba(78,255,145,0.04)' : COL_FILL;
-    ctx2.fill();
-    ctx2.strokeStyle = ghost ? 'rgba(78,255,145,0.45)' : COL_STROKE;
-    ctx2.lineWidth = ghost ? 1.2 : 1.8;
-    ctx2.setLineDash(ghost ? [4,4] : []);
-    ctx2.stroke(); ctx2.setLineDash([]);
-  }
-}
-
-function drawColliders() {
-  lx.clearRect(0, 0, W, H);
-  colliders.forEach(c => drawColliderShape(lx, c, false));
-
-  if (hoverTile && (activeTool==='col-top'||activeTool==='col-left'||activeTool==='col-right')) {
-    const face = activeTool.replace('col-','');
-    drawColliderShape(lx, {type:face, col:hoverTile.col, row:hoverTile.row}, true);
+  function resize() {
+    const wrap = document.getElementById('cvwrap');
+    W = wrap.clientWidth; H = wrap.clientHeight;
+    [cGrid, cCube, cCol, cHit].forEach(c => { c.width = W; c.height = H; });
+    OX = W / 2; OY = H * 0.35;
+    drawGrid(); drawCubes(); drawColliders();
   }
 
-  if (colLinePreview) {
-    drawColliderShape(lx, colLinePreview, true);
+  function hexToRgb(h) {
+    return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
   }
-  if (lineStart) {
-    const p = isoProj(lineStart.gx, lineStart.gy, 1);
-    lx.beginPath(); lx.arc(p[0],p[1],5,0,Math.PI*2);
-    lx.fillStyle='rgba(78,255,145,0.6)'; lx.fill();
-    lx.strokeStyle=COL_COLOR; lx.lineWidth=1.5; lx.stroke();
+  function shaded(hex, f) {
+    const [r, g, b] = hexToRgb(hex);
+    return `rgb(${Math.min(255, r * f | 0)},${Math.min(255, g * f | 0)},${Math.min(255, b * f | 0)})`;
   }
-
-  if (hoverDot && activeTool==='col-line') {
-    const p = isoProj(hoverDot.gx, hoverDot.gy, 1);
-    lx.beginPath(); lx.arc(p[0],p[1],4,0,Math.PI*2);
-    lx.fillStyle='rgba(78,255,145,0.5)'; lx.fill();
-  }
-}
-
-function screenToGrid(mx, my) {
-  const dx = mx - OX, dy = my - OY;
-  const x = (dx / S + 2 * dy / S) / 2;
-  const y = (2 * dy / S - dx / S) / 2;
-  return { x, y };
-}
-
-function nearestGridVertex(mx, my, maxDist) {
-  const { x, y } = screenToGrid(mx, my);
-  const gx2 = Math.round(x), gy2 = Math.round(y);
-  const snapped = isoProj(gx2, gy2, 1);
-  if (Math.hypot(snapped[0]-mx, snapped[1]-my) < (maxDist||S*0.55)) {
-    return { gx: gx2, gy: gy2 };
-  }
-  return null;
-}
-
-function nearestTile(mx, my) {
-  const { x, y } = screenToGrid(mx, my);
-  const col = Math.floor(x), row = Math.floor(y);
-  if (col >= 0 && col < GRID_N && row >= 0 && row < GRID_N) return { col, row };
-  return null;
-}
-
-cHit.addEventListener('mousemove', e => {
-  const rect = cHit.getBoundingClientRect();
-  const px = e.clientX - rect.left, py = e.clientY - rect.top;
-
-  if (activeTool === 'col-line') {
-    hoverTile = null;
-    hoverDot = nearestGridVertex(px, py);
-    colLinePreview = (lineStart && hoverDot) ? {
-      type:'line', x1:lineStart.gx, y1:lineStart.gy, x2:hoverDot.gx, y2:hoverDot.gy
-    } : null;
-  } else if (activeTool === 'cube' || activeTool.startsWith('col-')) {
-    hoverDot = null; colLinePreview = null;
-    hoverTile = nearestTile(px, py);
-  } else {
-    hoverTile = nearestTile(px, py);
-    hoverDot = null; colLinePreview = null;
+  function isoProj(x, y, z) {
+    return [OX + (x - y) * S, OY + (x + y) * 0.5 * S - z * S];
   }
 
-  drawGrid(); drawCubes(); drawColliders();
-});
-
-cHit.addEventListener('mouseleave', () => {
-  hoverTile = null; hoverDot = null; colLinePreview = null;
-  drawGrid(); drawCubes(); drawColliders();
-});
-
-cHit.addEventListener('click', e => {
-  const rect = cHit.getBoundingClientRect();
-  const px = e.clientX - rect.left, py = e.clientY - rect.top;
-
-  if (activeTool === 'cube') {
-    const t = nearestTile(px, py);
-    if (!t) return;
-    const k = `${t.col},${t.row}`;
-    if (cubes[k]) delete cubes[k]; else cubes[k] = 1;
-    drawCubes();
-
-  } else if (activeTool === 'col-line') {
-    const dot = nearestGridVertex(px, py);
-    if (!dot) return;
-    if (!lineStart) {
-      lineStart = dot;
-      document.getElementById('status-msg').textContent = 'click second vertex to complete line — snaps to iso grid';
-    } else {
-      if (!(dot.gx === lineStart.gx && dot.gy === lineStart.gy)) {
-        colliders.push({ type:'line', x1:lineStart.gx, y1:lineStart.gy, x2:dot.gx, y2:dot.gy });
+  function drawGrid() {
+    gx.clearRect(0, 0, W, H);
+    for (let col = 0; col < GRID_N; col++) {
+      for (let row = 0; row < GRID_N; row++) {
+        const pts = [
+          isoProj(col, row, 0),
+          isoProj(col + 1, row, 0),
+          isoProj(col + 1, row + 1, 0),
+          isoProj(col, row + 1, 0),
+        ];
+        const isHov = hoverTile && activeTool === 'cube' && hoverTile.col === col && hoverTile.row === row;
+        gx.beginPath();
+        gx.moveTo(pts[0][0], pts[0][1]);
+        pts.slice(1).forEach(p => gx.lineTo(p[0], p[1]));
+        gx.closePath();
+        gx.fillStyle = isHov ? 'rgba(62,207,178,0.12)' : 'rgba(255,255,255,0.02)';
+        gx.fill();
+        gx.strokeStyle = isHov ? 'rgba(62,207,178,0.5)' : 'rgba(255,255,255,0.07)';
+        gx.lineWidth = isHov ? 1 : 0.5;
+        gx.stroke();
       }
-      lineStart = null;
-      colLinePreview = null;
-      document.getElementById('status-msg').textContent = 'click a vertex to start next line';
-      drawColliders();
     }
-
-  } else if (activeTool.startsWith('col-')) {
-    const t = nearestTile(px, py);
-    if (!t) return;
-    const face = activeTool.replace('col-','');
-    const dup = colliders.findIndex(c => c.type===face && c.col===t.col && c.row===t.row);
-    if (dup >= 0) colliders.splice(dup, 1);
-    else colliders.push({ type:face, col:t.col, row:t.row });
-    drawColliders();
-
-  } else if (activeTool === 'erase') {
-    const t = nearestTile(px, py);
-    if (t) delete cubes[`${t.col},${t.row}`];
-    const dot = nearestGridVertex(px, py, S * 0.8);
-    if (dot) {
-      colliders = colliders.filter(c => !(c.type==='line' && (
-        (c.x1===dot.gx&&c.y1===dot.gy)||(c.x2===dot.gx&&c.y2===dot.gy)
-      )));
-    }
-    if (t) {
-      colliders = colliders.filter(c => !(c.col===t.col && c.row===t.row));
-    }
-    drawCubes(); drawColliders();
   }
-});
 
-const TOOL_MSG = {
-  'cube':      'click a tile to place/remove a cube',
-  'col-top':   '◎ collider: top face — click tile to toggle',
-  'col-left':  '◎ collider: left face — click tile to toggle',
-  'col-right': '◎ collider: right face — click tile to toggle',
-  'col-line':  '◎ collider: line — click two vertices on the iso grid',
-  'erase':     'click to erase cube or collider',
-};
+  function drawFace(ctx2, verts3d, faceKey, light, splitZ, color1, color2) {
+    const zs = verts3d.map(v => v[2]);
+    const maxZ = Math.max(...zs), minZ = Math.min(...zs);
+    const n = verts3d.length;
+    const proj = ([x, y, z]) => isoProj(x, y, z);
 
-function setTool(t) {
-  activeTool = t; lineStart = null; colLinePreview = null;
-  hoverTile = null; hoverDot = null;
+    function fill(pts3d, color) {
+      if (pts3d.length < 3) return;
+      const pts = pts3d.map(proj);
+      ctx2.beginPath();
+      ctx2.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length; i++) ctx2.lineTo(pts[i][0], pts[i][1]);
+      ctx2.closePath();
+      ctx2.fillStyle = shaded(color, light);
+      ctx2.fill();
+    }
 
-  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-  const map = {cube:'btn-cube','col-top':'btn-top','col-left':'btn-left','col-right':'btn-right','col-line':'btn-line','erase':'btn-erase'};
-  if (map[t]) document.getElementById(map[t]).classList.add('active');
+    function outline(pts3d) {
+      const pts = pts3d.map(proj);
+      ctx2.beginPath();
+      ctx2.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length; i++) ctx2.lineTo(pts[i][0], pts[i][1]);
+      ctx2.closePath();
+      ctx2.strokeStyle = 'rgba(0,0,0,0.35)';
+      ctx2.lineWidth = 1.2;
+      ctx2.stroke();
+    }
 
-  const isCol = t.startsWith('col-');
-  setLayer(isCol ? 'collider' : 'cube');
-  document.getElementById('status-msg').textContent = TOOL_MSG[t] || '';
-  drawGrid(); drawCubes(); drawColliders();
-}
+    function crossPt(a, b) {
+      const t = (splitZ - a[2]) / (b[2] - a[2]);
+      return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, splitZ];
+    }
 
-function setLayer(layer) {
-  activeLayer = layer;
-  document.getElementById('tab-cube').className = 'layer-tab' + (layer==='cube'?' active-cube':'');
-  document.getElementById('tab-collider').className = 'layer-tab' + (layer==='collider'?' active-collider':'');
-  const hint = layer==='collider' ? 'painting colliders · green outlines only export to game engine' : 'painting cubes on the scene';
-  document.getElementById('layer-hint').textContent = hint;
-  const ci = document.getElementById('collider-indicator');
-  ci.style.display = layer==='collider' ? 'inline' : 'none';
-}
+    if (splitZ >= maxZ) { fill(verts3d, color2); outline(verts3d); return; }
+    if (splitZ <= minZ) { fill(verts3d, color1); outline(verts3d); return; }
 
-function clearAll() {
-  if (activeLayer==='cube') { cubes={}; drawCubes(); }
-  else { colliders=[]; lineStart=null; colLinePreview=null; drawColliders(); }
-}
+    const upper = [], lower = [], seam = [];
+    for (let i = 0; i < n; i++) {
+      const a = verts3d[i], b = verts3d[(i + 1) % n];
+      const aUp = a[2] > splitZ, bUp = b[2] > splitZ;
+      if (aUp) upper.push(a); else lower.push(a);
+      if (aUp !== bUp) { const cp = crossPt(a, b); upper.push(cp); lower.push(cp); seam.push(cp); }
+    }
+    fill(upper, color1); fill(lower, color2);
+    if (seam.length === 2) {
+      const [p0, p1] = seam.map(proj);
+      ctx2.beginPath(); ctx2.moveTo(p0[0], p0[1]); ctx2.lineTo(p1[0], p1[1]);
+      ctx2.strokeStyle = 'rgba(0,0,0,0.45)'; ctx2.lineWidth = 1.2; ctx2.stroke();
+    }
+    outline(verts3d);
+  }
 
-const sw = document.getElementById('swatches');
-PALETTE.forEach((col, i) => {
-  const d = document.createElement('div');
-  d.className = 'color-dot' + (i===0?' active':'');
-  d.style.background = col;
-  d.onclick = () => {
-    colIdx = i;
-    colorA = col;
-    document.getElementById('swA').style.background = col;
-    document.querySelectorAll('.color-dot').forEach((s,j)=>s.classList.toggle('active',j===i));
-    drawCubes();
+  function renderCube(ctx2, col, row, alpha, cA, cB, split) {
+    ctx2.globalAlpha = alpha;
+    const bx = col, by = row;
+    const splitZ = Math.max(0.001, Math.min(0.999, split));
+
+    const verts = [
+      [0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1],
+      [0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0],
+    ].map(([x, y, z]) => [x + bx, y + by, z]);
+
+    const allFaces = [
+      { vi: [3, 2, 6, 7], light: 0.72 },
+      { vi: [1, 5, 6, 2], light: 0.88 },
+      { vi: [0, 1, 2, 3], light: 1.12 },
+    ];
+    allFaces.forEach(({ vi, light }) => {
+      const v3 = vi.map(i => verts[i]);
+      drawFace(ctx2, v3, 'face', light, splitZ, cA, cB);
+    });
+    ctx2.globalAlpha = 1;
+  }
+
+  function drawCubes() {
+    cx.clearRect(0, 0, W, H);
+    for (const key in cubes) {
+      const [c, r] = key.split(',').map(Number);
+      renderCube(cx, c, r, 1, colorA, colorB, splitPct);
+    }
+    if (hoverTile && activeTool === 'cube' && !cubes[`${hoverTile.col},${hoverTile.row}`]) {
+      renderCube(cx, hoverTile.col, hoverTile.row, 0.4, colorA, colorB, splitPct);
+    }
+  }
+
+  const COL_COLOR = '#4eff91';
+  const COL_FILL = 'rgba(78,255,145,0.07)';
+  const COL_STROKE = 'rgba(78,255,145,0.85)';
+
+  function colliderFaceVerts(col, row, face) {
+    const bx = col, by = row;
+    if (face === 'top') {
+      return [
+        isoProj(bx, by, 1),
+        isoProj(bx + 1, by, 1),
+        isoProj(bx + 1, by + 1, 1),
+        isoProj(bx, by + 1, 1),
+      ];
+    } else if (face === 'left') {
+      return [
+        isoProj(bx, by, 1),
+        isoProj(bx, by + 1, 1),
+        isoProj(bx, by + 1, 0),
+        isoProj(bx, by, 0),
+      ];
+    } else if (face === 'right') {
+      return [
+        isoProj(bx + 1, by, 1),
+        isoProj(bx + 1, by + 1, 1),
+        isoProj(bx + 1, by + 1, 0),
+        isoProj(bx + 1, by, 0),
+      ];
+    }
+    return [];
+  }
+
+  function drawColliderShape(ctx2, c, ghost) {
+    if (c.type === 'line') {
+      const p1 = isoProj(c.x1, c.y1, 1);
+      const p2 = isoProj(c.x2, c.y2, 1);
+      ctx2.beginPath(); ctx2.moveTo(p1[0], p1[1]); ctx2.lineTo(p2[0], p2[1]);
+      ctx2.strokeStyle = ghost ? 'rgba(78,255,145,0.45)' : COL_STROKE;
+      ctx2.lineWidth = ghost ? 1.5 : 2;
+      ctx2.setLineDash(ghost ? [4, 4] : []);
+      ctx2.lineCap = 'round'; ctx2.stroke(); ctx2.setLineDash([]);
+      [p1, p2].forEach(p => {
+        ctx2.beginPath(); ctx2.arc(p[0], p[1], 3, 0, Math.PI * 2);
+        ctx2.fillStyle = ghost ? 'rgba(78,255,145,0.45)' : COL_COLOR;
+        ctx2.fill();
+      });
+    } else {
+      const verts = colliderFaceVerts(c.col, c.row, c.type);
+      if (!verts.length) return;
+      ctx2.beginPath();
+      ctx2.moveTo(verts[0][0], verts[0][1]);
+      verts.slice(1).forEach(p => ctx2.lineTo(p[0], p[1]));
+      ctx2.closePath();
+      ctx2.fillStyle = ghost ? 'rgba(78,255,145,0.04)' : COL_FILL;
+      ctx2.fill();
+      ctx2.strokeStyle = ghost ? 'rgba(78,255,145,0.45)' : COL_STROKE;
+      ctx2.lineWidth = ghost ? 1.2 : 1.8;
+      ctx2.setLineDash(ghost ? [4, 4] : []);
+      ctx2.stroke(); ctx2.setLineDash([]);
+    }
+  }
+
+  function drawColliders() {
+    lx.clearRect(0, 0, W, H);
+    colliders.forEach(c => drawColliderShape(lx, c, false));
+
+    if (hoverTile && (activeTool === 'col-top' || activeTool === 'col-left' || activeTool === 'col-right')) {
+      const face = activeTool.replace('col-', '');
+      drawColliderShape(lx, { type: face, col: hoverTile.col, row: hoverTile.row }, true);
+    }
+
+    if (colLinePreview) {
+      drawColliderShape(lx, colLinePreview, true);
+    }
+    if (lineStart) {
+      const p = isoProj(lineStart.gx, lineStart.gy, 1);
+      lx.beginPath(); lx.arc(p[0], p[1], 5, 0, Math.PI * 2);
+      lx.fillStyle = 'rgba(78,255,145,0.6)'; lx.fill();
+      lx.strokeStyle = COL_COLOR; lx.lineWidth = 1.5; lx.stroke();
+    }
+
+    if (hoverDot && activeTool === 'col-line') {
+      const p = isoProj(hoverDot.gx, hoverDot.gy, 1);
+      lx.beginPath(); lx.arc(p[0], p[1], 4, 0, Math.PI * 2);
+      lx.fillStyle = 'rgba(78,255,145,0.5)'; lx.fill();
+    }
+  }
+
+  function screenToGrid(mx, my) {
+    const dx = mx - OX, dy = my - OY;
+    const x = (dx / S + 2 * dy / S) / 2;
+    const y = (2 * dy / S - dx / S) / 2;
+    return { x, y };
+  }
+
+  function nearestGridVertex(mx, my, maxDist) {
+    const { x, y } = screenToGrid(mx, my);
+    const gx2 = Math.round(x), gy2 = Math.round(y);
+    const snapped = isoProj(gx2, gy2, 1);
+    if (Math.hypot(snapped[0] - mx, snapped[1] - my) < (maxDist || S * 0.55)) {
+      return { gx: gx2, gy: gy2 };
+    }
+    return null;
+  }
+
+  function nearestTile(mx, my) {
+    const { x, y } = screenToGrid(mx, my);
+    const col = Math.floor(x), row = Math.floor(y);
+    if (col >= 0 && col < GRID_N && row >= 0 && row < GRID_N) return { col, row };
+    return null;
+  }
+
+  cHit.addEventListener('mousemove', e => {
+    const rect = cHit.getBoundingClientRect();
+    const px = e.clientX - rect.left, py = e.clientY - rect.top;
+
+    if (activeTool === 'col-line') {
+      hoverTile = null;
+      hoverDot = nearestGridVertex(px, py);
+      colLinePreview = (lineStart && hoverDot) ? {
+        type: 'line', x1: lineStart.gx, y1: lineStart.gy, x2: hoverDot.gx, y2: hoverDot.gy
+      } : null;
+    } else if (activeTool === 'cube' || activeTool.startsWith('col-')) {
+      hoverDot = null; colLinePreview = null;
+      hoverTile = nearestTile(px, py);
+    } else {
+      hoverTile = nearestTile(px, py);
+      hoverDot = null; colLinePreview = null;
+    }
+
+    drawGrid(); drawCubes(); drawColliders();
+  });
+
+  cHit.addEventListener('mouseleave', () => {
+    hoverTile = null; hoverDot = null; colLinePreview = null;
+    drawGrid(); drawCubes(); drawColliders();
+  });
+
+  cHit.addEventListener('click', e => {
+    const rect = cHit.getBoundingClientRect();
+    const px = e.clientX - rect.left, py = e.clientY - rect.top;
+
+    if (activeTool === 'cube') {
+      const t = nearestTile(px, py);
+      if (!t) return;
+      const k = `${t.col},${t.row}`;
+      if (cubes[k]) delete cubes[k]; else cubes[k] = 1;
+      drawCubes();
+
+    } else if (activeTool === 'col-line') {
+      const dot = nearestGridVertex(px, py);
+      if (!dot) return;
+      if (!lineStart) {
+        lineStart = dot;
+        document.getElementById('status-msg').textContent = 'click second vertex to complete line — snaps to iso grid';
+      } else {
+        if (!(dot.gx === lineStart.gx && dot.gy === lineStart.gy)) {
+          colliders.push({ type: 'line', x1: lineStart.gx, y1: lineStart.gy, x2: dot.gx, y2: dot.gy });
+        }
+        lineStart = null;
+        colLinePreview = null;
+        document.getElementById('status-msg').textContent = 'click a vertex to start next line';
+        drawColliders();
+      }
+
+    } else if (activeTool.startsWith('col-')) {
+      const t = nearestTile(px, py);
+      if (!t) return;
+      const face = activeTool.replace('col-', '');
+      const dup = colliders.findIndex(c => c.type === face && c.col === t.col && c.row === t.row);
+      if (dup >= 0) colliders.splice(dup, 1);
+      else colliders.push({ type: face, col: t.col, row: t.row });
+      drawColliders();
+
+    } else if (activeTool === 'erase') {
+      const t = nearestTile(px, py);
+      if (t) delete cubes[`${t.col},${t.row}`];
+      const dot = nearestGridVertex(px, py, S * 0.8);
+      if (dot) {
+        colliders = colliders.filter(c => !(c.type === 'line' && (
+          (c.x1 === dot.gx && c.y1 === dot.gy) || (c.x2 === dot.gx && c.y2 === dot.gy)
+        )));
+      }
+      if (t) {
+        colliders = colliders.filter(c => !(c.col === t.col && c.row === t.row));
+      }
+      drawCubes(); drawColliders();
+    }
+  });
+
+  const TOOL_MSG = {
+    'cube': 'click a tile to place/remove a cube',
+    'col-top': '◎ collider: top face — click tile to toggle',
+    'col-left': '◎ collider: left face — click tile to toggle',
+    'col-right': '◎ collider: right face — click tile to toggle',
+    'col-line': '◎ collider: line — click two vertices on the iso grid',
+    'erase': 'click to erase cube or collider',
   };
-  sw.appendChild(d);
-});
 
-document.getElementById('colA').addEventListener('input', e => {
-  colorA = e.target.value;
-  document.getElementById('swA').style.background = colorA;
-  drawCubes();
-});
-document.getElementById('colB').addEventListener('input', e => {
-  colorB = e.target.value;
-  document.getElementById('swB').style.background = colorB;
-  drawCubes();
-});
-document.getElementById('split').addEventListener('input', e => {
-  splitPct = e.target.value / 100;
-  drawCubes();
-});
+  function setTool(t) {
+    activeTool = t; lineStart = null; colLinePreview = null;
+    hoverTile = null; hoverDot = null;
 
-new ResizeObserver(resize).observe(document.getElementById('cvwrap'));
-resize();
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    const map = { cube: 'btn-cube', 'col-top': 'btn-top', 'col-left': 'btn-left', 'col-right': 'btn-right', 'col-line': 'btn-line', 'erase': 'btn-erase' };
+    if (map[t]) document.getElementById(map[t]).classList.add('active');
+
+    const isCol = t.startsWith('col-');
+    setLayer(isCol ? 'collider' : 'cube');
+    document.getElementById('status-msg').textContent = TOOL_MSG[t] || '';
+    drawGrid(); drawCubes(); drawColliders();
+  }
+
+  function setLayer(layer) {
+    activeLayer = layer;
+    document.getElementById('tab-cube').className = 'layer-tab' + (layer === 'cube' ? ' active-cube' : '');
+    document.getElementById('tab-collider').className = 'layer-tab' + (layer === 'collider' ? ' active-collider' : '');
+    const hint = layer === 'collider' ? 'painting colliders · green outlines only export to game engine' : 'painting cubes on the scene';
+    document.getElementById('layer-hint').textContent = hint;
+    const ci = document.getElementById('collider-indicator');
+    ci.style.display = layer === 'collider' ? 'inline' : 'none';
+  }
+
+  function clearAll() {
+    if (activeLayer === 'cube') { cubes = {}; drawCubes(); }
+    else { colliders = []; lineStart = null; colLinePreview = null; drawColliders(); }
+  }
+
+  const sw = document.getElementById('swatches');
+  PALETTE.forEach((col, i) => {
+    const d = document.createElement('div');
+    d.className = 'color-dot' + (i === 0 ? ' active' : '');
+    d.style.background = col;
+    d.onclick = () => {
+      colIdx = i;
+      colorA = col;
+      document.getElementById('swA').style.background = col;
+      document.querySelectorAll('.color-dot').forEach((s, j) => s.classList.toggle('active', j === i));
+      drawCubes();
+    };
+    sw.appendChild(d);
+  });
+
+  document.getElementById('colA').addEventListener('input', e => {
+    colorA = e.target.value;
+    document.getElementById('swA').style.background = colorA;
+    drawCubes();
+  });
+  document.getElementById('colB').addEventListener('input', e => {
+    colorB = e.target.value;
+    document.getElementById('swB').style.background = colorB;
+    drawCubes();
+  });
+  document.getElementById('split').addEventListener('input', e => {
+    splitPct = e.target.value / 100;
+    drawCubes();
+  });
+
+  new ResizeObserver(resize).observe(document.getElementById('cvwrap'));
+  resize();
 </script>

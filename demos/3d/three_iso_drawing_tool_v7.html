@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Isometric Drawing Tool v7</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #0d0d10;
+            font-family: 'Space Mono', monospace;
+            color: #4a4a60;
+            user-select: none;
+        }
+
+        #app-layout {
+            display: flex;
+            flex-direction: column;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* ── TOP TOOLBAR ───────────────────────────────── */
+        #toolbar {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #1f1f28;
+            background: #111115;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            z-index: 10;
+        }
+
+        .tb-section {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-right: 1px solid #1f1f28;
+        }
+
+        .tb-label {
+            font-size: 10px;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: #CCC56a;
+            white-space: nowrap;
+        }
+
+        .tool-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border: 1px solid #2a2a38;
+            border-radius: 4px;
+            cursor: pointer;
+            background: transparent;
+            color: #7a7a9a;
+            font-size: 10px;
+            font-family: 'Space Mono', monospace;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            transition: all .15s ease;
+            white-space: nowrap;
+        }
+
+        .tool-btn:hover {
+            background: #191920;
+            color: #a0a0c0;
+            border-color: #4a4a60;
+        }
+
+        .tool-btn.active {
+            background: #1c1c24;
+            color: #3ecfb2;
+            border-color: #3ecfb2;
+        }
+
+        .tool-btn.col-btn.active {
+            color: #4eff91;
+            border-color: #4eff91;
+        }
+
+        .color-dot {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: transform .1s;
+        }
+
+        .color-dot:hover {
+            transform: scale(1.15);
+        }
+
+        .color-dot.active {
+            border-color: #fff;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 60px;
+            height: 3px;
+            background: #2a2a38;
+            border-radius: 2px;
+            outline: none;
+            accent-color: #3ecfb2;
+        }
+
+        input[type="color"] {
+            background: none;
+            border: 1px solid #2a2a38;
+            cursor: pointer;
+            height: 20px;
+            width: 30px;
+            padding: 0;
+        }
+
+        .tb-mini {
+            padding: 4px 8px;
+            border: 1px solid #2a2a38;
+            border-radius: 3px;
+            font-size: 10px;
+            font-family: 'Space Mono', monospace;
+            color: #7a7a9a;
+            background: transparent;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .tb-mini:hover {
+            color: #fff;
+            border-color: #3ecfb2;
+        }
+
+        /* ── LAYER BAR ─────────────────────────────────── */
+        #layer-bar {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #14141a;
+            background: #09090c;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .layer-tab {
+            padding: 5px 16px;
+            font-size: 10px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: #4a4a60;
+            cursor: pointer;
+            border-right: 1px solid #14141a;
+            border-bottom: 2px solid transparent;
+            transition: all .15s;
+        }
+
+        .layer-tab:hover {
+            color: #7a7a9a;
+        }
+
+        .layer-tab.active-cube {
+            color: #3ecfb2;
+            border-bottom-color: #3ecfb2;
+        }
+
+        .layer-tab.active-col {
+            color: #4eff91;
+            border-bottom-color: #4eff91;
+        }
+
+        #layer-hint {
+            flex: 1;
+            padding: 5px 16px;
+            font-size: 10px;
+            color: #3a3a4a;
+            letter-spacing: .08em;
+            text-align: right;
+        }
+
+        /* ── MATERIAL BAR ──────────────────────────────── */
+        #mat-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: #0d0d10;
+            border-bottom: 1px solid #1a1a22;
+            flex-shrink: 0;
+            overflow-x: auto;
+        }
+
+        #mat-bar::-webkit-scrollbar {
+            height: 3px;
+        }
+
+        #mat-bar::-webkit-scrollbar-thumb {
+            background: #2a2a38;
+        }
+
+        .mat-chip {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            padding: 6px 8px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            transition: all .18s ease;
+            flex-shrink: 0;
+        }
+
+        .mat-chip:hover {
+            background: #14141c;
+            border-color: #2a2a38;
+        }
+
+        .mat-chip.active {
+            background: #13131c;
+            border-color: var(--chip-color, #3ecfb2);
+        }
+
+        .mat-chip.active .mat-label {
+            color: var(--chip-color, #3ecfb2);
+        }
+
+        .mat-icon {
+            width: 52px;
+            height: 44px;
+            position: relative;
+        }
+
+        .mat-icon svg {
+            display: block;
+        }
+
+        .mat-label {
+            font-size: 9px;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: #4a4a60;
+            white-space: nowrap;
+            transition: color .15s;
+        }
+
+        /* ── WORKSPACE ─────────────────────────────────── */
+        #workspace {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #viewport-container {
+            flex: 1;
+            position: relative;
+            outline: none;
+            min-height: 0;
+        }
+
+        /* ── MATERIAL SETTINGS DRAWER ──────────────────── */
+        #mat-drawer {
+            height: 0;
+            overflow: hidden;
+            background: #0e0e14;
+            border-top: 0px solid #1f1f28;
+            flex-shrink: 0;
+            transition: height .22s ease, border-top-width .1s ease;
+        }
+
+        #mat-drawer.open {
+            border-top-width: 1px;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        #mat-drawer::-webkit-scrollbar {
+            height: 4px;
+            width: 4px;
+        }
+
+        #mat-drawer::-webkit-scrollbar-thumb {
+            background: #2a2a38;
+        }
+
+        .drawer-inner {
+            display: flex;
+            flex-direction: row;
+            gap: 0;
+            padding: 10px 16px;
+            min-width: max-content;
+        }
+
+        .drawer-col {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding-right: 20px;
+            border-right: 1px solid #1a1a22;
+            margin-right: 20px;
+        }
+
+        .drawer-col:last-child {
+            border-right: none;
+            margin-right: 0;
+        }
+
+        .d-title {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: .18em;
+            color: var(--dt-color, #7a7a9a);
+            border-bottom: 1px solid #1f1f28;
+            padding-bottom: 4px;
+            margin-bottom: 2px;
+            white-space: nowrap;
+        }
+
+        .d-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            color: #7a7a9a;
+            min-height: 20px;
+            white-space: nowrap;
+        }
+
+        .d-row input[type="range"] {
+            width: 80px;
+        }
+
+        .d-row input[type="color"] {
+            height: 20px;
+            width: 28px;
+        }
+
+        .d-row select {
+            background: #0f0f14;
+            color: #7a7a9a;
+            border: 1px solid #2a2a38;
+            padding: 2px 4px;
+            font-family: 'Space Mono';
+            font-size: 9px;
+            text-transform: uppercase;
+            width: 90px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* ── STATUS BAR ────────────────────────────────── */
+        #statusbar {
+            padding: 5px 16px;
+            border-top: 1px solid #14141a;
+            background: #0d0d10;
+            font-size: 10px;
+            letter-spacing: .08em;
+            color: #CCC56a;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .hint-overlay {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #3ecfb2;
+            font-size: 11px;
+            pointer-events: none;
+            letter-spacing: .05em;
+            background: rgba(13, 13, 16, .8);
+            padding: 4px 12px;
+            border-radius: 4px;
+            border: 1px solid #1f1f28;
+        }
+
+        /* Isometric cube SVG faces */
+        .iso-top {
+            fill-opacity: 1;
+        }
+
+        .iso-left {
+            fill-opacity: .7;
+        }
+
+        .iso-right {
+            fill-opacity: .5;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app-layout">
+
+        <!-- TOP TOOLBAR -->
+        <div id="toolbar">
+            <div class="tb-section">
+                <span class="tb-label">Collider</span>
+                <button class="tool-btn col-btn" id="btn-col-top">Top</button>
+                <button class="tool-btn col-btn" id="btn-col-left">Left</button>
+                <button class="tool-btn col-btn" id="btn-col-right">Right</button>
+                <button class="tool-btn col-btn" id="btn-col-line">Line</button>
+            </div>
+            <div class="tb-section">
+                <span class="tb-label">Erase</span>
+                <button class="tool-btn" id="btn-erase">Erase</button>
+            </div>
+            <div class="tb-section" style="gap:4px">
+                <span class="tb-label">Height</span>
+                <button class="tb-mini" id="btn-height-down">▼</button>
+                <span id="height-label"
+                    style="font-size:11px;color:#3ecfb2;min-width:18px;text-align:center;font-weight:bold">0</span>
+                <button class="tb-mini" id="btn-height-up">▲</button>
+            </div>
+            <div class="tb-section">
+                <span class="tb-label">Rotate</span>
+                <button class="tool-btn" id="btn-rot-cw">⟳ CW</button>
+                <button class="tool-btn" id="btn-rot-ccw">⟲ CCW</button>
+            </div>
+         
+            <div class="tb-section" style="gap:7px;flex:1;justify-content:flex-end;border-right:none">
+                <span class="tb-label">Top</span><input type="color" id="colA" value="#3ecfb2">
+                <span class="tb-label">Bot</span><input type="color" id="colB" value="#c94b6e">
+                <span class="tb-label">Split</span><input type="range" id="split" min="-50" max="50" value="0">
+                <button class="tb-mini" id="btn-clear">Clear</button>
+            </div>
+        </div>
+
+        <!-- LAYER BAR -->
+        <div id="layer-bar">
+            <div class="layer-tab active-cube" id="tab-cube">● Cube layer</div>
+            <div class="layer-tab" id="tab-col">◎ Collider layer</div>
+            <div id="layer-hint">Painting Cubes</div>
+        </div>
+
+        <!-- MATERIAL BAR -->
+        <div id="mat-bar">
+            <!-- chips injected by JS -->
+        </div>
+
+        <!-- WORKSPACE -->
+        <div id="workspace">
+            <div id="viewport-container">
+                <div class="hint-overlay">Left Click: Action&nbsp;•&nbsp;Right Click+Drag: Orbit&nbsp;•&nbsp;Scroll:
+                    Zoom</div>
+            </div>
+
+            <!-- MATERIAL SETTINGS DRAWER (bottom) -->
+            <div id="mat-drawer">
+                <!-- content swapped by JS per selected material -->
+            </div>
+        </div>
+
+        <div id="statusbar"><span id="status-msg">select a material, then click a cell</span></div>
+    </div>
+
+    <script type="importmap">
+{ "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
+</script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // ── CONSTANTS ──────────────────────────────────────────
+        const GRID_N = 7;
+        const CELL_SIZE = 2;
+        const PALETTE = ['#3ecfb2', '#c94b6e', '#5b9bd5', '#e8a838', '#9b7fd4', '#74c476', '#fa9fb5', '#aaaaaa'];
+
+        let activeTool = 'cube-dither';
+        let activeLayer = 'cube';
+        let activeHeightIndex = 0;
+        let lineStartNode = null;
+        let currentEraseTarget = null;
+        let lineEraseCache = [];
+
+        const activeCubes = new Map();
+        const activeColliders = new Map();
+        const activeLines = [];
+
+        // ── SHADER UNIFORMS ────────────────────────────────────
+        const ditherUniforms = {
+            colorA: { value: new THREE.Color('#3ecfb2') },
+            colorB: { value: new THREE.Color('#c94b6e') },
+            splitY: { value: 0.0 },
+            tMode: { value: 4 }, tInkMode: { value: 0 }, tInkColor: { value: new THREE.Color('#ffffff') },
+            tSpace: { value: 6.0 }, tThick: { value: 1.0 }, tBright: { value: 1.0 }, tAlpha: { value: 0.5 },
+            bMode: { value: 1 }, bInkMode: { value: 0 }, bInkColor: { value: new THREE.Color('#000000') },
+            bSpace: { value: 4.0 }, bThick: { value: 1.0 }, bBright: { value: -1.0 }, bAlpha: { value: 0.7 }
+        };
+
+        const riverUniforms = {
+            colorA: { value: new THREE.Color('#3ecfb2') },
+            colorB: { value: new THREE.Color('#c94b6e') },
+            colorRiver: { value: new THREE.Color('#1d557a') },
+            colorBank: { value: new THREE.Color('#a3d39c') },
+            riverWidth: { value: 0.20 },
+            pStart: { value: new THREE.Vector2(0.0, -1.0) },
+            pEnd: { value: new THREE.Vector2(1.0, 0.0) },
+            tMode: { value: 4 }, tInkMode: { value: 0 }, tInkColor: { value: new THREE.Color('#ffffff') },
+            tSpace: { value: 6.0 }, tThick: { value: 1.0 }, tBright: { value: 1.0 }, tAlpha: { value: 0.5 },
+            bMode: { value: 1 }, bInkMode: { value: 0 }, bInkColor: { value: new THREE.Color('#000000') },
+            bSpace: { value: 4.0 }, bThick: { value: 1.0 }, bBright: { value: -1.0 }, bAlpha: { value: 0.7 }
+        };
+
+        // ── DITHER GLSL HELPER (shared pattern) ────────────────
+        const ditherGLSL = `
+if (dMode > 0) {
+    bool isDither = false;
+    vec2 scaledUv = myUv * (100.0 / dSpace);
+    float lineThreshold = dThick / dSpace;
+    if (dMode == 1) {
+        vec2 gridUv = floor(scaledUv);
+        float noise = fract(sin(dot(gridUv, vec2(12.9898,78.233)))*43758.5453);
+        isDither = noise > 0.5;
+    } else if (dMode == 2) {
+        isDither = fract(scaledUv.y) < lineThreshold;
+    } else if (dMode == 3) {
+        isDither = fract(scaledUv.x) < lineThreshold;
+    } else if (dMode == 4) {
+        isDither = (fract(scaledUv.y) < lineThreshold) || (fract(scaledUv.x) < lineThreshold);
+    }
+    if (isDither) {
+        vec3 targetCol;
+        if (dInkMode == 1) {
+            float baseLum = dot(splitBase, vec3(0.299,0.587,0.114));
+            float fragLum = dot(gl_FragColor.rgb, vec3(0.299,0.587,0.114));
+            float lightingScale = fragLum / max(baseLum, 0.001);
+            targetCol = dInkColor * lightingScale;
+        } else {
+            vec3 brightShift = dBright > 0.0 ? vec3(1.0) : vec3(0.0);
+            targetCol = mix(gl_FragColor.rgb, brightShift, abs(dBright));
+        }
+        gl_FragColor.rgb = mix(gl_FragColor.rgb, targetCol, dAlpha);
+    }
+}
+`;
+
+        // ── MATERIALS ──────────────────────────────────────────
+        const ditherMaterial = new THREE.MeshStandardMaterial({ roughness: 0.6, metalness: 0.1 });
+        ditherMaterial.onBeforeCompile = (shader) => {
+            for (const [k, v] of Object.entries(ditherUniforms)) shader.uniforms[k] = v;
+            shader.vertexShader = `varying float vLocalY; varying vec2 myUv;\n${shader.vertexShader}`
+                .replace(`#include <begin_vertex>`, `#include <begin_vertex>\nvLocalY=position.y;\nmyUv=uv;`);
+            shader.fragmentShader = `
+        uniform vec3 colorA,colorB; uniform float splitY;
+        uniform int tMode,tInkMode; uniform vec3 tInkColor; uniform float tSpace,tThick,tBright,tAlpha;
+        uniform int bMode,bInkMode; uniform vec3 bInkColor; uniform float bSpace,bThick,bBright,bAlpha;
+        varying float vLocalY; varying vec2 myUv;\n${shader.fragmentShader}`
+                .replace(`vec4 diffuseColor = vec4( diffuse, opacity );`, `
+            bool isTop = vLocalY > splitY;
+            vec3 splitBase = isTop ? colorA : colorB;
+            vec4 diffuseColor = vec4(splitBase, opacity);`)
+                .replace(`#include <dithering_fragment>`, `#include <dithering_fragment>
+            int dMode=isTop?tMode:bMode; int dInkMode=isTop?tInkMode:bInkMode;
+            vec3 dInkColor=isTop?tInkColor:bInkColor; float dSpace=isTop?tSpace:bSpace;
+            float dThick=isTop?tThick:bThick; float dBright=isTop?tBright:bBright; float dAlpha=isTop?tAlpha:bAlpha;
+            ${ditherGLSL}`);
+        };
+
+        const riverMaterial = new THREE.MeshStandardMaterial({ roughness: 0.6, metalness: 0.1 });
+        riverMaterial.onBeforeCompile = (shader) => {
+            for (const [k, v] of Object.entries(riverUniforms)) shader.uniforms[k] = v;
+            shader.vertexShader = `varying vec3 vLocalPos; varying vec2 myUv;\n${shader.vertexShader}`
+                .replace(`#include <begin_vertex>`, `#include <begin_vertex>\nvLocalPos=position.xyz;\nmyUv=uv;`);
+            shader.fragmentShader = `
+        uniform vec3 colorA,colorB,colorRiver,colorBank; uniform float riverWidth; uniform vec2 pStart,pEnd;
+        uniform int tMode,tInkMode; uniform vec3 tInkColor; uniform float tSpace,tThick,tBright,tAlpha;
+        uniform int bMode,bInkMode; uniform vec3 bInkColor; uniform float bSpace,bThick,bBright,bAlpha;
+        varying vec3 vLocalPos; varying vec2 myUv;\n${shader.fragmentShader}`
+                .replace(`vec4 diffuseColor = vec4( diffuse, opacity );`, `
+            bool isTopFace=(vLocalPos.y>0.99); bool isPath=false;
+            vec3 splitBase = isTopFace ? colorA : colorB;
+            if(isTopFace){
+                vec2 p=vLocalPos.xz; vec2 ba=pEnd-pStart; vec2 pa=p-pStart;
+                float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.);
+                float dist=length(pa-ba*h);
+                if(dist<riverWidth){ splitBase=colorRiver; isPath=true; }
+                else if(dist<riverWidth+0.08){ splitBase=colorBank; }
+            }
+            vec4 diffuseColor=vec4(splitBase,opacity);`)
+                .replace(`#include <dithering_fragment>`, `#include <dithering_fragment>
+            bool useTop=(isTopFace&&!isPath);
+            int dMode=useTop?tMode:bMode; int dInkMode=useTop?tInkMode:bInkMode;
+            vec3 dInkColor=useTop?tInkColor:bInkColor; float dSpace=useTop?tSpace:bSpace;
+            float dThick=useTop?tThick:bThick; float dBright=useTop?tBright:bBright; float dAlpha=useTop?tAlpha:bAlpha;
+            ${ditherGLSL}`);
+        };
+
+        const blackOutlineMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+        const faceColliderMaterial = new THREE.MeshStandardMaterial({ color: 0x4eff91, transparent: true, opacity: 0.15, side: THREE.DoubleSide, roughness: 0.5 });
+        const colliderLineMat = new THREE.LineBasicMaterial({ color: 0x4eff91, linewidth: 3, transparent: true, opacity: 0.2 });
+        const eraseCubeMaterial = new THREE.MeshStandardMaterial({ color: 0xeb4b6e, emissive: 0x4a101a, transparent: true, opacity: 0.7 });
+        const eraseColliderMaterial = new THREE.MeshStandardMaterial({ color: 0xeb4b6e, side: THREE.DoubleSide, transparent: true, opacity: 0.6 });
+        const eraseLineMaterial = new THREE.LineBasicMaterial({ color: 0xeb4b6e, linewidth: 4 });
+        const eraseJointMaterial = new THREE.MeshBasicMaterial({ color: 0xeb4b6e });
+
+        // ── CUBE TYPE REGISTRY ─────────────────────────────────
+        const CUBE_TYPES = [
+            {
+                id: 'cube-dither', label: 'Dither', accentColor: '#e8a838',
+                statusHint: 'dither shader cube — configure in the drawer below',
+                // SVG icon: crosshatch pattern on isometric cube
+                iconSVG: (col) => `<svg viewBox="0 0 52 44" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <pattern id="hatch-d" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)">
+                    <line x1="0" y1="0" x2="0" y2="4" stroke="${col}" stroke-width="1.2" stroke-opacity=".55"/>
+                </pattern>
+                <clipPath id="clip-top-d"><polygon points="26,2 50,14 26,26 2,14"/></clipPath>
+                <clipPath id="clip-left-d"><polygon points="2,14 26,26 26,42 2,30"/></clipPath>
+                <clipPath id="clip-right-d"><polygon points="50,14 26,26 26,42 50,30"/></clipPath>
+            </defs>
+            <polygon class="iso-top"   points="26,2 50,14 26,26 2,14"  fill="${col}" fill-opacity=".9"/>
+            <rect x="0" y="0" width="52" height="44" fill="url(#hatch-d)" clip-path="url(#clip-top-d)" opacity=".7"/>
+            <polygon class="iso-left"  points="2,14 26,26 26,42 2,30"  fill="${col}" fill-opacity=".55"/>
+            <rect x="0" y="0" width="52" height="44" fill="url(#hatch-d)" clip-path="url(#clip-left-d)" opacity=".4"/>
+            <polygon class="iso-right" points="50,14 26,26 26,42 50,30" fill="${col}" fill-opacity=".38"/>
+            <polygon points="26,2 50,14 26,26 2,14"   fill="none" stroke="#000" stroke-width="1.2"/>
+            <polygon points="2,14 26,26 26,42 2,30"   fill="none" stroke="#000" stroke-width="1.2"/>
+            <polygon points="50,14 26,26 26,42 50,30" fill="none" stroke="#000" stroke-width="1.2"/>
+            <line x1="26" y1="26" x2="26" y2="42" stroke="#000" stroke-width="1.2"/>
+        </svg>`,
+                createMesh(col) {
+                    const geo = new THREE.BoxGeometry(CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                    const m = new THREE.Mesh(geo, ditherMaterial);
+                    m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), blackOutlineMaterial));
+                    m.userData = { cubeTypeId: 'cube-dither' };
+                    return m;
+                },
+                updateColor() { },
+                panelId: 'panel-dither'
+            },
+            {
+                id: 'cube-solid', label: 'Solid', accentColor: '#3ecfb2',
+                statusHint: 'solid color voxel — use palette/top color to paint',
+                iconSVG: (col) => `<svg viewBox="0 0 52 44" xmlns="http://www.w3.org/2000/svg">
+            <polygon class="iso-top"   points="26,2 50,14 26,26 2,14"  fill="${col}" fill-opacity=".95"/>
+            <polygon class="iso-left"  points="2,14 26,26 26,42 2,30"  fill="${col}" fill-opacity=".6"/>
+            <polygon class="iso-right" points="50,14 26,26 26,42 50,30" fill="${col}" fill-opacity=".42"/>
+            <polygon points="26,2 50,14 26,26 2,14"   fill="none" stroke="#000" stroke-width="1.2"/>
+            <polygon points="2,14 26,26 26,42 2,30"   fill="none" stroke="#000" stroke-width="1.2"/>
+            <polygon points="50,14 26,26 26,42 50,30" fill="none" stroke="#000" stroke-width="1.2"/>
+            <line x1="26" y1="26" x2="26" y2="42" stroke="#000" stroke-width="1.2"/>
+        </svg>`,
+                createMesh(col) {
+                    const geo = new THREE.BoxGeometry(CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                    const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(col), roughness: 0.6, metalness: 0.1 });
+                    const m = new THREE.Mesh(geo, mat);
+                    m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), blackOutlineMaterial));
+                    m.userData = { cubeTypeId: 'cube-solid' };
+                    return m;
+                },
+                updateColor(mesh, hex) { if (mesh.material?.color) mesh.material.color.set(hex); },
+                panelId: 'panel-solid'
+            },
+            {
+                id: 'cube-water', label: 'Water', accentColor: '#5b9bd5',
+                statusHint: 'transparent water block',
+                iconSVG: (col) => `<svg viewBox="0 0 52 44" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <pattern id="wave-w" patternUnits="userSpaceOnUse" width="8" height="4">
+                    <path d="M0 2 Q2 0 4 2 Q6 4 8 2" fill="none" stroke="${col}" stroke-width="1" stroke-opacity=".8"/>
+                </pattern>
+                <clipPath id="clip-top-w"><polygon points="26,2 50,14 26,26 2,14"/></clipPath>
+            </defs>
+            <polygon class="iso-top"   points="26,2 50,14 26,26 2,14"  fill="${col}" fill-opacity=".35"/>
+            <rect x="0" y="0" width="52" height="44" fill="url(#wave-w)" clip-path="url(#clip-top-w)"/>
+            <polygon class="iso-left"  points="2,14 26,26 26,42 2,30"  fill="${col}" fill-opacity=".22"/>
+            <polygon class="iso-right" points="50,14 26,26 26,42 50,30" fill="${col}" fill-opacity=".16"/>
+            <polygon points="26,2 50,14 26,26 2,14"   fill="none" stroke="#88ccee" stroke-width="1.2"/>
+            <polygon points="2,14 26,26 26,42 2,30"   fill="none" stroke="#88ccee" stroke-width="1.2"/>
+            <polygon points="50,14 26,26 26,42 50,30" fill="none" stroke="#88ccee" stroke-width="1.2"/>
+            <line x1="26" y1="26" x2="26" y2="42" stroke="#88ccee" stroke-width="1.2"/>
+        </svg>`,
+                createMesh(col) {
+                    const geo = new THREE.BoxGeometry(CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                    const mat = new THREE.MeshStandardMaterial({ color: 0x33b5e5, transparent: true, opacity: 0.5, roughness: 0.1, metalness: 0.1 });
+                    const m = new THREE.Mesh(geo, mat);
+                    m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0x88ccee })));
+                    m.userData = { cubeTypeId: 'cube-water' };
+                    return m;
+                },
+                updateColor() { },
+                panelId: 'panel-water'
+            },
+            {
+                id: 'cube-river', label: 'River', accentColor: '#4ba3c9',
+                statusHint: 'river/path terrain tile — configure path in drawer below',
+                iconSVG: (col) => `<svg viewBox="0 0 52 44" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <clipPath id="clip-top-r"><polygon points="26,2 50,14 26,26 2,14"/></clipPath>
+            </defs>
+            <polygon class="iso-top"   points="26,2 50,14 26,26 2,14"  fill="#2d6e3e" fill-opacity=".9"/>
+            <!-- river stripe across the top face -->
+            <polygon points="10,8 42,8 42,20 10,20" fill="${col}" fill-opacity=".85" clip-path="url(#clip-top-r)"/>
+            <polygon class="iso-left"  points="2,14 26,26 26,42 2,30"  fill="#2d6e3e" fill-opacity=".55"/>
+            <polygon class="iso-right" points="50,14 26,26 26,42 50,30" fill="#2d6e3e" fill-opacity=".38"/>
+            <polygon points="26,2 50,14 26,26 2,14"   fill="none" stroke="#000" stroke-width="1.2"/>
+            <polygon points="2,14 26,26 26,42 2,30"   fill="none" stroke="#000" stroke-width="1.2"/>
+            <polygon points="50,14 26,26 26,42 50,30" fill="none" stroke="#000" stroke-width="1.2"/>
+            <line x1="26" y1="26" x2="26" y2="42" stroke="#000" stroke-width="1.2"/>
+        </svg>`,
+                createMesh(col) {
+                    const geo = new THREE.BoxGeometry(CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                    const m = new THREE.Mesh(geo, riverMaterial);
+                    m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), blackOutlineMaterial));
+                    m.userData = { cubeTypeId: 'cube-river' };
+                    return m;
+                },
+                updateColor() { },
+                panelId: 'panel-river'
+            }
+        ];
+
+        // ── SCENE SETUP ────────────────────────────────────────
+        const container = document.getElementById('viewport-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2('#0d0d10', 0.02);
+
+        const aspect = container.clientWidth / container.clientHeight;
+        const frustumSize = 16;
+        const camera = new THREE.OrthographicCamera(
+            -frustumSize * aspect / 2, frustumSize * aspect / 2,
+            frustumSize / 2, -frustumSize / 2, 1, 1000);
+        camera.position.set(20, 20, 20);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.mouseButtons = { ORBIT: THREE.MOUSE.RIGHT, ZOOM: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.RIGHT };
+        controls.enableDamping = true; controls.dampingFactor = 0.05;
+
+        // Raycaster
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        const halfGridSize = (GRID_N * CELL_SIZE) / 2;
+
+        const interactionPlaneGeo = new THREE.PlaneGeometry(GRID_N * CELL_SIZE, GRID_N * CELL_SIZE);
+        interactionPlaneGeo.rotateX(-Math.PI / 2);
+        const interactionPlane = new THREE.Mesh(interactionPlaneGeo, new THREE.MeshBasicMaterial({ visible: false }));
+        scene.add(interactionPlane);
+
+        // Lighting
+        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+        const dLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dLight.position.set(10, 20, 4); scene.add(dLight);
+
+        // Grid
+        const gridHelper = new THREE.GridHelper(GRID_N * CELL_SIZE, GRID_N, 0x3ecfb2, 0x2a2a3a);
+        gridHelper.position.y = -0.01; scene.add(gridHelper);
+
+        const tileOutlineGroup = new THREE.Group();
+        const outlineMat = new THREE.LineBasicMaterial({ color: 0x3a3a4a });
+        for (let c = 0; c < GRID_N; c++) for (let r = 0; r < GRID_N; r++) {
+            const wx = (c * CELL_SIZE) + CELL_SIZE / 2 - halfGridSize, wz = (r * CELL_SIZE) + CELL_SIZE / 2 - halfGridSize, hx = CELL_SIZE / 2;
+            const pts = [new THREE.Vector3(wx - hx, 0, wz - hx), new THREE.Vector3(wx + hx, 0, wz - hx), new THREE.Vector3(wx + hx, 0, wz + hx), new THREE.Vector3(wx - hx, 0, wz + hx), new THREE.Vector3(wx - hx, 0, wz - hx)];
+            tileOutlineGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), outlineMat));
+        }
+        scene.add(tileOutlineGroup);
+
+        // Preview objects
+        const previewCubeContainer = new THREE.Group(); scene.add(previewCubeContainer);
+        const previewColliderFace = new THREE.Mesh(new THREE.PlaneGeometry(CELL_SIZE, CELL_SIZE), new THREE.MeshBasicMaterial({ color: 0x4eff91, transparent: true, opacity: 0.5, side: THREE.DoubleSide }));
+        previewColliderFace.visible = false; scene.add(previewColliderFace);
+        const previewNode = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), new THREE.MeshBasicMaterial({ color: 0x4eff91 }));
+        previewNode.visible = false; scene.add(previewNode);
+        const previewLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0x4eff91 }));
+        previewLine.visible = false; scene.add(previewLine);
+
+        // ── MATH HELPERS ───────────────────────────────────────
+        function getGridCoordinates(pt) {
+            const cx = Math.floor((pt.x + halfGridSize) / CELL_SIZE), cz = Math.floor((pt.z + halfGridSize) / CELL_SIZE);
+            if (cx >= 0 && cx < GRID_N && cz >= 0 && cz < GRID_N)
+                return { gridX: cx, gridZ: cz, worldX: (cx * CELL_SIZE) + CELL_SIZE / 2 - halfGridSize, worldZ: (cz * CELL_SIZE) + CELL_SIZE / 2 - halfGridSize };
+            return null;
+        }
+        function getNearestVertex(pt) {
+            const vx = Math.round((pt.x + halfGridSize) / CELL_SIZE), vz = Math.round((pt.z + halfGridSize) / CELL_SIZE);
+            if (vx >= 0 && vx <= GRID_N && vz >= 0 && vz <= GRID_N)
+                return { vX: vx, vZ: vz, worldX: vx * CELL_SIZE - halfGridSize, worldZ: vz * CELL_SIZE - halfGridSize };
+            return null;
+        }
+
+        function clearEraseHighlights() {
+            if (currentEraseTarget) {
+                if (currentEraseTarget.userData.originalMaterial) {
+                    currentEraseTarget.material = currentEraseTarget.userData.originalMaterial;
+                    delete currentEraseTarget.userData.originalMaterial;
+                } else {
+                    const id = currentEraseTarget.userData.cubeTypeId;
+                    const col = document.getElementById('colA').value;
+                    if (id === 'cube-dither') currentEraseTarget.material = ditherMaterial;
+                    else if (id === 'cube-river') currentEraseTarget.material = riverMaterial;
+                    else if (id === 'cube-solid') currentEraseTarget.material = new THREE.MeshStandardMaterial({ color: new THREE.Color(col), roughness: 0.6, metalness: 0.1 });
+                    else if (id === 'cube-water') currentEraseTarget.material = new THREE.MeshStandardMaterial({ color: 0x33b5e5, transparent: true, opacity: 0.5, roughness: 0.1, metalness: 0.1 });
+                }
+                currentEraseTarget = null;
+            }
+            if (lineEraseCache.length) {
+                lineEraseCache.forEach(ln => {
+                    ln.material = colliderLineMat;
+                    ln.children.forEach(j => { if (j.material) j.material = new THREE.MeshBasicMaterial({ color: 0x4eff91 }); });
+                });
+                lineEraseCache = [];
+            }
+        }
+
+        // ── HOVER PREVIEWS ─────────────────────────────────────
+        function updatePreviews(event) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+
+            if (activeTool === 'erase') {
+                hidePreviews(); clearEraseHighlights();
+                const objs = [];
+                if (activeLayer === 'cube') activeCubes.forEach(m => objs.push(m));
+                else activeColliders.forEach(m => objs.push(m));
+                const hits = raycaster.intersectObjects(objs, false);
+                if (hits.length) {
+                    const h = hits[0].object; currentEraseTarget = h;
+                    if (activeLayer === 'cube') h.material = eraseCubeMaterial;
+                    else { h.userData.originalMaterial = h.material; h.material = eraseColliderMaterial; }
+                    return;
+                }
+                if (activeLayer === 'collider') {
+                    const pi = raycaster.intersectObject(interactionPlane);
+                    if (pi.length) {
+                        const nd = getNearestVertex(pi[0].point); if (nd) {
+                            activeLines.forEach(ln => {
+                                if (ln.userData.y === activeHeightIndex && ((ln.userData.x1 === nd.vX && ln.userData.z1 === nd.vZ) || (ln.userData.x2 === nd.vX && ln.userData.z2 === nd.vZ))) {
+                                    ln.material = eraseLineMaterial;
+                                    ln.children.forEach(j => { if (j.material) j.material = eraseJointMaterial; });
+                                    lineEraseCache.push(ln);
+                                }
+                            });
+                        }
+                    }
+                }
+                return;
+            }
+            const intersects = raycaster.intersectObject(interactionPlane);
+            if (!intersects.length) { hidePreviews(); return; }
+            const point = intersects[0].point, hy = activeHeightIndex * CELL_SIZE;
+            if (activeTool === 'col-line') {
+                hidePreviews();
+                const nd = getNearestVertex(point);
+                if (nd) {
+                    previewNode.visible = true; previewNode.position.set(nd.worldX, hy + CELL_SIZE, nd.worldZ);
+                    if (lineStartNode) { previewLine.visible = true; previewLine.geometry.setFromPoints([new THREE.Vector3(lineStartNode.worldX, hy + CELL_SIZE, lineStartNode.worldZ), new THREE.Vector3(nd.worldX, hy + CELL_SIZE, nd.worldZ)]); }
+                }
+                return;
+            }
+            const gd = getGridCoordinates(point);
+            if (gd) {
+                const ct = CUBE_TYPES.find(c => c.id === activeTool);
+                if (ct && activeLayer === 'cube') {
+                    hidePreviews();
+                    while (previewCubeContainer.children.length) previewCubeContainer.remove(previewCubeContainer.children[0]);
+                    const pm = ct.createMesh(document.getElementById('colA').value);
+                    pm.traverse(ch => { if (ch.material) { ch.material = ch.material.clone(); ch.material.transparent = true; ch.material.opacity = ct.id === 'cube-water' ? 0.35 : 0.4; } });
+                    previewCubeContainer.add(pm);
+                    previewCubeContainer.position.set(gd.worldX, hy + CELL_SIZE / 2, gd.worldZ);
+                    previewCubeContainer.visible = true;
+                } else if (activeTool.startsWith('col-') && activeLayer === 'collider') {
+                    hidePreviews(); previewColliderFace.visible = true; previewColliderFace.rotation.set(0, 0, 0);
+                    if (activeTool === 'col-top') { previewColliderFace.rotation.x = Math.PI / 2; previewColliderFace.position.set(gd.worldX, hy + CELL_SIZE, gd.worldZ); }
+                    else if (activeTool === 'col-left') { previewColliderFace.rotation.y = Math.PI / 2; previewColliderFace.position.set(gd.worldX - CELL_SIZE / 2, hy + CELL_SIZE / 2, gd.worldZ); }
+                    else if (activeTool === 'col-right') { previewColliderFace.position.set(gd.worldX, hy + CELL_SIZE / 2, gd.worldZ + CELL_SIZE / 2); }
+                } else hidePreviews();
+                return;
+            }
+            hidePreviews();
+        }
+        function hidePreviews() {
+            previewCubeContainer.visible = previewColliderFace.visible = previewNode.visible = previewLine.visible = false;
+        }
+
+        // ── DRAW CLICK ─────────────────────────────────────────
+        function handleDrawingClick(event) {
+            if (event.button !== 0) return;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(interactionPlane);
+
+            if (activeTool === 'erase') {
+                const objs = []; if (activeLayer === 'cube') activeCubes.forEach(m => objs.push(m)); else activeColliders.forEach(m => objs.push(m));
+                const hits = raycaster.intersectObjects(objs, false);
+                if (hits.length) {
+                    const h = hits[0].object;
+                    if (activeLayer === 'cube') { for (const [k, v] of activeCubes) if (v === h) { scene.remove(h); activeCubes.delete(k); break; } }
+                    else { for (const [k, v] of activeColliders) if (v === h) { scene.remove(h); activeColliders.delete(k); break; } }
+                    currentEraseTarget = null; updatePreviews(event); return;
+                }
+                if (activeLayer === 'collider' && intersects.length) {
+                    const nd = getNearestVertex(intersects[0].point);
+                    if (nd) {
+                        for (let i = activeLines.length - 1; i >= 0; i--) {
+                            const ln = activeLines[i];
+                            if (ln.userData.y === activeHeightIndex && ((ln.userData.x1 === nd.vX && ln.userData.z1 === nd.vZ) || (ln.userData.x2 === nd.vX && ln.userData.z2 === nd.vZ))) { scene.remove(ln); activeLines.splice(i, 1); }
+                        } lineEraseCache = []; updatePreviews(event);
+                    }
+                }
+                return;
+            }
+            if (!intersects.length) return;
+            const point = intersects[0].point, hy = activeHeightIndex * CELL_SIZE;
+            if (activeTool === 'col-line' && activeLayer === 'collider') {
+                const nd = getNearestVertex(point); if (!nd) return;
+                if (!lineStartNode) { lineStartNode = nd; UI.msg.textContent = '◎ click second vertex'; }
+                else {
+                    if (!(nd.vX === lineStartNode.vX && nd.vZ === lineStartNode.vZ)) {
+                        const pts = [new THREE.Vector3(lineStartNode.worldX, hy + CELL_SIZE, lineStartNode.worldZ), new THREE.Vector3(nd.worldX, hy + CELL_SIZE, nd.worldZ)];
+                        const vl = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), colliderLineMat);
+                        const cg = new THREE.SphereGeometry(0.12, 16, 16), cm = new THREE.MeshBasicMaterial({ color: 0x4eff91 });
+                        const j1 = new THREE.Mesh(cg, cm); j1.position.copy(pts[0]);
+                        const j2 = new THREE.Mesh(cg, cm); j2.position.copy(pts[1]);
+                        vl.add(j1, j2); scene.add(vl);
+                        vl.userData = { type: 'line', x1: lineStartNode.vX, z1: lineStartNode.vZ, x2: nd.vX, z2: nd.vZ, y: activeHeightIndex };
+                        activeLines.push(vl);
+                    } lineStartNode = null; UI.msg.textContent = '◎ click a vertex to start';
+                }
+                return;
+            }
+            const gd = getGridCoordinates(point); if (!gd) return;
+            const cubeKey = `${gd.gridX},${activeHeightIndex},${gd.gridZ}`;
+            const ct = CUBE_TYPES.find(c => c.id === activeTool);
+            if (ct && activeLayer === 'cube') {
+                const col = document.getElementById('colA').value;
+                if (activeCubes.has(cubeKey)) {
+                    const ex = activeCubes.get(cubeKey); scene.remove(ex); activeCubes.delete(cubeKey);
+                    if (ex.userData.cubeTypeId !== ct.id) { const b = ct.createMesh(col); b.position.set(gd.worldX, hy + CELL_SIZE / 2, gd.worldZ); scene.add(b); activeCubes.set(cubeKey, b); }
+                } else { const b = ct.createMesh(col); b.position.set(gd.worldX, hy + CELL_SIZE / 2, gd.worldZ); scene.add(b); activeCubes.set(cubeKey, b); }
+            } else if (activeTool.startsWith('col-') && activeLayer === 'collider') {
+                const ft = activeTool.replace('col-', ''), ck = `${gd.gridX},${activeHeightIndex},${gd.gridZ},${ft}`;
+                if (activeColliders.has(ck)) { scene.remove(activeColliders.get(ck)); activeColliders.delete(ck); }
+                else {
+                    const vc = new THREE.Mesh(new THREE.PlaneGeometry(CELL_SIZE, CELL_SIZE), faceColliderMaterial);
+                    vc.add(new THREE.LineSegments(new THREE.EdgesGeometry(vc.geometry), colliderLineMat));
+                    if (ft === 'top') { vc.rotation.x = Math.PI / 2; vc.position.set(gd.worldX, hy + CELL_SIZE, gd.worldZ); }
+                    else if (ft === 'left') { vc.rotation.y = Math.PI / 2; vc.position.set(gd.worldX - CELL_SIZE / 2, hy + CELL_SIZE / 2, gd.worldZ); }
+                    else if (ft === 'right') { vc.position.set(gd.worldX, hy + CELL_SIZE / 2, gd.worldZ + CELL_SIZE / 2); }
+                    scene.add(vc); activeColliders.set(ck, vc);
+                }
+            }
+        }
+
+        // ── UI REFERENCES ──────────────────────────────────────
+        const UI = {
+            msg: document.getElementById('status-msg'),
+            hint: document.getElementById('layer-hint'),
+            cubeTab: document.getElementById('tab-cube'),
+            colTab: document.getElementById('tab-col'),
+            btnTop: document.getElementById('btn-col-top'),
+            btnLeft: document.getElementById('btn-col-left'),
+            btnRight: document.getElementById('btn-col-right'),
+            btnLine: document.getElementById('btn-col-line'),
+            btnErase: document.getElementById('btn-erase'),
+        };
+
+        const STATUS_MESSAGES = {
+            'col-top': '◎ top face collider — click cell to toggle', 'col-left': '◎ left face collider — click cell to toggle',
+            'col-right': '◎ right face collider — click cell to toggle', 'col-line': '◎ line collider — click two vertices',
+            'erase': 'hover to highlight, click to erase'
+        };
+
+        function setTool(toolName) {
+            clearEraseHighlights();
+            activeTool = toolName; lineStartNode = null;
+            document.querySelectorAll('.tool-btn,.mat-chip').forEach(b => b.classList.remove('active'));
+            const ct = CUBE_TYPES.find(c => c.id === toolName);
+            if (ct) {
+                document.getElementById(`mat-chip-${toolName}`)?.classList.add('active');
+                setLayer('cube'); UI.msg.textContent = ct.statusHint;
+                openDrawerFor(toolName);
+            } else {
+                if (toolName === 'col-top') UI.btnTop.classList.add('active');
+                if (toolName === 'col-left') UI.btnLeft.classList.add('active');
+                if (toolName === 'col-right') UI.btnRight.classList.add('active');
+                if (toolName === 'col-line') UI.btnLine.classList.add('active');
+                if (toolName === 'erase') { UI.btnErase.classList.add('active'); document.getElementById('mat-chip-erase')?.classList.add('active'); }
+                if (toolName.startsWith('col-')) setLayer('collider');
+                UI.msg.textContent = STATUS_MESSAGES[toolName] || '';
+                closeDrawer();
+            }
+            hidePreviews();
+        }
+
+        function setLayer(layerName) {
+            clearEraseHighlights(); activeLayer = layerName;
+            if (layerName === 'cube') {
+                UI.cubeTab.className = 'layer-tab active-cube'; UI.colTab.className = 'layer-tab';
+                UI.hint.textContent = 'Painting Cubes';
+                activeCubes.forEach(m => m.visible = true);
+                activeColliders.forEach(m => m.material.opacity = 0.15);
+                activeLines.forEach(l => l.material.opacity = 0.2);
+            } else {
+                UI.cubeTab.className = 'layer-tab'; UI.colTab.className = 'layer-tab active-col';
+                UI.hint.textContent = 'Painting Colliders';
+                activeColliders.forEach(m => m.material.opacity = 0.6);
+                activeLines.forEach(l => l.material.opacity = 1.0);
+            }
+            hidePreviews();
+        }
+
+        // ── DRAWER SYSTEM ──────────────────────────────────────
+        const drawer = document.getElementById('mat-drawer');
+
+        // Panel HTML generators
+        function mkSelect(id, options, selectedVal) {
+            return `<select id="${id}">${options.map(([v, t]) => `<option value="${v}"${v == selectedVal ? ' selected' : ''}>${t}</option>`).join('')}</select>`;
+        }
+        const DMODE_OPTS = [['0', 'Off'], ['1', 'Noise'], ['2', 'H-Lines'], ['3', 'V-Lines'], ['4', 'Crosshatch']];
+        const IMODE_OPTS = [['0', 'Bright'], ['1', 'Color']];
+
+        function ditherColsHTML(pre, titleTop, titleBot, accentTop, accentBot) {
+            return `
+    <div class="drawer-col">
+        <div class="d-title" style="--dt-color:${accentTop}">${titleTop}</div>
+        <div class="d-row">Mode ${mkSelect(pre + 'tMode', DMODE_OPTS, 4)}</div>
+        <div class="d-row">Ink ${mkSelect(pre + 'tInkMode', IMODE_OPTS, 0)}</div>
+        <div class="d-row" id="${pre}tBrightRow">Bright <input type="range" id="${pre}tBright" min="-100" max="100" value="100"></div>
+        <div class="d-row hidden" id="${pre}tColorRow">Ink Col <input type="color" id="${pre}tInkCol" value="#ffffff"></div>
+        <div class="d-row">Space <input type="range" id="${pre}tSpace" min="2" max="16" value="6"></div>
+        <div class="d-row">Thick <input type="range" id="${pre}tThick" min="1" max="6" value="1" step="0.5"></div>
+        <div class="d-row">Blend <input type="range" id="${pre}tAlpha" min="5" max="100" value="50"></div>
+    </div>
+    <div class="drawer-col">
+        <div class="d-title" style="--dt-color:${accentBot}">${titleBot}</div>
+        <div class="d-row">Mode ${mkSelect(pre + 'bMode', DMODE_OPTS, 1)}</div>
+        <div class="d-row">Ink ${mkSelect(pre + 'bInkMode', IMODE_OPTS, 0)}</div>
+        <div class="d-row" id="${pre}bBrightRow">Bright <input type="range" id="${pre}bBright" min="-100" max="100" value="-100"></div>
+        <div class="d-row hidden" id="${pre}bColorRow">Ink Col <input type="color" id="${pre}bInkCol" value="#000000"></div>
+        <div class="d-row">Space <input type="range" id="${pre}bSpace" min="2" max="16" value="4"></div>
+        <div class="d-row">Thick <input type="range" id="${pre}bThick" min="1" max="6" value="1" step="0.5"></div>
+        <div class="d-row">Blend <input type="range" id="${pre}bAlpha" min="5" max="100" value="70"></div>
+    </div>`;
+        }
+
+        const PANEL_HTML = {
+            'cube-dither': `<div class="drawer-inner">
+        <div class="drawer-col">
+            <div class="d-title" style="--dt-color:#e8a838">Split</div>
+            <div class="d-row">Top Col <input type="color" id="dColA" value="#3ecfb2"></div>
+            <div class="d-row">Bot Col <input type="color" id="dColB" value="#c94b6e"></div>
+            <div class="d-row">Split Y <input type="range" id="dSplit" min="-50" max="50" value="0"></div>
+        </div>
+        ${ditherColsHTML('d', 'Top Dither', 'Bot Dither', '#e8a838', '#c94b6e')}
+    </div>`,
+
+            'cube-solid': `<div class="drawer-inner">
+        <div class="drawer-col">
+            <div class="d-title" style="--dt-color:#3ecfb2">Solid Color</div>
+            <div class="d-row">Color uses the <strong style="color:#3ecfb2">Top</strong> color picker in the toolbar above.</div>
+            <div class="d-row" style="margin-top:6px;font-size:9px;color:#CCC56a">Palette swatches and Top color both apply to Solid Box cubes.</div>
+        </div>
+    </div>`,
+
+            'cube-water': `<div class="drawer-inner">
+        <div class="drawer-col">
+            <div class="d-title" style="--dt-color:#5b9bd5">Water</div>
+            <div class="d-row">Opacity <input type="range" id="wOpacity" min="10" max="100" value="50"></div>
+            <div class="d-row" style="font-size:9px;color:#CCC56a;margin-top:4px">Water uses a fixed blue tint. Adjust opacity above.</div>
+        </div>
+    </div>`,
+
+            'cube-river': `<div class="drawer-inner">
+        <div class="drawer-col">
+            <div class="d-title" style="--dt-color:#4ba3c9">Path / River</div>
+            <div class="d-row">Ground <input type="color" id="rColA" value="#3ecfb2"></div>
+            <div class="d-row">Sub-block <input type="color" id="rColB" value="#c94b6e"></div>
+            <div class="d-row">Path Col <input type="color" id="rColRiver" value="#1d557a"></div>
+            <div class="d-row">Bank Col <input type="color" id="rColBank" value="#a3d39c"></div>
+            <div class="d-row">Width <input type="range" id="rWidth" min="5" max="60" value="20"></div>
+        </div>
+        <div class="drawer-col">
+            <div class="d-title" style="--dt-color:#a3d39c">Path Direction</div>
+            <div class="d-row">Start X <input type="range" id="rSX" min="-100" max="100" value="0"></div>
+            <div class="d-row">Start Z <input type="range" id="rSZ" min="-100" max="100" value="-100"></div>
+            <div class="d-row">End X <input type="range" id="rEX" min="-100" max="100" value="100"></div>
+            <div class="d-row">End Z <input type="range" id="rEZ" min="-100" max="100" value="0"></div>
+        </div>
+        ${ditherColsHTML('r', 'Ground Dither', 'Path Dither', '#3ecfb2', '#4ba3c9')}
+    </div>`
+        };
+
+        // Drawer heights per panel
+        const DRAWER_HEIGHTS = {
+            'cube-dither': 148,
+            'cube-solid': 80,
+            'cube-water': 80,
+            'cube-river': 148
+        };
+
+        let currentDrawerPanel = null;
+
+        function openDrawerFor(cubeTypeId) {
+            const html = PANEL_HTML[cubeTypeId];
+            if (!html) { closeDrawer(); return; }
+            // always re-render so inputs are fresh when switching materials
+            drawer.innerHTML = html;
+            drawer.classList.add('open');
+            drawer.style.height = (DRAWER_HEIGHTS[cubeTypeId] || 148) + 'px';
+            currentDrawerPanel = cubeTypeId;
+            wireDrawerEvents(cubeTypeId);
+        }
+
+        function closeDrawer() {
+            drawer.classList.remove('open');
+            drawer.style.height = '0';
+            currentDrawerPanel = null;
+        }
+
+        function wireDrawerEvents(id) {
+            const $ = s => document.getElementById(s);
+
+            // wireInkToggle: selectId drives brightRow/colorRow visibility and the ink color input
+            // inkColInputId is the <input type="color"> sibling in the colorRow
+            function wireInkToggle(selectId, brightRowId, colorRowId, inkColInputId, uObj, uKeyMode, uKeyColor) {
+                const sel = $(selectId); if (!sel) return;
+                sel.addEventListener('change', e => {
+                    const v = parseInt(e.target.value);
+                    uObj[uKeyMode].value = v;
+                    $(brightRowId)?.classList.toggle('hidden', v === 1);
+                    $(colorRowId)?.classList.toggle('hidden', v === 0);
+                });
+                $(inkColInputId)?.addEventListener('input', e => uObj[uKeyColor].value.set(e.target.value));
+            }
+
+            if (id === 'cube-dither') {
+                $('dColA')?.addEventListener('input', e => { ditherUniforms.colorA.value.set(e.target.value); document.getElementById('colA').value = e.target.value; });
+                $('dColB')?.addEventListener('input', e => { ditherUniforms.colorB.value.set(e.target.value); document.getElementById('colB').value = e.target.value; });
+                $('dSplit')?.addEventListener('input', e => { ditherUniforms.splitY.value = (parseFloat(e.target.value) / 50) * (CELL_SIZE / 2); document.getElementById('split').value = e.target.value; });
+
+                $('dtMode')?.addEventListener('change', e => ditherUniforms.tMode.value = parseInt(e.target.value));
+                wireInkToggle('dtInkMode', 'dtBrightRow', 'dtColorRow', 'dtInkCol', ditherUniforms, 'tInkMode', 'tInkColor');
+                $('dtBright')?.addEventListener('input', e => ditherUniforms.tBright.value = parseFloat(e.target.value) / 100);
+                $('dtSpace')?.addEventListener('input', e => ditherUniforms.tSpace.value = parseFloat(e.target.value));
+                $('dtThick')?.addEventListener('input', e => ditherUniforms.tThick.value = parseFloat(e.target.value));
+                $('dtAlpha')?.addEventListener('input', e => ditherUniforms.tAlpha.value = parseFloat(e.target.value) / 100);
+
+                $('dbMode')?.addEventListener('change', e => ditherUniforms.bMode.value = parseInt(e.target.value));
+                wireInkToggle('dbInkMode', 'dbBrightRow', 'dbColorRow', 'dbInkCol', ditherUniforms, 'bInkMode', 'bInkColor');
+                $('dbBright')?.addEventListener('input', e => ditherUniforms.bBright.value = parseFloat(e.target.value) / 100);
+                $('dbSpace')?.addEventListener('input', e => ditherUniforms.bSpace.value = parseFloat(e.target.value));
+                $('dbThick')?.addEventListener('input', e => ditherUniforms.bThick.value = parseFloat(e.target.value));
+                $('dbAlpha')?.addEventListener('input', e => ditherUniforms.bAlpha.value = parseFloat(e.target.value) / 100);
+            }
+
+            if (id === 'cube-water') {
+                $('wOpacity')?.addEventListener('input', e => {
+                    activeCubes.forEach(m => { if (m.userData.cubeTypeId === 'cube-water') m.material.opacity = parseFloat(e.target.value) / 100; });
+                });
+            }
+
+            if (id === 'cube-river') {
+                $('rColA')?.addEventListener('input', e => { riverUniforms.colorA.value.set(e.target.value); document.getElementById('colA').value = e.target.value; });
+                $('rColB')?.addEventListener('input', e => { riverUniforms.colorB.value.set(e.target.value); document.getElementById('colB').value = e.target.value; });
+                $('rColRiver')?.addEventListener('input', e => riverUniforms.colorRiver.value.set(e.target.value));
+                $('rColBank')?.addEventListener('input', e => riverUniforms.colorBank.value.set(e.target.value));
+                $('rWidth')?.addEventListener('input', e => riverUniforms.riverWidth.value = parseFloat(e.target.value) / 100);
+
+                const syncPath = () => {
+                    riverUniforms.pStart.value.set(parseFloat($('rSX').value) / 100, parseFloat($('rSZ').value) / 100);
+                    riverUniforms.pEnd.value.set(parseFloat($('rEX').value) / 100, parseFloat($('rEZ').value) / 100);
+                };
+                ['rSX', 'rSZ', 'rEX', 'rEZ'].forEach(sid => $(sid)?.addEventListener('input', syncPath));
+                syncPath();
+
+                $('rtMode')?.addEventListener('change', e => riverUniforms.tMode.value = parseInt(e.target.value));
+                wireInkToggle('rtInkMode', 'rtBrightRow', 'rtColorRow', 'rtInkCol', riverUniforms, 'tInkMode', 'tInkColor');
+                $('rtBright')?.addEventListener('input', e => riverUniforms.tBright.value = parseFloat(e.target.value) / 100);
+                $('rtSpace')?.addEventListener('input', e => riverUniforms.tSpace.value = parseFloat(e.target.value));
+                $('rtThick')?.addEventListener('input', e => riverUniforms.tThick.value = parseFloat(e.target.value));
+                $('rtAlpha')?.addEventListener('input', e => riverUniforms.tAlpha.value = parseFloat(e.target.value) / 100);
+
+                $('rbMode')?.addEventListener('change', e => riverUniforms.bMode.value = parseInt(e.target.value));
+                wireInkToggle('rbInkMode', 'rbBrightRow', 'rbColorRow', 'rbInkCol', riverUniforms, 'bInkMode', 'bInkColor');
+                $('rbBright')?.addEventListener('input', e => riverUniforms.bBright.value = parseFloat(e.target.value) / 100);
+                $('rbSpace')?.addEventListener('input', e => riverUniforms.bSpace.value = parseFloat(e.target.value));
+                $('rbThick')?.addEventListener('input', e => riverUniforms.bThick.value = parseFloat(e.target.value));
+                $('rbAlpha')?.addEventListener('input', e => riverUniforms.bAlpha.value = parseFloat(e.target.value) / 100);
+            }
+        }
+
+        // ── BUILD MATERIAL BAR ─────────────────────────────────
+        const matBar = document.getElementById('mat-bar');
+
+        CUBE_TYPES.forEach(ct => {
+            const chip = document.createElement('div');
+            chip.className = 'mat-chip';
+            chip.id = `mat-chip-${ct.id}`;
+            chip.style.setProperty('--chip-color', ct.accentColor);
+
+            const iconWrap = document.createElement('div');
+            iconWrap.className = 'mat-icon';
+            iconWrap.innerHTML = ct.iconSVG(ct.accentColor);
+
+            const label = document.createElement('div');
+            label.className = 'mat-label';
+            label.textContent = ct.label;
+
+            chip.appendChild(iconWrap);
+            chip.appendChild(label);
+
+            chip.addEventListener('click', () => {
+                if (activeTool === ct.id && drawer.classList.contains('open')) {
+                    closeDrawer();
+                } else {
+                    setTool(ct.id);
+                }
+            });
+            matBar.appendChild(chip);
+        });
+
+        // Separator
+        const sep = document.createElement('div');
+        sep.style.cssText = 'width:1px;height:50px;background:#1a1a22;margin:0 6px;align-self:center;';
+        matBar.appendChild(sep);
+
+        // Erase chip in mat-bar
+        const eraseChip = document.createElement('div');
+        eraseChip.className = 'mat-chip';
+        eraseChip.id = 'mat-chip-erase';
+        eraseChip.style.setProperty('--chip-color', '#eb4b6e');
+        eraseChip.innerHTML = `
+    <div class="mat-icon">
+        <svg viewBox="0 0 52 44" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="26,2 50,14 26,26 2,14"   fill="#eb4b6e" fill-opacity=".18"/>
+            <polygon points="2,14 26,26 26,42 2,30"   fill="#eb4b6e" fill-opacity=".12"/>
+            <polygon points="50,14 26,26 26,42 50,30" fill="#eb4b6e" fill-opacity=".08"/>
+            <line x1="14" y1="10" x2="38" y2="34" stroke="#eb4b6e" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="38" y1="10" x2="14" y2="34" stroke="#eb4b6e" stroke-width="2.5" stroke-linecap="round"/>
+            <polygon points="26,2 50,14 26,26 2,14"   fill="none" stroke="#eb4b6e" stroke-width="1.2" stroke-opacity=".5"/>
+            <polygon points="2,14 26,26 26,42 2,30"   fill="none" stroke="#eb4b6e" stroke-width="1.2" stroke-opacity=".5"/>
+            <polygon points="50,14 26,26 26,42 50,30" fill="none" stroke="#eb4b6e" stroke-width="1.2" stroke-opacity=".5"/>
+        </svg>
+    </div>
+    <div class="mat-label">Erase</div>`;
+        eraseChip.addEventListener('click', () => setTool('erase'));
+        matBar.appendChild(eraseChip);
+
+        // ── GLOBAL TOOLBAR CONTROLS ────────────────────────────
+        document.getElementById('colA').addEventListener('input', e => {
+            const c = e.target.value;
+            ditherUniforms.colorA.value.set(c); riverUniforms.colorA.value.set(c);
+            activeCubes.forEach(m => { const def = CUBE_TYPES.find(ct => ct.id === m.userData.cubeTypeId); if (def?.updateColor) def.updateColor(m, c); });
+            // update dither drawer if open
+            const dca = document.getElementById('dColA'); if (dca) dca.value = c;
+            const rca = document.getElementById('rColA'); if (rca) rca.value = c;
+            // re-render mat-chip icons with new color for solid
+            refreshSolidChipIcon(c);
+        });
+        document.getElementById('colB').addEventListener('input', e => {
+            ditherUniforms.colorB.value.set(e.target.value); riverUniforms.colorB.value.set(e.target.value);
+            const dcb = document.getElementById('dColB'); if (dcb) dcb.value = e.target.value;
+        });
+        document.getElementById('split').addEventListener('input', e => {
+            ditherUniforms.splitY.value = (parseFloat(e.target.value) / 50) * (CELL_SIZE / 2);
+            const ds = document.getElementById('dSplit'); if (ds) ds.value = e.target.value;
+        });
+
+        function refreshSolidChipIcon(col) {
+            const chip = document.getElementById('mat-chip-cube-solid');
+            if (chip) { const iconWrap = chip.querySelector('.mat-icon'); const ct = CUBE_TYPES.find(c => c.id === 'cube-solid'); if (ct && iconWrap) iconWrap.innerHTML = ct.iconSVG(col); }
+        }
+
+        UI.btnTop.addEventListener('click', () => setTool('col-top'));
+        UI.btnLeft.addEventListener('click', () => setTool('col-left'));
+        UI.btnRight.addEventListener('click', () => setTool('col-right'));
+        UI.btnLine.addEventListener('click', () => setTool('col-line'));
+        UI.btnErase.addEventListener('click', () => setTool('erase'));
+        document.getElementById('btn-height-up').addEventListener('click', () => updateHeightLayer(1));
+        document.getElementById('btn-height-down').addEventListener('click', () => updateHeightLayer(-1));
+        document.getElementById('btn-rot-cw').addEventListener('click', () => rotateCanvas(1));
+        document.getElementById('btn-rot-ccw').addEventListener('click', () => rotateCanvas(-1));
+        UI.cubeTab.addEventListener('click', () => { setLayer('cube'); setTool(CUBE_TYPES[0].id); });
+        UI.colTab.addEventListener('click', () => { setLayer('collider'); setTool('col-top'); });
+
+        // Swatches
+        const swatchesContainer = document.getElementById('swatches');
+        PALETTE.forEach((hex, i) => {
+            const dot = document.createElement('div');
+            dot.className = 'color-dot' + (i === 0 ? ' active' : '');
+            dot.style.background = hex;
+            dot.addEventListener('click', () => {
+                ditherUniforms.colorA.value.set(hex); riverUniforms.colorA.value.set(hex);
+                document.getElementById('colA').value = hex;
+                document.querySelectorAll('.color-dot').forEach((d, j) => d.classList.toggle('active', j === i));
+                activeCubes.forEach(m => { const def = CUBE_TYPES.find(ct => ct.id === m.userData.cubeTypeId); if (def?.updateColor) def.updateColor(m, hex); });
+                refreshSolidChipIcon(hex);
+            });
+            swatchesContainer.appendChild(dot);
+        });
+
+        document.getElementById('btn-clear').addEventListener('click', () => {
+            clearEraseHighlights();
+            if (activeLayer === 'cube') { activeCubes.forEach(m => scene.remove(m)); activeCubes.clear(); }
+            else { activeColliders.forEach(m => scene.remove(m)); activeColliders.clear(); activeLines.forEach(l => scene.remove(l)); activeLines.length = 0; lineStartNode = null; }
+        });
+
+        function rotateCanvas(dir) {
+            const angle = dir * (Math.PI / 2), offset = new THREE.Vector3().copy(camera.position).sub(controls.target);
+            offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
+            camera.position.copy(controls.target).add(offset); controls.update();
+        }
+        function updateHeightLayer(delta) {
+            activeHeightIndex = Math.max(-5, Math.min(10, activeHeightIndex + delta));
+            document.getElementById('height-label').textContent = activeHeightIndex;
+            const y = activeHeightIndex * CELL_SIZE;
+            interactionPlane.position.y = y; gridHelper.position.y = y - 0.01; tileOutlineGroup.position.y = y;
+            hidePreviews(); clearEraseHighlights();
+        }
+
+        container.addEventListener('mousemove', updatePreviews);
+        container.addEventListener('mousedown', handleDrawingClick);
+        container.addEventListener('mouseleave', () => { hidePreviews(); clearEraseHighlights(); });
+
+        window.addEventListener('resize', () => {
+            const a = container.clientWidth / container.clientHeight;
+            camera.left = -frustumSize * a / 2; camera.right = frustumSize * a / 2;
+            camera.top = frustumSize / 2; camera.bottom = -frustumSize / 2;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
+        animate();
+
+        setTool(CUBE_TYPES[0].id);
+    </script>
+</body>
+
+</html>

@@ -1,782 +1,1145 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Iso Drawing Tool v6</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0a0d;font-family:'Courier New',monospace;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px;gap:16px}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iso Drawing Tool v6</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
 
-/* ── Drawing App ─────────────────────────────── */
-#app{display:flex;flex-direction:column;height:580px;width:100%;max-width:900px;background:#111116;border-radius:6px;overflow:hidden;border:1px solid #1e1e1e}
-#toolbar{display:flex;align-items:center;gap:0;border-bottom:1px solid #1e1e1e;background:#0d0d10;flex-shrink:0;flex-wrap:wrap}
-.tb-section{display:flex;align-items:center;gap:4px;padding:7px 10px;border-right:1px solid #1a1a1a}
-.tb-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#333;margin-right:2px;white-space:nowrap}
-.tool-btn{display:flex;align-items:center;gap:5px;padding:5px 9px;border:1px solid #222;border-radius:4px;cursor:pointer;background:transparent;color:#555;font-size:9px;font-family:'Courier New',monospace;letter-spacing:.08em;text-transform:uppercase;transition:all .1s;white-space:nowrap}
-.tool-btn svg{flex-shrink:0}
-.tool-btn:hover{background:#161616;color:#888;border-color:#333}
-.tool-btn.active{background:#1a1a1a;color:#3ecfb2;border-color:#3ecfb2}
-.tool-btn.col-btn.active{color:#4eff91;border-color:#4eff91}
-.color-dot{width:14px;height:14px;border-radius:50%;border:1.5px solid transparent;cursor:pointer;flex-shrink:0;transition:transform .1s}
-.color-dot:hover{transform:scale(1.2)}
-.color-dot.active{border-color:#fff}
-.tb-mini{padding:4px 8px;border:1px solid #1e1e1e;border-radius:3px;font-size:9px;font-family:'Courier New',monospace;letter-spacing:.06em;text-transform:uppercase;color:#333;background:transparent;cursor:pointer}
-.tb-mini:hover{color:#888;border-color:#333}
-/* Save button — prominent accent */
-.tb-save{display:flex;align-items:center;gap:5px;padding:5px 12px;border:1px solid #3ecfb2;border-radius:4px;cursor:pointer;background:rgba(62,207,178,0.07);color:#3ecfb2;font-size:9px;font-family:'Courier New',monospace;letter-spacing:.1em;text-transform:uppercase;transition:all .15s;white-space:nowrap}
-.tb-save:hover{background:rgba(62,207,178,0.16);box-shadow:0 0 10px rgba(62,207,178,0.15)}
-.tb-save svg{flex-shrink:0}
-#layer-bar{display:flex;align-items:center;border-bottom:1px solid #1a1a1a;background:#0a0a0c;flex-shrink:0}
-.layer-tab{padding:5px 14px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#2a2a2a;cursor:pointer;border-right:1px solid #141414;border-bottom:2px solid transparent;transition:all .1s}
-.layer-tab:hover{color:#555}
-.layer-tab.active-cube{color:#3ecfb2;border-bottom-color:#3ecfb2}
-.layer-tab.active-col{color:#4eff91;border-bottom-color:#4eff91}
-#layer-hint{flex:1;padding:5px 12px;font-size:9px;color:#1e1e1e;letter-spacing:.08em}
-#cvwrap{flex:1;position:relative;overflow:hidden}
-canvas{position:absolute;top:0;left:0;width:100%;height:100%}
-#c-grid{z-index:1}#c-cube{z-index:2}#c-col{z-index:3}#c-hit{z-index:4}
-#statusbar{padding:5px 12px;border-top:1px solid #141414;background:#0d0d10;font-size:9px;letter-spacing:.08em;color:#3a3a3a;flex-shrink:0}
+    body {
+      background: #0a0a0d;
+      font-family: 'Courier New', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      gap: 16px
+    }
 
-/* ── Grid Panel ───────────────────────────────── */
-#grid-panel{width:100%;max-width:900px;background:#111116;border:1px solid #1e1e1e;border-radius:6px;overflow:hidden}
-#grid-header{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #1a1a1a;background:#0d0d10}
-#grid-header h2{font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:#3a3a3a;font-weight:400}
-#grid-header span{font-size:9px;letter-spacing:.08em;color:#222}
-#grid-canvas-wrap{position:relative;overflow:hidden;cursor:crosshair}
-#grid-canvas-wrap canvas{display:block}
-#gc-bg{position:absolute;top:0;left:0}
-#gc-obj{position:absolute;top:0;left:0}
-#gc-ui{position:absolute;top:0;left:0}
+    /* ── Drawing App ─────────────────────────────── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 580px;
+      width: 100%;
+      max-width: 900px;
+      background: #111116;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #1e1e1e
+    }
 
-/* ── Stamp tray ───────────────────────────────── */
-#stamp-tray{display:flex;align-items:center;gap:0;border-top:1px solid #1a1a1a;background:#0a0a0c;padding:0;overflow-x:auto;min-height:80px}
-#stamp-tray::-webkit-scrollbar{height:3px}
-#stamp-tray::-webkit-scrollbar-track{background:#111}
-#stamp-tray::-webkit-scrollbar-thumb{background:#222}
-.stamp-item{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 10px;cursor:pointer;border-right:1px solid #141414;flex-shrink:0;transition:background .1s;position:relative;min-width:70px}
-.stamp-item:hover{background:#161616}
-.stamp-item.active-stamp{background:#141420}
-.stamp-item canvas{border:1px solid #222;border-radius:2px;image-rendering:pixelated}
-.stamp-item.active-stamp canvas{border-color:#3ecfb2}
-.stamp-label{font-size:8px;letter-spacing:.08em;color:#2a2a2a;text-align:center;white-space:nowrap}
-.stamp-item.active-stamp .stamp-label{color:#3ecfb2}
-.stamp-del{position:absolute;top:4px;right:4px;width:12px;height:12px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:2px;font-size:8px;color:#333;cursor:pointer;display:none;align-items:center;justify-content:center;line-height:1}
-.stamp-item:hover .stamp-del{display:flex}
-.stamp-del:hover{color:#c94b6e;border-color:#c94b6e}
-.stamp-empty{padding:16px 20px;font-size:9px;letter-spacing:.1em;color:#1e1e1e;text-transform:uppercase}
-</style>
+    #toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border-bottom: 1px solid #1e1e1e;
+      background: #0d0d10;
+      flex-shrink: 0;
+      flex-wrap: wrap
+    }
+
+    .tb-section {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 7px 10px;
+      border-right: 1px solid #1a1a1a
+    }
+
+    .tb-label {
+      font-size: 9px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #333;
+      margin-right: 2px;
+      white-space: nowrap
+    }
+
+    .tool-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 9px;
+      border: 1px solid #222;
+      border-radius: 4px;
+      cursor: pointer;
+      background: transparent;
+      color: #CCC;
+      font-size: 9px;
+      font-family: 'Courier New', monospace;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      transition: all .1s;
+      white-space: nowrap
+    }
+
+    .tool-btn svg {
+      flex-shrink: 0
+    }
+
+    .tool-btn:hover {
+      background: #161616;
+      color: #888;
+      border-color: #333
+    }
+
+    .tool-btn.active {
+      background: #1a1a1a;
+      color: #3ecfb2;
+      border-color: #3ecfb2
+    }
+
+    .tool-btn.col-btn.active {
+      color: #4eff91;
+      border-color: #4eff91
+    }
+
+    .color-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1.5px solid transparent;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform .1s
+    }
+
+    .color-dot:hover {
+      transform: scale(1.2)
+    }
+
+    .color-dot.active {
+      border-color: #fff
+    }
+
+    .tb-mini {
+      padding: 4px 8px;
+      border: 1px solid #1e1e1e;
+      border-radius: 3px;
+      font-size: 9px;
+      font-family: 'Courier New', monospace;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #333;
+      background: transparent;
+      cursor: pointer
+    }
+
+    .tb-mini:hover {
+      color: #888;
+      border-color: #333
+    }
+
+    /* Save button — prominent accent */
+    .tb-save {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border: 1px solid #3ecfb2;
+      border-radius: 4px;
+      cursor: pointer;
+      background: rgba(62, 207, 178, 0.07);
+      color: #3ecfb2;
+      font-size: 9px;
+      font-family: 'Courier New', monospace;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      transition: all .15s;
+      white-space: nowrap
+    }
+
+    .tb-save:hover {
+      background: rgba(62, 207, 178, 0.16);
+      box-shadow: 0 0 10px rgba(62, 207, 178, 0.15)
+    }
+
+    .tb-save svg {
+      flex-shrink: 0
+    }
+
+    #layer-bar {
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid #1a1a1a;
+      background: #0a0a0c;
+      flex-shrink: 0
+    }
+
+    .layer-tab {
+      padding: 5px 14px;
+      font-size: 9px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: #C6C6C6;
+      cursor: pointer;
+      border-right: 1px solid #141414;
+      border-bottom: 2px solid transparent;
+      transition: all .1s
+    }
+
+    .layer-tab:hover {
+      color: #CCC
+    }
+
+    .layer-tab.active-cube {
+      color: #3ecfb2;
+      border-bottom-color: #3ecfb2
+    }
+
+    .layer-tab.active-col {
+      color: #4eff91;
+      border-bottom-color: #4eff91
+    }
+
+    #layer-hint {
+      flex: 1;
+      padding: 5px 12px;
+      font-size: 9px;
+      color: #1e1e1e;
+      letter-spacing: .08em
+    }
+
+    #cvwrap {
+      flex: 1;
+      position: relative;
+      overflow: hidden
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%
+    }
+
+    #c-grid {
+      z-index: 1
+    }
+
+    #c-cube {
+      z-index: 2
+    }
+
+    #c-col {
+      z-index: 3
+    }
+
+    #c-hit {
+      z-index: 4
+    }
+
+    #statusbar {
+      padding: 5px 12px;
+      border-top: 1px solid #141414;
+      background: #0d0d10;
+      font-size: 9px;
+      letter-spacing: .08em;
+      color: #C4C4C4;
+      flex-shrink: 0
+    }
+
+    /* ── Grid Panel ───────────────────────────────── */
+    #grid-panel {
+      width: 100%;
+      max-width: 900px;
+      background: #111116;
+      border: 1px solid #1e1e1e;
+      border-radius: 6px;
+      overflow: hidden
+    }
+
+    #grid-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      border-bottom: 1px solid #1a1a1a;
+      background: #0d0d10
+    }
+
+    #grid-header h2 {
+      font-size: 9px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: #C4C4C4;
+      font-weight: 400
+    }
+
+    #grid-header span {
+      font-size: 9px;
+      letter-spacing: .08em;
+      color: #222
+    }
+
+    #grid-canvas-wrap {
+      position: relative;
+      overflow: hidden;
+      cursor: crosshair
+    }
+
+    #grid-canvas-wrap canvas {
+      display: block
+    }
+
+    #gc-bg {
+      position: absolute;
+      top: 0;
+      left: 0
+    }
+
+    #gc-obj {
+      position: absolute;
+      top: 0;
+      left: 0
+    }
+
+    #gc-ui {
+      position: absolute;
+      top: 0;
+      left: 0
+    }
+
+    /* ── Stamp tray ───────────────────────────────── */
+    #stamp-tray {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border-top: 1px solid #1a1a1a;
+      background: #0a0a0c;
+      padding: 0;
+      overflow-x: auto;
+      min-height: 80px
+    }
+
+    #stamp-tray::-webkit-scrollbar {
+      height: 3px
+    }
+
+    #stamp-tray::-webkit-scrollbar-track {
+      background: #111
+    }
+
+    #stamp-tray::-webkit-scrollbar-thumb {
+      background: #222
+    }
+
+    .stamp-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 10px;
+      cursor: pointer;
+      border-right: 1px solid #141414;
+      flex-shrink: 0;
+      transition: background .1s;
+      position: relative;
+      min-width: 70px
+    }
+
+    .stamp-item:hover {
+      background: #161616
+    }
+
+    .stamp-item.active-stamp {
+      background: #141420
+    }
+
+    .stamp-item canvas {
+      border: 1px solid #222;
+      border-radius: 2px;
+      image-rendering: pixelated
+    }
+
+    .stamp-item.active-stamp canvas {
+      border-color: #3ecfb2
+    }
+
+    .stamp-label {
+      font-size: 8px;
+      letter-spacing: .08em;
+      color: #C6C6C6;
+      text-align: center;
+      white-space: nowrap
+    }
+
+    .stamp-item.active-stamp .stamp-label {
+      color: #3ecfb2
+    }
+
+    .stamp-del {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 12px;
+      height: 12px;
+      background: #1a1a1a;
+      border: 1px solid #C6C6C6;
+      border-radius: 2px;
+      font-size: 8px;
+      color: #333;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      line-height: 1
+    }
+
+    .stamp-item:hover .stamp-del {
+      display: flex
+    }
+
+    .stamp-del:hover {
+      color: #c94b6e;
+      border-color: #c94b6e
+    }
+
+    .stamp-empty {
+      padding: 16px 20px;
+      font-size: 9px;
+      letter-spacing: .1em;
+      color: #1e1e1e;
+      text-transform: uppercase
+    }
+  </style>
 </head>
+
 <body>
 
-<!-- ── Drawing Tool ─────────────────────────────────────────────────────────── -->
-<div id="app">
-  <div id="toolbar">
-    <div class="tb-section">
-      <span class="tb-label">Cube</span>
-      <button class="tool-btn active" id="btn-cube" onclick="setTool('cube')">
-        <svg width="22" height="18" viewBox="0 0 32 26" fill="none">
-          <polygon points="16,2 30,9 16,16 2,9" fill="currentColor" opacity=".9"/>
-          <polygon points="2,9 16,16 16,26 2,19" fill="currentColor" opacity=".5"/>
-          <polygon points="30,9 16,16 16,26 30,19" fill="currentColor" opacity=".7"/>
-        </svg>Cube
-      </button>
-    </div>
-    <div class="tb-section">
-      <span class="tb-label">Collider</span>
-      <button class="tool-btn col-btn" id="btn-col-top" onclick="setTool('col-top')">
-        <svg width="24" height="14" viewBox="0 0 30 18"><polygon points="15,1 29,9 15,17 1,9" fill="none" stroke="currentColor" stroke-width="2"/></svg>Top
-      </button>
-      <button class="tool-btn col-btn" id="btn-col-left" onclick="setTool('col-left')">
-        <svg width="16" height="24" viewBox="0 0 16 26"><polygon points="15,25 1,17 1,1 15,9" fill="none" stroke="currentColor" stroke-width="2"/></svg>Left
-      </button>
-      <button class="tool-btn col-btn" id="btn-col-right" onclick="setTool('col-right')">
-        <svg width="16" height="24" viewBox="0 0 16 26"><polygon points="1,17 15,26 15,1 1,9" fill="none" stroke="currentColor" stroke-width="2"/></svg>Right
-      </button>
-      <button class="tool-btn col-btn" id="btn-col-line" onclick="setTool('col-line')">
-        <svg width="24" height="18" viewBox="0 0 28 20" fill="none">
-          <line x1="3" y1="17" x2="25" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <circle cx="3" cy="17" r="2.5" fill="currentColor"/><circle cx="25" cy="3" r="2.5" fill="currentColor"/>
-        </svg>Line
-      </button>
-    </div>
-    <div class="tb-section">
-      <span class="tb-label">Erase</span>
-      <button class="tool-btn" id="btn-erase" onclick="setTool('erase')">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-          <path d="M20 20H7L3 16l11-11 7 7-2.5 2.5"/><path d="M6 11l7 7"/>
-        </svg>Erase
-      </button>
-    </div>
-    <div class="tb-section" style="flex:1;gap:5px">
-      <span class="tb-label">Color</span>
-      <div id="swatches" style="display:flex;gap:4px;align-items:center"></div>
-    </div>
-    <div class="tb-section" style="gap:6px">
-      <span class="tb-label">Top</span>
-      <div id="swA" style="width:14px;height:14px;border-radius:3px;background:#3ecfb2;border:1px solid #333;cursor:pointer;position:relative;overflow:hidden;flex-shrink:0">
-        <input type="color" id="colA" value="#3ecfb2" style="position:absolute;inset:-6px;opacity:0;cursor:pointer;width:150%;height:150%">
+  <!-- ── Drawing Tool ─────────────────────────────────────────────────────────── -->
+  <div id="app">
+    <div id="toolbar">
+      <div class="tb-section">
+        <span class="tb-label">Cube</span>
+        <button class="tool-btn active" id="btn-cube" onclick="setTool('cube')">
+          <svg width="22" height="18" viewBox="0 0 32 26" fill="none">
+            <polygon points="16,2 30,9 16,16 2,9" fill="currentColor" opacity=".9" />
+            <polygon points="2,9 16,16 16,26 2,19" fill="currentColor" opacity=".5" />
+            <polygon points="30,9 16,16 16,26 30,19" fill="currentColor" opacity=".7" />
+          </svg>Cube
+        </button>
       </div>
-      <span class="tb-label">Bot</span>
-      <div id="swB" style="width:14px;height:14px;border-radius:3px;background:#c94b6e;border:1px solid #333;cursor:pointer;position:relative;overflow:hidden;flex-shrink:0">
-        <input type="color" id="colB" value="#c94b6e" style="position:absolute;inset:-6px;opacity:0;cursor:pointer;width:150%;height:150%">
+      <div class="tb-section">
+        <span class="tb-label">Collider</span>
+        <button class="tool-btn col-btn" id="btn-col-top" onclick="setTool('col-top')">
+          <svg width="24" height="14" viewBox="0 0 30 18">
+            <polygon points="15,1 29,9 15,17 1,9" fill="none" stroke="currentColor" stroke-width="2" />
+          </svg>Top
+        </button>
+        <button class="tool-btn col-btn" id="btn-col-left" onclick="setTool('col-left')">
+          <svg width="16" height="24" viewBox="0 0 16 26">
+            <polygon points="15,25 1,17 1,1 15,9" fill="none" stroke="currentColor" stroke-width="2" />
+          </svg>Left
+        </button>
+        <button class="tool-btn col-btn" id="btn-col-right" onclick="setTool('col-right')">
+          <svg width="16" height="24" viewBox="0 0 16 26">
+            <polygon points="1,17 15,26 15,1 1,9" fill="none" stroke="currentColor" stroke-width="2" />
+          </svg>Right
+        </button>
+        <button class="tool-btn col-btn" id="btn-col-line" onclick="setTool('col-line')">
+          <svg width="24" height="18" viewBox="0 0 28 20" fill="none">
+            <line x1="3" y1="17" x2="25" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            <circle cx="3" cy="17" r="2.5" fill="currentColor" />
+            <circle cx="25" cy="3" r="2.5" fill="currentColor" />
+          </svg>Line
+        </button>
       </div>
-      <span class="tb-label" style="margin-left:4px">Split</span>
-      <input type="range" id="split" min="0" max="100" value="50" step="1"
-        style="-webkit-appearance:none;appearance:none;width:52px;height:2px;background:#1c1c1c;border-radius:2px;outline:none">
+      <div class="tb-section">
+        <span class="tb-label">Erase</span>
+        <button class="tool-btn" id="btn-erase" onclick="setTool('erase')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+            stroke-linecap="round">
+            <path d="M20 20H7L3 16l11-11 7 7-2.5 2.5" />
+            <path d="M6 11l7 7" />
+          </svg>Erase
+        </button>
+      </div>
+      <div class="tb-section" style="flex:1;gap:5px">
+        <span class="tb-label">Color</span>
+        <div id="swatches" style="display:flex;gap:4px;align-items:center"></div>
+      </div>
+      <div class="tb-section" style="gap:6px">
+        <span class="tb-label">Top</span>
+        <div id="swA"
+          style="width:14px;height:14px;border-radius:3px;background:#3ecfb2;border:1px solid #333;cursor:pointer;position:relative;overflow:hidden;flex-shrink:0">
+          <input type="color" id="colA" value="#3ecfb2"
+            style="position:absolute;inset:-6px;opacity:0;cursor:pointer;width:150%;height:150%">
+        </div>
+        <span class="tb-label">Bot</span>
+        <div id="swB"
+          style="width:14px;height:14px;border-radius:3px;background:#c94b6e;border:1px solid #333;cursor:pointer;position:relative;overflow:hidden;flex-shrink:0">
+          <input type="color" id="colB" value="#c94b6e"
+            style="position:absolute;inset:-6px;opacity:0;cursor:pointer;width:150%;height:150%">
+        </div>
+        <span class="tb-label" style="margin-left:4px">Split</span>
+        <input type="range" id="split" min="0" max="100" value="50" step="1"
+          style="-webkit-appearance:none;appearance:none;width:52px;height:2px;background:#1c1c1c;border-radius:2px;outline:none">
+      </div>
+      <div class="tb-section" style="gap:6px">
+        <button class="tb-mini" onclick="clearAll()">Clear</button>
+        <!-- ★ Save to grid -->
+        <button class="tb-save" id="btn-save" onclick="saveToGrid()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3v13m0 0-4-4m4 4 4-4" />
+            <rect x="3" y="17" width="18" height="4" rx="1" />
+          </svg>
+          Save to Grid
+        </button>
+      </div>
     </div>
-    <div class="tb-section" style="gap:6px">
-      <button class="tb-mini" onclick="clearAll()">Clear</button>
-      <!-- ★ Save to grid -->
-      <button class="tb-save" id="btn-save" onclick="saveToGrid()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 3v13m0 0-4-4m4 4 4-4"/><rect x="3" y="17" width="18" height="4" rx="1"/>
-        </svg>
-        Save to Grid
-      </button>
+
+    <div id="layer-bar">
+      <div class="layer-tab active-cube" id="tab-cube" onclick="setLayer('cube')">● Cube layer</div>
+      <div class="layer-tab" id="tab-col" onclick="setLayer('collider')">◎ Collider layer</div>
+      <div id="layer-hint">painting cubes</div>
+    </div>
+
+    <div id="cvwrap">
+      <canvas id="c-grid"></canvas>
+      <canvas id="c-cube"></canvas>
+      <canvas id="c-col"></canvas>
+      <canvas id="c-hit"></canvas>
+    </div>
+    <div id="statusbar"><span id="status-msg">click a tile to place a cube</span></div>
+  </div>
+
+  <!-- ── Grid System ──────────────────────────────────────────────────────────── -->
+  <div id="grid-panel">
+    <div id="grid-header">
+      <h2>● Grid System</h2>
+      <span id="grid-status">select a stamp, then click the grid to place</span>
+    </div>
+
+    <!-- Placed objects canvas -->
+    <div id="grid-canvas-wrap" style="height:340px">
+      <canvas id="gc-bg"></canvas>
+      <canvas id="gc-obj"></canvas>
+      <canvas id="gc-ui"></canvas>
+    </div>
+
+    <!-- Stamp tray -->
+    <div id="stamp-tray">
+      <div class="stamp-empty" id="stamp-empty-msg">no saved objects yet — draw something and click "Save to Grid"</div>
     </div>
   </div>
 
-  <div id="layer-bar">
-    <div class="layer-tab active-cube" id="tab-cube" onclick="setLayer('cube')">● Cube layer</div>
-    <div class="layer-tab" id="tab-col" onclick="setLayer('collider')">◎ Collider layer</div>
-    <div id="layer-hint">painting cubes</div>
-  </div>
+  <script>
+    // ════════════════════════════════════════════════════════════════════════════
+    //  DRAWING TOOL
+    // ════════════════════════════════════════════════════════════════════════════
+    const GRID_N = 7;
+    let S = 42;
+    let colorA = '#3ecfb2';
+    let colorB = '#c94b6e';
+    let splitPct = 0.5;
+    let activeTool = 'cube';
+    let activeLayer = 'cube';
+    let lineStart = null;
+    let hoverTile = null;
+    let hoverDot = null;
 
-  <div id="cvwrap">
-    <canvas id="c-grid"></canvas>
-    <canvas id="c-cube"></canvas>
-    <canvas id="c-col"></canvas>
-    <canvas id="c-hit"></canvas>
-  </div>
-  <div id="statusbar"><span id="status-msg">click a tile to place a cube</span></div>
-</div>
+    const cGrid = document.getElementById('c-grid');
+    const cCube = document.getElementById('c-cube');
+    const cCol = document.getElementById('c-col');
+    const cHit = document.getElementById('c-hit');
+    const gx = cGrid.getContext('2d');
+    const cx = cCube.getContext('2d');
+    const lx = cCol.getContext('2d');
 
-<!-- ── Grid System ──────────────────────────────────────────────────────────── -->
-<div id="grid-panel">
-  <div id="grid-header">
-    <h2>● Grid System</h2>
-    <span id="grid-status">select a stamp, then click the grid to place</span>
-  </div>
+    let W, H, OX, OY;
+    let cubes = {};
+    let colliders = [];
 
-  <!-- Placed objects canvas -->
-  <div id="grid-canvas-wrap" style="height:340px">
-    <canvas id="gc-bg"></canvas>
-    <canvas id="gc-obj"></canvas>
-    <canvas id="gc-ui"></canvas>
-  </div>
+    const PALETTE = ['#3ecfb2', '#c94b6e', '#5b9bd5', '#e8a838', '#9b7fd4', '#74c476', '#fa9fb5', '#aaaaaa'];
 
-  <!-- Stamp tray -->
-  <div id="stamp-tray">
-    <div class="stamp-empty" id="stamp-empty-msg">no saved objects yet — draw something and click "Save to Grid"</div>
-  </div>
-</div>
-
-<script>
-// ════════════════════════════════════════════════════════════════════════════
-//  DRAWING TOOL
-// ════════════════════════════════════════════════════════════════════════════
-const GRID_N = 7;
-let S        = 42;
-let colorA   = '#3ecfb2';
-let colorB   = '#c94b6e';
-let splitPct = 0.5;
-let activeTool  = 'cube';
-let activeLayer = 'cube';
-let lineStart   = null;
-let hoverTile   = null;
-let hoverDot    = null;
-
-const cGrid = document.getElementById('c-grid');
-const cCube = document.getElementById('c-cube');
-const cCol  = document.getElementById('c-col');
-const cHit  = document.getElementById('c-hit');
-const gx = cGrid.getContext('2d');
-const cx = cCube.getContext('2d');
-const lx = cCol.getContext('2d');
-
-let W, H, OX, OY;
-let cubes     = {};
-let colliders = [];
-
-const PALETTE = ['#3ecfb2','#c94b6e','#5b9bd5','#e8a838','#9b7fd4','#74c476','#fa9fb5','#aaaaaa'];
-
-function iso(x, y, z) {
-  return [OX + (x - y) * S, OY + (x + y) * 0.5 * S - z * S];
-}
-function hexToRgb(h) {
-  return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
-}
-function shaded(hex, f) {
-  const [r,g,b] = hexToRgb(hex);
-  return `rgb(${Math.min(255,r*f|0)},${Math.min(255,g*f|0)},${Math.min(255,b*f|0)})`;
-}
-
-function drawGrid() {
-  gx.clearRect(0,0,W,H);
-  for (let col=0;col<GRID_N;col++) {
-    for (let row=0;row<GRID_N;row++) {
-      const pts=[iso(col,row,0),iso(col+1,row,0),iso(col+1,row+1,0),iso(col,row+1,0)];
-      const isHov=hoverTile&&activeTool==='cube'&&hoverTile.col===col&&hoverTile.row===row;
-      gx.beginPath();
-      gx.moveTo(pts[0][0],pts[0][1]);
-      pts.slice(1).forEach(p=>gx.lineTo(p[0],p[1]));
-      gx.closePath();
-      gx.fillStyle  =isHov?'rgba(62,207,178,0.12)':'rgba(255,255,255,0.02)';
-      gx.fill();
-      gx.strokeStyle=isHov?'rgba(62,207,178,0.5)':'rgba(255,255,255,0.07)';
-      gx.lineWidth  =isHov?1:0.5;
-      gx.stroke();
+    function iso(x, y, z) {
+      return [OX + (x - y) * S, OY + (x + y) * 0.5 * S - z * S];
     }
-  }
-}
-
-function drawFace(ctx2, verts3d, light, splitZ, cA, cB) {
-  const zs=verts3d.map(v=>v[2]);
-  const maxZ=Math.max(...zs),minZ=Math.min(...zs),n=verts3d.length;
-  function proj(v){return iso(v[0],v[1],v[2]);}
-  function fill(pts3d,color){
-    if(pts3d.length<3)return;
-    const pts=pts3d.map(proj);
-    ctx2.beginPath();ctx2.moveTo(pts[0][0],pts[0][1]);
-    for(let i=1;i<pts.length;i++)ctx2.lineTo(pts[i][0],pts[i][1]);
-    ctx2.closePath();ctx2.fillStyle=shaded(color,light);ctx2.fill();
-  }
-  function outline(pts3d){
-    const pts=pts3d.map(proj);
-    ctx2.beginPath();ctx2.moveTo(pts[0][0],pts[0][1]);
-    for(let i=1;i<pts.length;i++)ctx2.lineTo(pts[i][0],pts[i][1]);
-    ctx2.closePath();ctx2.strokeStyle='rgba(0,0,0,0.4)';ctx2.lineWidth=1.2;ctx2.setLineDash([]);ctx2.stroke();
-  }
-  function crossPt(a,b){const t=(splitZ-a[2])/(b[2]-a[2]);return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,splitZ];}
-  if(splitZ>=maxZ){fill(verts3d,cB);outline(verts3d);return;}
-  if(splitZ<=minZ){fill(verts3d,cA);outline(verts3d);return;}
-  const upper=[],lower=[],seam=[];
-  for(let i=0;i<n;i++){
-    const a=verts3d[i],b=verts3d[(i+1)%n];
-    const aUp=a[2]>splitZ,bUp=b[2]>splitZ;
-    if(aUp)upper.push(a);else lower.push(a);
-    if(aUp!==bUp){const cp=crossPt(a,b);upper.push(cp);lower.push(cp);seam.push(cp);}
-  }
-  fill(upper,cA);fill(lower,cB);
-  if(seam.length===2){
-    const[p0,p1]=seam.map(proj);
-    ctx2.beginPath();ctx2.moveTo(p0[0],p0[1]);ctx2.lineTo(p1[0],p1[1]);
-    ctx2.strokeStyle='rgba(0,0,0,0.45)';ctx2.lineWidth=1.2;ctx2.stroke();
-  }
-  outline(verts3d);
-}
-
-function renderCube(ctx2, col, row, alpha) {
-  ctx2.globalAlpha=alpha;
-  const splitZ=Math.max(0.001,Math.min(0.999,splitPct));
-  const v=[[col,row,1],[col+1,row,1],[col+1,row+1,1],[col,row+1,1],[col,row,0],[col+1,row,0],[col+1,row+1,0],[col,row+1,0]];
-  drawFace(ctx2,[v[3],v[2],v[6],v[7]],0.70,splitZ,colorA,colorB);
-  drawFace(ctx2,[v[1],v[2],v[6],v[5]],0.88,splitZ,colorA,colorB);
-  drawFace(ctx2,[v[0],v[1],v[2],v[3]],1.12,splitZ,colorA,colorB);
-  ctx2.globalAlpha=1;
-}
-
-function drawCubes() {
-  cx.clearRect(0,0,W,H);
-  for(const key in cubes){
-    const[c,r]=key.split(',').map(Number);
-    renderCube(cx,c,r,1);
-  }
-  if(hoverTile&&activeTool==='cube'&&!cubes[`${hoverTile.col},${hoverTile.row}`])
-    renderCube(cx,hoverTile.col,hoverTile.row,0.35);
-}
-
-function colliderVerts(c) {
-  const col=c.col,row=c.row;
-  if(c.type==='top')return[iso(col,row,1),iso(col+1,row,1),iso(col+1,row+1,1),iso(col,row+1,1)];
-  if(c.type==='left')return[iso(col,row+1,1),iso(col+1,row+1,1),iso(col+1,row+1,0),iso(col,row+1,0)];
-  if(c.type==='right')return[iso(col+1,row,1),iso(col+1,row+1,1),iso(col+1,row+1,0),iso(col+1,row,0)];
-  return[];
-}
-const COL_STROKE='rgba(78,255,145,0.9)',COL_FILL='rgba(78,255,145,0.07)',COL_GHOST='rgba(78,255,145,0.4)',COL_DOT='#4eff91';
-function drawOneCollider(ctx2,c,ghost){
-  if(c.type==='line'){
-    const p1=iso(c.x1,c.y1,1),p2=iso(c.x2,c.y2,1);
-    ctx2.beginPath();ctx2.moveTo(p1[0],p1[1]);ctx2.lineTo(p2[0],p2[1]);
-    ctx2.strokeStyle=ghost?COL_GHOST:COL_STROKE;ctx2.lineWidth=ghost?1.5:2.5;
-    ctx2.setLineDash(ghost?[5,4]:[]);ctx2.lineCap='round';ctx2.stroke();ctx2.setLineDash([]);
-    [p1,p2].forEach(p=>{ctx2.beginPath();ctx2.arc(p[0],p[1],3.5,0,Math.PI*2);ctx2.fillStyle=ghost?COL_GHOST:COL_DOT;ctx2.fill();});
-    return;
-  }
-  const verts=colliderVerts(c);if(!verts.length)return;
-  ctx2.beginPath();ctx2.moveTo(verts[0][0],verts[0][1]);
-  for(let i=1;i<verts.length;i++)ctx2.lineTo(verts[i][0],verts[i][1]);
-  ctx2.closePath();
-  ctx2.fillStyle=ghost?'rgba(78,255,145,0.04)':COL_FILL;ctx2.fill();
-  ctx2.strokeStyle=ghost?COL_GHOST:COL_STROKE;ctx2.lineWidth=ghost?1.2:2;
-  ctx2.setLineDash(ghost?[5,4]:[]);ctx2.stroke();ctx2.setLineDash([]);
-  if(!ghost)verts.forEach(p=>{ctx2.beginPath();ctx2.arc(p[0],p[1],2.5,0,Math.PI*2);ctx2.fillStyle=COL_DOT;ctx2.fill();});
-}
-function drawColliders(){
-  lx.clearRect(0,0,W,H);
-  colliders.forEach(c=>drawOneCollider(lx,c,false));
-  if(hoverTile&&(activeTool==='col-top'||activeTool==='col-left'||activeTool==='col-right'))
-    drawOneCollider(lx,{type:activeTool.replace('col-',''),col:hoverTile.col,row:hoverTile.row},true);
-  if(lineStart){
-    const p=iso(lineStart.gx,lineStart.gy,1);
-    lx.beginPath();lx.arc(p[0],p[1],6,0,Math.PI*2);
-    lx.fillStyle='rgba(78,255,145,0.2)';lx.fill();
-    lx.strokeStyle=COL_DOT;lx.lineWidth=1.8;lx.stroke();
-    if(hoverDot)drawOneCollider(lx,{type:'line',x1:lineStart.gx,y1:lineStart.gy,x2:hoverDot.gx,y2:hoverDot.gy},true);
-  }
-  if(hoverDot&&activeTool==='col-line'){
-    const p=iso(hoverDot.gx,hoverDot.gy,1);
-    lx.beginPath();lx.arc(p[0],p[1],5,0,Math.PI*2);
-    lx.fillStyle='rgba(78,255,145,0.55)';lx.fill();
-  }
-}
-
-function nearestTile(mx,my){
-  const xmy=(mx-OX)/S,xpy=(my-OY)/(0.5*S);
-  const col=Math.floor((xpy+xmy)/2),row=Math.floor((xpy-xmy)/2);
-  if(col>=0&&col<GRID_N&&row>=0&&row<GRID_N)return{col,row};
-  return null;
-}
-function nearestVertex(mx,my){
-  const xmy=(mx-OX)/S,xpy=(my-OY+S)/(0.5*S);
-  const vx=Math.round((xpy+xmy)/2),vy=Math.round((xpy-xmy)/2);
-  const snapped=iso(vx,vy,1);
-  if(Math.hypot(snapped[0]-mx,snapped[1]-my)<S*0.55)return{gx:vx,gy:vy};
-  return null;
-}
-
-cHit.style.cursor='crosshair';
-cHit.addEventListener('mousemove',e=>{
-  const r=cHit.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;
-  if(activeTool==='col-line'){hoverTile=null;hoverDot=nearestVertex(px,py);}
-  else{hoverDot=null;hoverTile=nearestTile(px,py);}
-  drawGrid();drawCubes();drawColliders();
-});
-cHit.addEventListener('mouseleave',()=>{hoverTile=null;hoverDot=null;drawGrid();drawCubes();drawColliders();});
-cHit.addEventListener('click',e=>{
-  const r=cHit.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;
-  if(activeTool==='cube'){
-    const t=nearestTile(px,py);if(!t)return;
-    const k=`${t.col},${t.row}`;
-    if(cubes[k])delete cubes[k];else cubes[k]=1;
-    drawCubes();
-  }else if(activeTool==='col-top'||activeTool==='col-left'||activeTool==='col-right'){
-    const t=nearestTile(px,py);if(!t)return;
-    const face=activeTool.replace('col-','');
-    const idx=colliders.findIndex(c=>c.type===face&&c.col===t.col&&c.row===t.row);
-    if(idx>=0)colliders.splice(idx,1);else colliders.push({type:face,col:t.col,row:t.row});
-    drawColliders();
-  }else if(activeTool==='col-line'){
-    const dot=nearestVertex(px,py);if(!dot)return;
-    if(!lineStart){lineStart=dot;document.getElementById('status-msg').textContent='◎ click second vertex to finish line';}
-    else{
-      if(!(dot.gx===lineStart.gx&&dot.gy===lineStart.gy))
-        colliders.push({type:'line',x1:lineStart.gx,y1:lineStart.gy,x2:dot.gx,y2:dot.gy});
-      lineStart=null;document.getElementById('status-msg').textContent='◎ click a vertex to start next line';
-      drawColliders();
+    function hexToRgb(h) {
+      return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
     }
-  }else if(activeTool==='erase'){
-    const t=nearestTile(px,py);
-    if(t){delete cubes[`${t.col},${t.row}`];colliders=colliders.filter(c=>!(c.col===t.col&&c.row===t.row));}
-    const dot=nearestVertex(px,py);
-    if(dot)colliders=colliders.filter(c=>!(c.type==='line'&&((c.x1===dot.gx&&c.y1===dot.gy)||(c.x2===dot.gx&&c.y2===dot.gy))));
-    drawCubes();drawColliders();
-  }
-});
+    function shaded(hex, f) {
+      const [r, g, b] = hexToRgb(hex);
+      return `rgb(${Math.min(255, r * f | 0)},${Math.min(255, g * f | 0)},${Math.min(255, b * f | 0)})`;
+    }
 
-const MSGS={cube:'click a tile to place / remove a cube','col-top':'◎ top face collider','col-left':'◎ left face collider','col-right':'◎ right face collider','col-line':'◎ line collider — click two vertices',erase:'click to erase cube or collider'};
-function setTool(t){
-  activeTool=t;lineStart=null;hoverTile=null;hoverDot=null;
-  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
-  const map={cube:'btn-cube','col-top':'btn-col-top','col-left':'btn-col-left','col-right':'btn-col-right','col-line':'btn-col-line',erase:'btn-erase'};
-  if(map[t])document.getElementById(map[t]).classList.add('active');
-  setLayer(t.startsWith('col-')?'collider':(t==='erase'?activeLayer:'cube'));
-  document.getElementById('status-msg').textContent=MSGS[t]||'';
-  drawGrid();drawCubes();drawColliders();
-}
-function setLayer(layer){
-  activeLayer=layer;
-  document.getElementById('tab-cube').className='layer-tab'+(layer==='cube'?' active-cube':'');
-  document.getElementById('tab-col').className='layer-tab'+(layer==='collider'?' active-col':'');
-  document.getElementById('layer-hint').textContent=layer==='collider'?'painting colliders — green = physics boundaries':'painting cubes';
-}
+    function drawGrid() {
+      gx.clearRect(0, 0, W, H);
+      for (let col = 0; col < GRID_N; col++) {
+        for (let row = 0; row < GRID_N; row++) {
+          const pts = [iso(col, row, 0), iso(col + 1, row, 0), iso(col + 1, row + 1, 0), iso(col, row + 1, 0)];
+          const isHov = hoverTile && activeTool === 'cube' && hoverTile.col === col && hoverTile.row === row;
+          gx.beginPath();
+          gx.moveTo(pts[0][0], pts[0][1]);
+          pts.slice(1).forEach(p => gx.lineTo(p[0], p[1]));
+          gx.closePath();
+          gx.fillStyle = isHov ? 'rgba(62,207,178,0.12)' : 'rgba(255,255,255,0.02)';
+          gx.fill();
+          gx.strokeStyle = isHov ? 'rgba(62,207,178,0.5)' : 'rgba(255,255,255,0.07)';
+          gx.lineWidth = isHov ? 1 : 0.5;
+          gx.stroke();
+        }
+      }
+    }
 
-const sw=document.getElementById('swatches');
-PALETTE.forEach((col,i)=>{
-  const d=document.createElement('div');
-  d.className='color-dot'+(i===0?' active':'');
-  d.style.background=col;
-  d.onclick=()=>{
-    colorA=col;
-    document.getElementById('swA').style.background=col;
-    document.getElementById('colA').value=col;
-    document.querySelectorAll('.color-dot').forEach((s,j)=>s.classList.toggle('active',j===i));
-    drawCubes();
-  };
-  sw.appendChild(d);
-});
-document.getElementById('colA').addEventListener('input',e=>{colorA=e.target.value;document.getElementById('swA').style.background=colorA;drawCubes();});
-document.getElementById('colB').addEventListener('input',e=>{colorB=e.target.value;document.getElementById('swB').style.background=colorB;drawCubes();});
-document.getElementById('split').addEventListener('input',e=>{splitPct=e.target.value/100;drawCubes();});
-function clearAll(){
-  if(activeLayer==='collider'){colliders=[];lineStart=null;drawColliders();}
-  else{cubes={};drawCubes();}
-}
+    function drawFace(ctx2, verts3d, light, splitZ, cA, cB) {
+      const zs = verts3d.map(v => v[2]);
+      const maxZ = Math.max(...zs), minZ = Math.min(...zs), n = verts3d.length;
+      function proj(v) { return iso(v[0], v[1], v[2]); }
+      function fill(pts3d, color) {
+        if (pts3d.length < 3) return;
+        const pts = pts3d.map(proj);
+        ctx2.beginPath(); ctx2.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++)ctx2.lineTo(pts[i][0], pts[i][1]);
+        ctx2.closePath(); ctx2.fillStyle = shaded(color, light); ctx2.fill();
+      }
+      function outline(pts3d) {
+        const pts = pts3d.map(proj);
+        ctx2.beginPath(); ctx2.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++)ctx2.lineTo(pts[i][0], pts[i][1]);
+        ctx2.closePath(); ctx2.strokeStyle = 'rgba(0,0,0,0.4)'; ctx2.lineWidth = 1.2; ctx2.setLineDash([]); ctx2.stroke();
+      }
+      function crossPt(a, b) { const t = (splitZ - a[2]) / (b[2] - a[2]); return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, splitZ]; }
+      if (splitZ >= maxZ) { fill(verts3d, cB); outline(verts3d); return; }
+      if (splitZ <= minZ) { fill(verts3d, cA); outline(verts3d); return; }
+      const upper = [], lower = [], seam = [];
+      for (let i = 0; i < n; i++) {
+        const a = verts3d[i], b = verts3d[(i + 1) % n];
+        const aUp = a[2] > splitZ, bUp = b[2] > splitZ;
+        if (aUp) upper.push(a); else lower.push(a);
+        if (aUp !== bUp) { const cp = crossPt(a, b); upper.push(cp); lower.push(cp); seam.push(cp); }
+      }
+      fill(upper, cA); fill(lower, cB);
+      if (seam.length === 2) {
+        const [p0, p1] = seam.map(proj);
+        ctx2.beginPath(); ctx2.moveTo(p0[0], p0[1]); ctx2.lineTo(p1[0], p1[1]);
+        ctx2.strokeStyle = 'rgba(0,0,0,0.45)'; ctx2.lineWidth = 1.2; ctx2.stroke();
+      }
+      outline(verts3d);
+    }
 
-function resize(){
-  const wrap=document.getElementById('cvwrap');
-  W=wrap.clientWidth;H=wrap.clientHeight;
-  [cGrid,cCube,cCol,cHit].forEach(c=>{c.width=W;c.height=H;});
-  OX=W/2-S*(GRID_N/2-0.5);OY=H*0.28;
-  drawGrid();drawCubes();drawColliders();
-}
-new ResizeObserver(resize).observe(document.getElementById('cvwrap'));
-resize();
+    function renderCube(ctx2, col, row, alpha) {
+      ctx2.globalAlpha = alpha;
+      const splitZ = Math.max(0.001, Math.min(0.999, splitPct));
+      const v = [[col, row, 1], [col + 1, row, 1], [col + 1, row + 1, 1], [col, row + 1, 1], [col, row, 0], [col + 1, row, 0], [col + 1, row + 1, 0], [col, row + 1, 0]];
+      drawFace(ctx2, [v[3], v[2], v[6], v[7]], 0.70, splitZ, colorA, colorB);
+      drawFace(ctx2, [v[1], v[2], v[6], v[5]], 0.88, splitZ, colorA, colorB);
+      drawFace(ctx2, [v[0], v[1], v[2], v[3]], 1.12, splitZ, colorA, colorB);
+      ctx2.globalAlpha = 1;
+    }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  BLOB SNAPSHOT + STAMP TRAY
-// ════════════════════════════════════════════════════════════════════════════
+    function drawCubes() {
+      cx.clearRect(0, 0, W, H);
+      for (const key in cubes) {
+        const [c, r] = key.split(',').map(Number);
+        renderCube(cx, c, r, 1);
+      }
+      if (hoverTile && activeTool === 'cube' && !cubes[`${hoverTile.col},${hoverTile.row}`])
+        renderCube(cx, hoverTile.col, hoverTile.row, 0.35);
+    }
 
-let stamps = [];       // [{id, blobUrl, imageData, cubesSnap, collidersSnap, colorASnap, colorBSnap, splitSnap}]
-let stampCounter = 0;
-let activeStamp = null; // id of the stamp selected for placing
+    function colliderVerts(c) {
+      const col = c.col, row = c.row;
+      if (c.type === 'top') return [iso(col, row, 1), iso(col + 1, row, 1), iso(col + 1, row + 1, 1), iso(col, row + 1, 1)];
+      if (c.type === 'left') return [iso(col, row + 1, 1), iso(col + 1, row + 1, 1), iso(col + 1, row + 1, 0), iso(col, row + 1, 0)];
+      if (c.type === 'right') return [iso(col + 1, row, 1), iso(col + 1, row + 1, 1), iso(col + 1, row + 1, 0), iso(col + 1, row, 0)];
+      return [];
+    }
+    const COL_STROKE = 'rgba(78,255,145,0.9)', COL_FILL = 'rgba(78,255,145,0.07)', COL_GHOST = 'rgba(78,255,145,0.4)', COL_DOT = '#4eff91';
+    function drawOneCollider(ctx2, c, ghost) {
+      if (c.type === 'line') {
+        const p1 = iso(c.x1, c.y1, 1), p2 = iso(c.x2, c.y2, 1);
+        ctx2.beginPath(); ctx2.moveTo(p1[0], p1[1]); ctx2.lineTo(p2[0], p2[1]);
+        ctx2.strokeStyle = ghost ? COL_GHOST : COL_STROKE; ctx2.lineWidth = ghost ? 1.5 : 2.5;
+        ctx2.setLineDash(ghost ? [5, 4] : []); ctx2.lineCap = 'round'; ctx2.stroke(); ctx2.setLineDash([]);
+        [p1, p2].forEach(p => { ctx2.beginPath(); ctx2.arc(p[0], p[1], 3.5, 0, Math.PI * 2); ctx2.fillStyle = ghost ? COL_GHOST : COL_DOT; ctx2.fill(); });
+        return;
+      }
+      const verts = colliderVerts(c); if (!verts.length) return;
+      ctx2.beginPath(); ctx2.moveTo(verts[0][0], verts[0][1]);
+      for (let i = 1; i < verts.length; i++)ctx2.lineTo(verts[i][0], verts[i][1]);
+      ctx2.closePath();
+      ctx2.fillStyle = ghost ? 'rgba(78,255,145,0.04)' : COL_FILL; ctx2.fill();
+      ctx2.strokeStyle = ghost ? COL_GHOST : COL_STROKE; ctx2.lineWidth = ghost ? 1.2 : 2;
+      ctx2.setLineDash(ghost ? [5, 4] : []); ctx2.stroke(); ctx2.setLineDash([]);
+      if (!ghost) verts.forEach(p => { ctx2.beginPath(); ctx2.arc(p[0], p[1], 2.5, 0, Math.PI * 2); ctx2.fillStyle = COL_DOT; ctx2.fill(); });
+    }
+    function drawColliders() {
+      lx.clearRect(0, 0, W, H);
+      colliders.forEach(c => drawOneCollider(lx, c, false));
+      if (hoverTile && (activeTool === 'col-top' || activeTool === 'col-left' || activeTool === 'col-right'))
+        drawOneCollider(lx, { type: activeTool.replace('col-', ''), col: hoverTile.col, row: hoverTile.row }, true);
+      if (lineStart) {
+        const p = iso(lineStart.gx, lineStart.gy, 1);
+        lx.beginPath(); lx.arc(p[0], p[1], 6, 0, Math.PI * 2);
+        lx.fillStyle = 'rgba(78,255,145,0.2)'; lx.fill();
+        lx.strokeStyle = COL_DOT; lx.lineWidth = 1.8; lx.stroke();
+        if (hoverDot) drawOneCollider(lx, { type: 'line', x1: lineStart.gx, y1: lineStart.gy, x2: hoverDot.gx, y2: hoverDot.gy }, true);
+      }
+      if (hoverDot && activeTool === 'col-line') {
+        const p = iso(hoverDot.gx, hoverDot.gy, 1);
+        lx.beginPath(); lx.arc(p[0], p[1], 5, 0, Math.PI * 2);
+        lx.fillStyle = 'rgba(78,255,145,0.55)'; lx.fill();
+      }
+    }
 
-// ── Render the current scene to a tight-cropped offscreen canvas ─────────────
-function renderSnapshot(scale = 2) {
-  if (Object.keys(cubes).length === 0) return null;
+    function nearestTile(mx, my) {
+      const xmy = (mx - OX) / S, xpy = (my - OY) / (0.5 * S);
+      const col = Math.floor((xpy + xmy) / 2), row = Math.floor((xpy - xmy) / 2);
+      if (col >= 0 && col < GRID_N && row >= 0 && row < GRID_N) return { col, row };
+      return null;
+    }
+    function nearestVertex(mx, my) {
+      const xmy = (mx - OX) / S, xpy = (my - OY + S) / (0.5 * S);
+      const vx = Math.round((xpy + xmy) / 2), vy = Math.round((xpy - xmy) / 2);
+      const snapped = iso(vx, vy, 1);
+      if (Math.hypot(snapped[0] - mx, snapped[1] - my) < S * 0.55) return { gx: vx, gy: vy };
+      return null;
+    }
 
-  // Find bounding box of all cubes in iso screen space
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  for (const key in cubes) {
-    const [c, r] = key.split(',').map(Number);
-    // All 8 corners of this cube
-    const corners = [
-      [c,   r,   0],[c+1, r,   0],[c+1, r+1, 0],[c,   r+1, 0],
-      [c,   r,   1],[c+1, r,   1],[c+1, r+1, 1],[c,   r+1, 1],
-    ];
-    corners.forEach(([x,y,z]) => {
-      const [px, py] = iso(x, y, z);
-      minX = Math.min(minX, px); minY = Math.min(minY, py);
-      maxX = Math.max(maxX, px); maxY = Math.max(maxY, py);
+    cHit.style.cursor = 'crosshair';
+    cHit.addEventListener('mousemove', e => {
+      const r = cHit.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+      if (activeTool === 'col-line') { hoverTile = null; hoverDot = nearestVertex(px, py); }
+      else { hoverDot = null; hoverTile = nearestTile(px, py); }
+      drawGrid(); drawCubes(); drawColliders();
     });
-  }
+    cHit.addEventListener('mouseleave', () => { hoverTile = null; hoverDot = null; drawGrid(); drawCubes(); drawColliders(); });
+    cHit.addEventListener('click', e => {
+      const r = cHit.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+      if (activeTool === 'cube') {
+        const t = nearestTile(px, py); if (!t) return;
+        const k = `${t.col},${t.row}`;
+        if (cubes[k]) delete cubes[k]; else cubes[k] = 1;
+        drawCubes();
+      } else if (activeTool === 'col-top' || activeTool === 'col-left' || activeTool === 'col-right') {
+        const t = nearestTile(px, py); if (!t) return;
+        const face = activeTool.replace('col-', '');
+        const idx = colliders.findIndex(c => c.type === face && c.col === t.col && c.row === t.row);
+        if (idx >= 0) colliders.splice(idx, 1); else colliders.push({ type: face, col: t.col, row: t.row });
+        drawColliders();
+      } else if (activeTool === 'col-line') {
+        const dot = nearestVertex(px, py); if (!dot) return;
+        if (!lineStart) { lineStart = dot; document.getElementById('status-msg').textContent = '◎ click second vertex to finish line'; }
+        else {
+          if (!(dot.gx === lineStart.gx && dot.gy === lineStart.gy))
+            colliders.push({ type: 'line', x1: lineStart.gx, y1: lineStart.gy, x2: dot.gx, y2: dot.gy });
+          lineStart = null; document.getElementById('status-msg').textContent = '◎ click a vertex to start next line';
+          drawColliders();
+        }
+      } else if (activeTool === 'erase') {
+        const t = nearestTile(px, py);
+        if (t) { delete cubes[`${t.col},${t.row}`]; colliders = colliders.filter(c => !(c.col === t.col && c.row === t.row)); }
+        const dot = nearestVertex(px, py);
+        if (dot) colliders = colliders.filter(c => !(c.type === 'line' && ((c.x1 === dot.gx && c.y1 === dot.gy) || (c.x2 === dot.gx && c.y2 === dot.gy))));
+        drawCubes(); drawColliders();
+      }
+    });
 
-  const PAD = 6;
-  minX -= PAD; minY -= PAD; maxX += PAD; maxY += PAD;
-  const sw2 = (maxX - minX) * scale;
-  const sh2 = (maxY - minY) * scale;
-
-  const offscreen = document.createElement('canvas');
-  offscreen.width  = sw2;
-  offscreen.height = sh2;
-  const octx = offscreen.getContext('2d');
-
-  // Temporarily shift origin so rendering lands in offscreen canvas
-  const savedOX = OX, savedOY = OY;
-  OX = (OX - minX) * scale;
-  OY = (OY - minY) * scale;
-  const savedS = S;
-  S *= scale;
-
-  octx.clearRect(0, 0, sw2, sh2);
-
-  // Draw cubes
-  for (const key in cubes) {
-    const [c, r] = key.split(',').map(Number);
-    const splitZ = Math.max(0.001, Math.min(0.999, splitPct));
-    const v = [[c,r,1],[c+1,r,1],[c+1,r+1,1],[c,r+1,1],[c,r,0],[c+1,r,0],[c+1,r+1,0],[c,r+1,0]];
-    drawFace(octx, [v[3],v[2],v[6],v[7]], 0.70, splitZ, colorA, colorB);
-    drawFace(octx, [v[1],v[2],v[6],v[5]], 0.88, splitZ, colorA, colorB);
-    drawFace(octx, [v[0],v[1],v[2],v[3]], 1.12, splitZ, colorA, colorB);
-  }
-
-  // Draw colliders on top
-  colliders.forEach(col => {
-    if (col.type === 'line') {
-      const p1 = iso(col.x1, col.y1, 1), p2 = iso(col.x2, col.y2, 1);
-      octx.beginPath(); octx.moveTo(p1[0],p1[1]); octx.lineTo(p2[0],p2[1]);
-      octx.strokeStyle = 'rgba(78,255,145,0.9)'; octx.lineWidth = 2.5 * scale;
-      octx.setLineDash([]); octx.lineCap = 'round'; octx.stroke();
-    } else {
-      const faceVerts = colliderVerts(col);
-      if (!faceVerts.length) return;
-      octx.beginPath(); octx.moveTo(faceVerts[0][0], faceVerts[0][1]);
-      for (let i = 1; i < faceVerts.length; i++) octx.lineTo(faceVerts[i][0], faceVerts[i][1]);
-      octx.closePath();
-      octx.fillStyle = 'rgba(78,255,145,0.07)'; octx.fill();
-      octx.strokeStyle = 'rgba(78,255,145,0.9)'; octx.lineWidth = 2 * scale; octx.stroke();
+    const MSGS = { cube: 'click a tile to place / remove a cube', 'col-top': '◎ top face collider', 'col-left': '◎ left face collider', 'col-right': '◎ right face collider', 'col-line': '◎ line collider — click two vertices', erase: 'click to erase cube or collider' };
+    function setTool(t) {
+      activeTool = t; lineStart = null; hoverTile = null; hoverDot = null;
+      document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+      const map = { cube: 'btn-cube', 'col-top': 'btn-col-top', 'col-left': 'btn-col-left', 'col-right': 'btn-col-right', 'col-line': 'btn-col-line', erase: 'btn-erase' };
+      if (map[t]) document.getElementById(map[t]).classList.add('active');
+      setLayer(t.startsWith('col-') ? 'collider' : (t === 'erase' ? activeLayer : 'cube'));
+      document.getElementById('status-msg').textContent = MSGS[t] || '';
+      drawGrid(); drawCubes(); drawColliders();
     }
-  });
-
-  // Restore
-  OX = savedOX; OY = savedOY; S = savedS;
-
-  return { canvas: offscreen, w: sw2, h: sh2, scale };
-}
-
-// ── Save current drawing as a stamp ─────────────────────────────────────────
-function saveToGrid() {
-  if (Object.keys(cubes).length === 0) {
-    document.getElementById('status-msg').textContent = '⚠ draw some cubes first';
-    return;
-  }
-
-  const snap = renderSnapshot(2);
-  if (!snap) return;
-
-  snap.canvas.toBlob(blob => {
-    const blobUrl = URL.createObjectURL(blob);
-    const id = ++stampCounter;
-
-    const stamp = {
-      id,
-      blobUrl,
-      // Natural display size (half of @2x)
-      dispW: snap.w / snap.scale,
-      dispH: snap.h / snap.scale,
-      // Deep-copy the current scene state
-      cubesSnap:     JSON.parse(JSON.stringify(cubes)),
-      collidersSnap: JSON.parse(JSON.stringify(colliders)),
-      colorASnap:    colorA,
-      colorBSnap:    colorB,
-      splitSnap:     splitPct,
-    };
-    stamps.push(stamp);
-    addStampToTray(stamp);
-    selectStamp(id);
-    document.getElementById('status-msg').textContent = `✓ saved as object #${id} — click the grid to place`;
-  }, 'image/png');
-}
-
-// ── Add a stamp thumbnail to the tray ────────────────────────────────────────
-function addStampToTray(stamp) {
-  document.getElementById('stamp-empty-msg').style.display = 'none';
-
-  const THUMB = 54;
-  const item = document.createElement('div');
-  item.className = 'stamp-item';
-  item.id = `stamp-item-${stamp.id}`;
-  item.onclick = () => selectStamp(stamp.id);
-
-  // Thumbnail canvas
-  const tc = document.createElement('canvas');
-  const aspect = stamp.dispW / stamp.dispH;
-  if (aspect >= 1) { tc.width = THUMB; tc.height = Math.round(THUMB / aspect); }
-  else             { tc.height = THUMB; tc.width = Math.round(THUMB * aspect); }
-  const tcx = tc.getContext('2d');
-  const img = new Image();
-  img.onload = () => tcx.drawImage(img, 0, 0, tc.width, tc.height);
-  img.src = stamp.blobUrl;
-  tc.style.width  = tc.width + 'px';
-  tc.style.height = tc.height + 'px';
-
-  const label = document.createElement('div');
-  label.className = 'stamp-label';
-  label.textContent = `#${stamp.id}`;
-
-  const del = document.createElement('div');
-  del.className = 'stamp-del';
-  del.title = 'remove';
-  del.textContent = '×';
-  del.onclick = (e) => { e.stopPropagation(); removeStamp(stamp.id); };
-
-  item.appendChild(del);
-  item.appendChild(tc);
-  item.appendChild(label);
-  document.getElementById('stamp-tray').appendChild(item);
-}
-
-function removeStamp(id) {
-  stamps = stamps.filter(s => s.id !== id);
-  const el = document.getElementById(`stamp-item-${id}`);
-  if (el) el.remove();
-  if (activeStamp === id) {
-    activeStamp = null;
-    document.getElementById('grid-status').textContent = 'select a stamp to place';
-  }
-  if (stamps.length === 0)
-    document.getElementById('stamp-empty-msg').style.display = '';
-  renderGridObjects();
-}
-
-function selectStamp(id) {
-  activeStamp = id;
-  document.querySelectorAll('.stamp-item').forEach(el => el.classList.remove('active-stamp'));
-  const el = document.getElementById(`stamp-item-${id}`);
-  if (el) el.classList.add('active-stamp');
-  document.getElementById('grid-status').textContent = `stamp #${id} selected — click the grid to place`;
-}
-
-// ════════════════════════════════════════════════════════════════════════════
-//  GRID SYSTEM
-// ════════════════════════════════════════════════════════════════════════════
-const GCOLS = 12, GROWS = 8;
-let GS = 40;  // grid cell size in pixels
-let GW, GH, GOX, GOY;
-
-const gcBg  = document.getElementById('gc-bg');
-const gcObj = document.getElementById('gc-obj');
-const gcUi  = document.getElementById('gc-ui');
-const gbx = gcBg.getContext('2d');
-const gox = gcObj.getContext('2d');
-const gux = gcUi.getContext('2d');
-
-// Placed objects: [{stampId, gridCol, gridRow}]
-let placedObjects = [];
-let gridHoverCell = null;
-
-function gIso(x, y, z) {
-  return [GOX + (x - y) * GS, GOY + (x + y) * 0.5 * GS - z * GS];
-}
-
-function drawGridBg() {
-  gbx.clearRect(0, 0, GW, GH);
-  // Background
-  gbx.fillStyle = '#0d0d10';
-  gbx.fillRect(0, 0, GW, GH);
-
-  // Grid tiles
-  for (let c = 0; c < GCOLS; c++) {
-    for (let r = 0; r < GROWS; r++) {
-      const pts = [gIso(c,r,0), gIso(c+1,r,0), gIso(c+1,r+1,0), gIso(c,r+1,0)];
-      const isHov = gridHoverCell && gridHoverCell.c === c && gridHoverCell.r === r;
-      gbx.beginPath();
-      gbx.moveTo(pts[0][0], pts[0][1]);
-      pts.slice(1).forEach(p => gbx.lineTo(p[0], p[1]));
-      gbx.closePath();
-      gbx.fillStyle   = isHov ? 'rgba(62,207,178,0.08)' : 'rgba(255,255,255,0.015)';
-      gbx.fill();
-      gbx.strokeStyle = isHov ? 'rgba(62,207,178,0.35)' : 'rgba(255,255,255,0.06)';
-      gbx.lineWidth   = isHov ? 0.8 : 0.4;
-      gbx.stroke();
+    function setLayer(layer) {
+      activeLayer = layer;
+      document.getElementById('tab-cube').className = 'layer-tab' + (layer === 'cube' ? ' active-cube' : '');
+      document.getElementById('tab-col').className = 'layer-tab' + (layer === 'collider' ? ' active-col' : '');
+      document.getElementById('layer-hint').textContent = layer === 'collider' ? 'painting colliders — green = physics boundaries' : 'painting cubes';
     }
-  }
-}
 
-// Render all placed objects onto gc-obj
-function renderGridObjects() {
-  gox.clearRect(0, 0, GW, GH);
+    const sw = document.getElementById('swatches');
+    PALETTE.forEach((col, i) => {
+      const d = document.createElement('div');
+      d.className = 'color-dot' + (i === 0 ? ' active' : '');
+      d.style.background = col;
+      d.onclick = () => {
+        colorA = col;
+        document.getElementById('swA').style.background = col;
+        document.getElementById('colA').value = col;
+        document.querySelectorAll('.color-dot').forEach((s, j) => s.classList.toggle('active', j === i));
+        drawCubes();
+      };
+      sw.appendChild(d);
+    });
+    document.getElementById('colA').addEventListener('input', e => { colorA = e.target.value; document.getElementById('swA').style.background = colorA; drawCubes(); });
+    document.getElementById('colB').addEventListener('input', e => { colorB = e.target.value; document.getElementById('swB').style.background = colorB; drawCubes(); });
+    document.getElementById('split').addEventListener('input', e => { splitPct = e.target.value / 100; drawCubes(); });
+    function clearAll() {
+      if (activeLayer === 'collider') { colliders = []; lineStart = null; drawColliders(); }
+      else { cubes = {}; drawCubes(); }
+    }
 
-  // Sort by painter's order: row+col ascending so back tiles drawn first
-  const sorted = [...placedObjects].sort((a, b) => (a.gridCol + a.gridRow) - (b.gridCol + b.gridRow));
+    function resize() {
+      const wrap = document.getElementById('cvwrap');
+      W = wrap.clientWidth; H = wrap.clientHeight;
+      [cGrid, cCube, cCol, cHit].forEach(c => { c.width = W; c.height = H; });
+      OX = W / 2 - S * (GRID_N / 2 - 0.5); OY = H * 0.28;
+      drawGrid(); drawCubes(); drawColliders();
+    }
+    new ResizeObserver(resize).observe(document.getElementById('cvwrap'));
+    resize();
 
-  sorted.forEach(placed => {
-    const stamp = stamps.find(s => s.id === placed.stampId);
-    if (!stamp) return;
+    // ════════════════════════════════════════════════════════════════════════════
+    //  BLOB SNAPSHOT + STAMP TRAY
+    // ════════════════════════════════════════════════════════════════════════════
 
-    const img = new Image();
-    img.onload = () => {
-      // Anchor: the stamp's "origin" in its own image corresponds to
-      // iso grid corner (0,0,0) → we need to find where that maps
-      // The stamp was rendered with the drawing tool's grid, which has
-      // an OX/OY. We reconstruct the anchor offset.
-      //
-      // The stamp image was rendered at scale=2, cropped to content bounds.
-      // We need to find what grid cell (0,0) of the stamp occupies in
-      // the destination grid.
-      //
-      // Simpler approach: anchor the stamp to the iso top corner of
-      // (gridCol, gridRow) in the destination grid.
-      // The "top" of the stamp bounding box corresponds to the highest
-      // visible cube vertex, which is the top of the iso projection.
-      //
-      // We anchor by the bottom-center of the stamp's bounding box to
-      // the iso(gridCol, gridRow, 0) point.
-      const anchor = gIso(placed.gridCol, placed.gridRow, 0);
-      // Draw stamp centred on anchor, bottom-aligned
-      const dw = stamp.dispW;
-      const dh = stamp.dispH;
-      gox.drawImage(img,
-        anchor[0] - dw / 2,
-        anchor[1] - dh * 0.82,  // slight upward offset so base aligns with tile
-        dw, dh
-      );
-    };
-    img.src = stamp.blobUrl;
-  });
-}
+    let stamps = [];       // [{id, blobUrl, imageData, cubesSnap, collidersSnap, colorASnap, colorBSnap, splitSnap}]
+    let stampCounter = 0;
+    let activeStamp = null; // id of the stamp selected for placing
 
-// Grid hit test: screen → grid cell at z=0
-function gridNearestCell(mx, my) {
-  const xmy = (mx - GOX) / GS;
-  const xpy = (my - GOY) / (0.5 * GS);
-  const c = Math.floor((xpy + xmy) / 2);
-  const r = Math.floor((xpy - xmy) / 2);
-  if (c >= 0 && c < GCOLS && r >= 0 && r < GROWS) return { c, r };
-  return null;
-}
+    // ── Render the current scene to a tight-cropped offscreen canvas ─────────────
+    function renderSnapshot(scale = 2) {
+      if (Object.keys(cubes).length === 0) return null;
 
-// Draw the hover ghost of selected stamp
-function drawGridUi() {
-  gux.clearRect(0, 0, GW, GH);
-  if (!gridHoverCell || !activeStamp) return;
-  const stamp = stamps.find(s => s.id === activeStamp);
-  if (!stamp) return;
+      // Find bounding box of all cubes in iso screen space
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const key in cubes) {
+        const [c, r] = key.split(',').map(Number);
+        // All 8 corners of this cube
+        const corners = [
+          [c, r, 0], [c + 1, r, 0], [c + 1, r + 1, 0], [c, r + 1, 0],
+          [c, r, 1], [c + 1, r, 1], [c + 1, r + 1, 1], [c, r + 1, 1],
+        ];
+        corners.forEach(([x, y, z]) => {
+          const [px, py] = iso(x, y, z);
+          minX = Math.min(minX, px); minY = Math.min(minY, py);
+          maxX = Math.max(maxX, px); maxY = Math.max(maxY, py);
+        });
+      }
 
-  const img = new Image();
-  img.onload = () => {
-    gux.globalAlpha = 0.45;
-    const anchor = gIso(gridHoverCell.c, gridHoverCell.r, 0);
-    gux.drawImage(img,
-      anchor[0] - stamp.dispW / 2,
-      anchor[1] - stamp.dispH * 0.82,
-      stamp.dispW, stamp.dispH
-    );
-    gux.globalAlpha = 1;
-  };
-  img.src = stamp.blobUrl;
-}
+      const PAD = 6;
+      minX -= PAD; minY -= PAD; maxX += PAD; maxY += PAD;
+      const sw2 = (maxX - minX) * scale;
+      const sh2 = (maxY - minY) * scale;
 
-gcUi.addEventListener('mousemove', e => {
-  const r = gcUi.getBoundingClientRect();
-  const px = e.clientX - r.left, py = e.clientY - r.top;
-  gridHoverCell = activeStamp ? gridNearestCell(px, py) : null;
-  drawGridBg();
-  drawGridUi();
-});
-gcUi.addEventListener('mouseleave', () => {
-  gridHoverCell = null;
-  drawGridBg();
-  gux.clearRect(0, 0, GW, GH);
-});
-gcUi.addEventListener('click', e => {
-  if (!activeStamp) return;
-  const r = gcUi.getBoundingClientRect();
-  const cell = gridNearestCell(e.clientX - r.left, e.clientY - r.top);
-  if (!cell) return;
-  placedObjects.push({ stampId: activeStamp, gridCol: cell.c, gridRow: cell.r });
-  renderGridObjects();
-});
-gcUi.addEventListener('contextmenu', e => {
-  e.preventDefault();
-  const r = gcUi.getBoundingClientRect();
-  const cell = gridNearestCell(e.clientX - r.left, e.clientY - r.top);
-  if (!cell) return;
-  // Remove topmost placed object at this cell
-  const idx = placedObjects.map((p,i)=>({p,i})).reverse()
-    .find(({p}) => p.gridCol === cell.c && p.gridRow === cell.r);
-  if (idx !== undefined) {
-    placedObjects.splice(idx.i, 1);
-    renderGridObjects();
-  }
-});
+      const offscreen = document.createElement('canvas');
+      offscreen.width = sw2;
+      offscreen.height = sh2;
+      const octx = offscreen.getContext('2d');
 
-gcUi.style.cursor = 'crosshair';
+      // Temporarily shift origin so rendering lands in offscreen canvas
+      const savedOX = OX, savedOY = OY;
+      OX = (OX - minX) * scale;
+      OY = (OY - minY) * scale;
+      const savedS = S;
+      S *= scale;
 
-function resizeGrid() {
-  const wrap = document.getElementById('grid-canvas-wrap');
-  GW = wrap.clientWidth;
-  GH = wrap.clientHeight;
-  [gcBg, gcObj, gcUi].forEach(c => { c.width = GW; c.height = GH; });
-  GOX = GW * 0.08;
-  GOY = GH * 0.15;
-  GS  = Math.min(GW / (GCOLS * 1.5), GH / (GROWS * 1.5));
-  drawGridBg();
-  renderGridObjects();
-}
-new ResizeObserver(resizeGrid).observe(document.getElementById('grid-canvas-wrap'));
-resizeGrid();
-</script>
+      octx.clearRect(0, 0, sw2, sh2);
+
+      // Draw cubes
+      for (const key in cubes) {
+        const [c, r] = key.split(',').map(Number);
+        const splitZ = Math.max(0.001, Math.min(0.999, splitPct));
+        const v = [[c, r, 1], [c + 1, r, 1], [c + 1, r + 1, 1], [c, r + 1, 1], [c, r, 0], [c + 1, r, 0], [c + 1, r + 1, 0], [c, r + 1, 0]];
+        drawFace(octx, [v[3], v[2], v[6], v[7]], 0.70, splitZ, colorA, colorB);
+        drawFace(octx, [v[1], v[2], v[6], v[5]], 0.88, splitZ, colorA, colorB);
+        drawFace(octx, [v[0], v[1], v[2], v[3]], 1.12, splitZ, colorA, colorB);
+      }
+
+      // Draw colliders on top
+      colliders.forEach(col => {
+        if (col.type === 'line') {
+          const p1 = iso(col.x1, col.y1, 1), p2 = iso(col.x2, col.y2, 1);
+          octx.beginPath(); octx.moveTo(p1[0], p1[1]); octx.lineTo(p2[0], p2[1]);
+          octx.strokeStyle = 'rgba(78,255,145,0.9)'; octx.lineWidth = 2.5 * scale;
+          octx.setLineDash([]); octx.lineCap = 'round'; octx.stroke();
+        } else {
+          const faceVerts = colliderVerts(col);
+          if (!faceVerts.length) return;
+          octx.beginPath(); octx.moveTo(faceVerts[0][0], faceVerts[0][1]);
+          for (let i = 1; i < faceVerts.length; i++) octx.lineTo(faceVerts[i][0], faceVerts[i][1]);
+          octx.closePath();
+          octx.fillStyle = 'rgba(78,255,145,0.07)'; octx.fill();
+          octx.strokeStyle = 'rgba(78,255,145,0.9)'; octx.lineWidth = 2 * scale; octx.stroke();
+        }
+      });
+
+      // Restore
+      OX = savedOX; OY = savedOY; S = savedS;
+
+      return { canvas: offscreen, w: sw2, h: sh2, scale };
+    }
+
+    // ── Save current drawing as a stamp ─────────────────────────────────────────
+    function saveToGrid() {
+      if (Object.keys(cubes).length === 0) {
+        document.getElementById('status-msg').textContent = '⚠ draw some cubes first';
+        return;
+      }
+
+      const snap = renderSnapshot(2);
+      if (!snap) return;
+
+      snap.canvas.toBlob(blob => {
+        const blobUrl = URL.createObjectURL(blob);
+        const id = ++stampCounter;
+
+        const stamp = {
+          id,
+          blobUrl,
+          // Natural display size (half of @2x)
+          dispW: snap.w / snap.scale,
+          dispH: snap.h / snap.scale,
+          // Deep-copy the current scene state
+          cubesSnap: JSON.parse(JSON.stringify(cubes)),
+          collidersSnap: JSON.parse(JSON.stringify(colliders)),
+          colorASnap: colorA,
+          colorBSnap: colorB,
+          splitSnap: splitPct,
+        };
+        stamps.push(stamp);
+        addStampToTray(stamp);
+        selectStamp(id);
+        document.getElementById('status-msg').textContent = `✓ saved as object #${id} — click the grid to place`;
+      }, 'image/png');
+    }
+
+    // ── Add a stamp thumbnail to the tray ────────────────────────────────────────
+    function addStampToTray(stamp) {
+      document.getElementById('stamp-empty-msg').style.display = 'none';
+
+      const THUMB = 54;
+      const item = document.createElement('div');
+      item.className = 'stamp-item';
+      item.id = `stamp-item-${stamp.id}`;
+      item.onclick = () => selectStamp(stamp.id);
+
+      // Thumbnail canvas
+      const tc = document.createElement('canvas');
+      const aspect = stamp.dispW / stamp.dispH;
+      if (aspect >= 1) { tc.width = THUMB; tc.height = Math.round(THUMB / aspect); }
+      else { tc.height = THUMB; tc.width = Math.round(THUMB * aspect); }
+      const tcx = tc.getContext('2d');
+      const img = new Image();
+      img.onload = () => tcx.drawImage(img, 0, 0, tc.width, tc.height);
+      img.src = stamp.blobUrl;
+      tc.style.width = tc.width + 'px';
+      tc.style.height = tc.height + 'px';
+
+      const label = document.createElement('div');
+      label.className = 'stamp-label';
+      label.textContent = `#${stamp.id}`;
+
+      const del = document.createElement('div');
+      del.className = 'stamp-del';
+      del.title = 'remove';
+      del.textContent = '×';
+      del.onclick = (e) => { e.stopPropagation(); removeStamp(stamp.id); };
+
+      item.appendChild(del);
+      item.appendChild(tc);
+      item.appendChild(label);
+      document.getElementById('stamp-tray').appendChild(item);
+    }
+
+    function removeStamp(id) {
+      stamps = stamps.filter(s => s.id !== id);
+      const el = document.getElementById(`stamp-item-${id}`);
+      if (el) el.remove();
+      if (activeStamp === id) {
+        activeStamp = null;
+        document.getElementById('grid-status').textContent = 'select a stamp to place';
+      }
+      if (stamps.length === 0)
+        document.getElementById('stamp-empty-msg').style.display = '';
+      renderGridObjects();
+    }
+
+    function selectStamp(id) {
+      activeStamp = id;
+      document.querySelectorAll('.stamp-item').forEach(el => el.classList.remove('active-stamp'));
+      const el = document.getElementById(`stamp-item-${id}`);
+      if (el) el.classList.add('active-stamp');
+      document.getElementById('grid-status').textContent = `stamp #${id} selected — click the grid to place`;
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════
+    //  GRID SYSTEM
+    // ════════════════════════════════════════════════════════════════════════════
+    const GCOLS = 12, GROWS = 8;
+    let GS = 40;  // grid cell size in pixels
+    let GW, GH, GOX, GOY;
+
+    const gcBg = document.getElementById('gc-bg');
+    const gcObj = document.getElementById('gc-obj');
+    const gcUi = document.getElementById('gc-ui');
+    const gbx = gcBg.getContext('2d');
+    const gox = gcObj.getContext('2d');
+    const gux = gcUi.getContext('2d');
+
+    // Placed objects: [{stampId, gridCol, gridRow}]
+    let placedObjects = [];
+    let gridHoverCell = null;
+
+    function gIso(x, y, z) {
+      return [GOX + (x - y) * GS, GOY + (x + y) * 0.5 * GS - z * GS];
+    }
+
+    function drawGridBg() {
+      gbx.clearRect(0, 0, GW, GH);
+      // Background
+      gbx.fillStyle = '#0d0d10';
+      gbx.fillRect(0, 0, GW, GH);
+
+      // Grid tiles
+      for (let c = 0; c < GCOLS; c++) {
+        for (let r = 0; r < GROWS; r++) {
+          const pts = [gIso(c, r, 0), gIso(c + 1, r, 0), gIso(c + 1, r + 1, 0), gIso(c, r + 1, 0)];
+          const isHov = gridHoverCell && gridHoverCell.c === c && gridHoverCell.r === r;
+          gbx.beginPath();
+          gbx.moveTo(pts[0][0], pts[0][1]);
+          pts.slice(1).forEach(p => gbx.lineTo(p[0], p[1]));
+          gbx.closePath();
+          gbx.fillStyle = isHov ? 'rgba(62,207,178,0.08)' : 'rgba(255,255,255,0.015)';
+          gbx.fill();
+          gbx.strokeStyle = isHov ? 'rgba(62,207,178,0.35)' : 'rgba(255,255,255,0.06)';
+          gbx.lineWidth = isHov ? 0.8 : 0.4;
+          gbx.stroke();
+        }
+      }
+    }
+
+    // Render all placed objects onto gc-obj
+    function renderGridObjects() {
+      gox.clearRect(0, 0, GW, GH);
+
+      // Sort by painter's order: row+col ascending so back tiles drawn first
+      const sorted = [...placedObjects].sort((a, b) => (a.gridCol + a.gridRow) - (b.gridCol + b.gridRow));
+
+      sorted.forEach(placed => {
+        const stamp = stamps.find(s => s.id === placed.stampId);
+        if (!stamp) return;
+
+        const img = new Image();
+        img.onload = () => {
+          // Anchor: the stamp's "origin" in its own image corresponds to
+          // iso grid corner (0,0,0) → we need to find where that maps
+          // The stamp was rendered with the drawing tool's grid, which has
+          // an OX/OY. We reconstruct the anchor offset.
+          //
+          // The stamp image was rendered at scale=2, cropped to content bounds.
+          // We need to find what grid cell (0,0) of the stamp occupies in
+          // the destination grid.
+          //
+          // Simpler approach: anchor the stamp to the iso top corner of
+          // (gridCol, gridRow) in the destination grid.
+          // The "top" of the stamp bounding box corresponds to the highest
+          // visible cube vertex, which is the top of the iso projection.
+          //
+          // We anchor by the bottom-center of the stamp's bounding box to
+          // the iso(gridCol, gridRow, 0) point.
+          const anchor = gIso(placed.gridCol, placed.gridRow, 0);
+          // Draw stamp centred on anchor, bottom-aligned
+          const dw = stamp.dispW;
+          const dh = stamp.dispH;
+          gox.drawImage(img,
+            anchor[0] - dw / 2,
+            anchor[1] - dh * 0.82,  // slight upward offset so base aligns with tile
+            dw, dh
+          );
+        };
+        img.src = stamp.blobUrl;
+      });
+    }
+
+    // Grid hit test: screen → grid cell at z=0
+    function gridNearestCell(mx, my) {
+      const xmy = (mx - GOX) / GS;
+      const xpy = (my - GOY) / (0.5 * GS);
+      const c = Math.floor((xpy + xmy) / 2);
+      const r = Math.floor((xpy - xmy) / 2);
+      if (c >= 0 && c < GCOLS && r >= 0 && r < GROWS) return { c, r };
+      return null;
+    }
+
+    // Draw the hover ghost of selected stamp
+    function drawGridUi() {
+      gux.clearRect(0, 0, GW, GH);
+      if (!gridHoverCell || !activeStamp) return;
+      const stamp = stamps.find(s => s.id === activeStamp);
+      if (!stamp) return;
+
+      const img = new Image();
+      img.onload = () => {
+        gux.globalAlpha = 0.45;
+        const anchor = gIso(gridHoverCell.c, gridHoverCell.r, 0);
+        gux.drawImage(img,
+          anchor[0] - stamp.dispW / 2,
+          anchor[1] - stamp.dispH * 0.82,
+          stamp.dispW, stamp.dispH
+        );
+        gux.globalAlpha = 1;
+      };
+      img.src = stamp.blobUrl;
+    }
+
+    gcUi.addEventListener('mousemove', e => {
+      const r = gcUi.getBoundingClientRect();
+      const px = e.clientX - r.left, py = e.clientY - r.top;
+      gridHoverCell = activeStamp ? gridNearestCell(px, py) : null;
+      drawGridBg();
+      drawGridUi();
+    });
+    gcUi.addEventListener('mouseleave', () => {
+      gridHoverCell = null;
+      drawGridBg();
+      gux.clearRect(0, 0, GW, GH);
+    });
+    gcUi.addEventListener('click', e => {
+      if (!activeStamp) return;
+      const r = gcUi.getBoundingClientRect();
+      const cell = gridNearestCell(e.clientX - r.left, e.clientY - r.top);
+      if (!cell) return;
+      placedObjects.push({ stampId: activeStamp, gridCol: cell.c, gridRow: cell.r });
+      renderGridObjects();
+    });
+    gcUi.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      const r = gcUi.getBoundingClientRect();
+      const cell = gridNearestCell(e.clientX - r.left, e.clientY - r.top);
+      if (!cell) return;
+      // Remove topmost placed object at this cell
+      const idx = placedObjects.map((p, i) => ({ p, i })).reverse()
+        .find(({ p }) => p.gridCol === cell.c && p.gridRow === cell.r);
+      if (idx !== undefined) {
+        placedObjects.splice(idx.i, 1);
+        renderGridObjects();
+      }
+    });
+
+    gcUi.style.cursor = 'crosshair';
+
+    function resizeGrid() {
+      const wrap = document.getElementById('grid-canvas-wrap');
+      GW = wrap.clientWidth;
+      GH = wrap.clientHeight;
+      [gcBg, gcObj, gcUi].forEach(c => { c.width = GW; c.height = GH; });
+      GOX = GW * 0.08;
+      GOY = GH * 0.15;
+      GS = Math.min(GW / (GCOLS * 1.5), GH / (GROWS * 1.5));
+      drawGridBg();
+      renderGridObjects();
+    }
+    new ResizeObserver(resizeGrid).observe(document.getElementById('grid-canvas-wrap'));
+    resizeGrid();
+  </script>
 </body>
+
 </html>

@@ -1,0 +1,213 @@
+/* Modal.css - Dedicated styles for modal components including settings modal */
+/* This file contains all modal-related styling for the Pixel Audio Studio application */
+
+/* ============================================= */
+/* 1. MODAL OVERLAY - Full screen backdrop */
+/* ============================================= */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+.modal-overlay.open {
+    display: flex;
+}
+
+/* ============================================= */
+/* 2. MODAL STRUCTURE - Base modal container */
+/* ============================================= */
+.modal {
+    background: var(--bg-dark);
+    border: 1px solid var(--border-color);
+    width: 480px;
+    max-width: 90%;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    padding: 16px;
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Make modal wider to accommodate four tabs */
+.modal-overlay .modal {
+    width: 480px;
+    max-width: 90%;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+/* ============================================= */
+/* 3. MODAL HEADER - Title and subtitle area */
+/* ============================================= */
+.modal-header {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h2 {
+    color: var(--accent-primary);
+    font-size: 1.1rem;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Fix header vertical alignment - using exact pixelTilemaps styles */
+.modal header {
+    flex-shrink: 0;
+    padding: 16px 16px 20px 16px;
+    width: 100%;
+    display: block;
+    margin-bottom: 12px;
+}
+
+/* Modal title styling */
+.modal-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #a855f7;
+    padding: 0px 0px 12px 0px;
+}
+
+.modal-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin: 0;
+    margin-bottom: 10px;
+}
+
+/* ============================================= */
+/* 4. MODAL CLOSE BUTTON - Top right close button */
+/* ============================================= */
+.modal-close-btn {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.modal-close-btn:hover {
+    color: var(--accent-secondary);
+    background: rgba(255, 0, 110, 0.1);
+}
+
+/* ============================================= */
+/* 5. MODAL CONTENT - Scrollable content area */
+/* ============================================= */
+.modal-content {
+    max-height: 50vh;
+    overflow-y: auto;
+    padding-right: 10px;
+    margin-right: -10px;
+}
+
+/* ============================================= */
+/* 6. MODAL CONTENT WRAPPER - Main content container */
+/* ============================================= */
+.modal-content-wrapper {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    max-height: 70vh;
+    padding: 0 16px 16px 16px;
+    margin-top: 20px;
+    box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-primary) var(--bg-dark);
+    display: flex;
+    flex-direction: column;
+}
+
+/* ============================================= */
+/* 7. MODAL SCROLLBAR STYLING - Custom scrollbar design */
+/* ============================================= */
+.modal-content-wrapper::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-content-wrapper::-webkit-scrollbar-track {
+    background: var(--bg-dark);
+    border-radius: 4px;
+}
+
+.modal-content-wrapper::-webkit-scrollbar-thumb {
+    background: var(--accent-primary);
+    border-radius: 4px;
+}
+
+.modal-content-wrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-secondary);
+}
+
+/* ============================================= */
+/* 8. MODAL ACTIONS - Footer button area */
+/* ============================================= */
+.modal-actions {
+    border-top: 1px solid var(--border-color);
+    padding-top: 12px;
+    margin-top: 12px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 2px;
+}
+
+.modal-actions .btn {
+    min-width: 100px;
+    padding: 7px 14px;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.modal-actions .btn.primary {
+    background: var(--accent-primary);
+    color: var(--bg-dark);
+    border: 1px solid var(--accent-primary);
+    font-weight: 600;
+}
+
+.modal-actions .btn.primary:hover {
+    background: #00cc33;
+    border-color: #00cc33;
+    box-shadow: 0 0 12px rgba(0, 255, 65, 0.4);
+}
+
+.modal-actions .btn.cancel-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.modal-actions .btn.cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+}
+
+.modal-actions .btn {
+    min-width: 100px;
+}

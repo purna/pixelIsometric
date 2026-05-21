@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,15 +8,15 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
 
-        body { 
-            margin: 0; 
-            overflow: hidden; 
-            background: #0d0d10; 
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #0d0d10;
             font-family: 'Space Mono', monospace;
             color: #4a4a60;
             user-select: none;
         }
-        
+
         #app-layout {
             display: flex;
             flex-direction: column;
@@ -45,7 +46,7 @@
             font-size: 10px;
             letter-spacing: .12em;
             text-transform: uppercase;
-            color: #55556a;
+            color: #CCC56a;
             margin-right: 4px;
             white-space: nowrap;
         }
@@ -100,17 +101,23 @@
             flex-shrink: 0;
             transition: transform .1s;
         }
-        .color-dot:hover { transform: scale(1.15); }
-        .color-dot.active { border-color: #fff; }
 
-        input[type="range"] { 
-            -webkit-appearance: none; 
-            appearance: none; 
-            width: 60px; 
-            height: 3px; 
-            background: #2a2a38; 
-            border-radius: 2px; 
-            outline: none; 
+        .color-dot:hover {
+            transform: scale(1.15);
+        }
+
+        .color-dot.active {
+            border-color: #fff;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 60px;
+            height: 3px;
+            background: #2a2a38;
+            border-radius: 2px;
+            outline: none;
             accent-color: #3ecfb2;
         }
 
@@ -134,7 +141,11 @@
             cursor: pointer;
             text-transform: uppercase;
         }
-        .tb-mini:hover { color: #fff; border-color: #3ecfb2; }
+
+        .tb-mini:hover {
+            color: #fff;
+            border-color: #3ecfb2;
+        }
 
         #layer-bar {
             display: flex;
@@ -156,11 +167,29 @@
             border-bottom: 2px solid transparent;
             transition: all .15s;
         }
-        .layer-tab:hover { color: #7a7a9a; }
-        .layer-tab.active-cube { color: #3ecfb2; border-bottom-color: #3ecfb2; }
-        .layer-tab.active-col { color: #4eff91; border-bottom-color: #4eff91; }
-        
-        #layer-hint { flex: 1; padding: 6px 16px; font-size: 10px; color: #3a3a4a; letter-spacing: .08em; text-align: right;}
+
+        .layer-tab:hover {
+            color: #7a7a9a;
+        }
+
+        .layer-tab.active-cube {
+            color: #3ecfb2;
+            border-bottom-color: #3ecfb2;
+        }
+
+        .layer-tab.active-col {
+            color: #4eff91;
+            border-bottom-color: #4eff91;
+        }
+
+        #layer-hint {
+            flex: 1;
+            padding: 6px 16px;
+            font-size: 10px;
+            color: #3a3a4a;
+            letter-spacing: .08em;
+            text-align: right;
+        }
 
         #viewport-container {
             flex: 1;
@@ -176,7 +205,7 @@
             background: #0d0d10;
             font-size: 10px;
             letter-spacing: .08em;
-            color: #55556a;
+            color: #CCC56a;
             flex-shrink: 0;
             z-index: 10;
         }
@@ -197,6 +226,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <div id="app-layout">
@@ -263,27 +293,27 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
         // --- CONSTANTS & CONFIG ---
-        const GRID_N = 7; 
+        const GRID_N = 7;
         const CELL_SIZE = 2;
-        const PALETTE = ['#3ecfb2','#c94b6e','#5b9bd5','#e8a838','#9b7fd4','#74c476','#fa9fb5','#aaaaaa']; 
-        
+        const PALETTE = ['#3ecfb2', '#c94b6e', '#5b9bd5', '#e8a838', '#9b7fd4', '#74c476', '#fa9fb5', '#aaaaaa'];
+
         let activeTool = 'cube-dither'; // Initial active tool ID matching registry
-        let activeLayer = 'cube'; 
-        let lineStartNode = null; 
-        
+        let activeLayer = 'cube';
+        let lineStartNode = null;
+
         // --- DATA STORAGE MAPS ---
-        const activeCubes = new Map();     
-        const activeColliders = new Map(); 
-        const activeLines = [];            
+        const activeCubes = new Map();
+        const activeColliders = new Map();
+        const activeLines = [];
 
         // --- SHADER UNIFORMS ---
         const globalUniforms = {
-            colorA: { value: new THREE.Color('#3ecfb2') }, 
-            colorB: { value: new THREE.Color('#c94b6e') }, 
-            splitY: { value: 0.0 }, 
-            
-            tMode: { value: 4 }, tSpace: { value: 6.0 }, tThick: { value: 1.0 }, tBright: { value: 1.0 }, tAlpha: { value: 0.5 }, 
-            bMode: { value: 1 }, bSpace: { value: 4.0 }, bThick: { value: 1.0 }, bBright: { value: -1.0 }, bAlpha: { value: 0.7 } 
+            colorA: { value: new THREE.Color('#3ecfb2') },
+            colorB: { value: new THREE.Color('#c94b6e') },
+            splitY: { value: 0.0 },
+
+            tMode: { value: 4 }, tSpace: { value: 6.0 }, tThick: { value: 1.0 }, tBright: { value: 1.0 }, tAlpha: { value: 0.5 },
+            bMode: { value: 1 }, bSpace: { value: 4.0 }, bThick: { value: 1.0 }, bBright: { value: -1.0 }, bAlpha: { value: 0.7 }
         };
 
         // --- EXTENSIBLE CUBE REGISTRY SYSTEM ---
@@ -292,7 +322,7 @@
                 id: 'cube-dither',
                 label: 'Dither Box',
                 statusHint: 'place a split-dither customizable shader cube',
-                createMesh: function(currentColor) {
+                createMesh: function (currentColor) {
                     const geo = new THREE.BoxGeometry(CELL_SIZE, CELL_SIZE, CELL_SIZE);
                     const mesh = new THREE.Mesh(geo, ditherMaterial);
                     const edges = new THREE.EdgesGeometry(geo);
@@ -301,7 +331,7 @@
                     mesh.userData = { cubeTypeId: 'cube-dither' };
                     return mesh;
                 },
-                updateColor: function(mesh, nextColorHex) {
+                updateColor: function (mesh, nextColorHex) {
                     // Uses global uniforms, doesn't need unique local update handler
                 }
             },
@@ -309,9 +339,9 @@
                 id: 'cube-solid',
                 label: 'Solid Box',
                 statusHint: 'place an opaque solid color voxel block',
-                createMesh: function(currentColor) {
+                createMesh: function (currentColor) {
                     const geo = new THREE.BoxGeometry(CELL_SIZE, CELL_SIZE, CELL_SIZE);
-                    const mat = new THREE.MeshStandardMaterial({ 
+                    const mat = new THREE.MeshStandardMaterial({
                         color: new THREE.Color(currentColor),
                         roughness: 0.6,
                         metalness: 0.1
@@ -323,7 +353,7 @@
                     mesh.userData = { cubeTypeId: 'cube-solid' };
                     return mesh;
                 },
-                updateColor: function(mesh, nextColorHex) {
+                updateColor: function (mesh, nextColorHex) {
                     if (mesh.material && mesh.material.color) {
                         mesh.material.color.set(nextColorHex);
                     }
@@ -333,9 +363,9 @@
                 id: 'cube-water',
                 label: 'Water',
                 statusHint: 'place a 50% transparent architectural water block',
-                createMesh: function(currentColor) {
+                createMesh: function (currentColor) {
                     const geo = new THREE.BoxGeometry(CELL_SIZE, CELL_SIZE, CELL_SIZE);
-                    const mat = new THREE.MeshStandardMaterial({ 
+                    const mat = new THREE.MeshStandardMaterial({
                         color: 0x33b5e5, // Classic cyan architectural pool hue
                         transparent: true,
                         opacity: 0.5, // 50% transparency level requested
@@ -343,7 +373,7 @@
                         metalness: 0.1
                     });
                     const mesh = new THREE.Mesh(geo, mat);
-                    
+
                     // Subtle light gray framing lines to keep water shapes visible when looking over edges
                     const edges = new THREE.EdgesGeometry(geo);
                     const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x88ccee, linewidth: 1 }));
@@ -352,7 +382,7 @@
                     mesh.userData = { cubeTypeId: 'cube-water' };
                     return mesh;
                 },
-                updateColor: function(mesh, nextColorHex) {
+                updateColor: function (mesh, nextColorHex) {
                     // Water maintains its independent natural aesthetic tint color
                 }
             }
@@ -361,26 +391,26 @@
         // --- SETUP SCENE & RENDERER ---
         const container = document.getElementById('viewport-container');
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2('#0d0d10', 0.02); 
+        scene.fog = new THREE.FogExp2('#0d0d10', 0.02);
 
         const aspect = container.clientWidth / container.clientHeight;
         const frustumSize = 16;
         const camera = new THREE.OrthographicCamera(
-            frustumSize * aspect / -2, frustumSize * aspect / 2, 
-            frustumSize / 2, frustumSize / -2, 
+            frustumSize * aspect / -2, frustumSize * aspect / 2,
+            frustumSize / 2, frustumSize / -2,
             1, 1000
-        ); 
-        camera.position.set(20, 20, 20); 
+        );
+        camera.position.set(20, 20, 20);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); 
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); 
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        const controls = new OrbitControls(camera, renderer.domElement); 
+        const controls = new OrbitControls(camera, renderer.domElement);
         controls.mouseButtons = { ORBIT: THREE.MOUSE.RIGHT, ZOOM: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.RIGHT };
-        controls.enableDamping = true; 
-        controls.dampingFactor = 0.05; 
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
         controls.target.set(0, 0, 0);
 
         // --- INTERACTION PLANES & GEOMETRIES ---
@@ -394,25 +424,25 @@
         scene.add(interactionPlane);
 
         // --- LIGHTING ---
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7); 
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
         scene.add(ambientLight);
 
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); 
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
         directionalLight.position.set(10, 20, 4);
         scene.add(directionalLight);
 
         // --- HIGH-CONTRAST GRID SYSTEM ---
-        const gridHelper = new THREE.GridHelper(GRID_N * CELL_SIZE, GRID_N, 0x3ecfb2, 0x2a2a3a); 
-        gridHelper.position.y = -0.01; 
+        const gridHelper = new THREE.GridHelper(GRID_N * CELL_SIZE, GRID_N, 0x3ecfb2, 0x2a2a3a);
+        gridHelper.position.y = -0.01;
         scene.add(gridHelper);
 
         const tileOutlineGroup = new THREE.Group();
         const outlineMat = new THREE.LineBasicMaterial({ color: 0x3a3a4a, linewidth: 2.0 });
-        
+
         for (let col = 0; col < GRID_N; col++) {
             for (let row = 0; row < GRID_N; row++) {
-                const wx = (col * CELL_SIZE) + CELL_SIZE/2 - halfGridSize;
-                const wz = (row * CELL_SIZE) + CELL_SIZE/2 - halfGridSize;
+                const wx = (col * CELL_SIZE) + CELL_SIZE / 2 - halfGridSize;
+                const wz = (row * CELL_SIZE) + CELL_SIZE / 2 - halfGridSize;
                 const hx = CELL_SIZE / 2;
                 const points = [
                     new THREE.Vector3(wx - hx, 0, wz - hx),
@@ -429,11 +459,11 @@
         scene.add(tileOutlineGroup);
 
         // --- DITHER MATERIAL COMPILER ---
-        const ditherMaterial = new THREE.MeshStandardMaterial({ roughness: 0.9, metalness: 0.1 }); 
-        ditherMaterial.onBeforeCompile = (shader) => { 
+        const ditherMaterial = new THREE.MeshStandardMaterial({ roughness: 0.9, metalness: 0.1 });
+        ditherMaterial.onBeforeCompile = (shader) => {
             for (const [key, uniform] of Object.entries(globalUniforms)) {
                 shader.uniforms[key] = uniform;
-            } 
+            }
 
             shader.vertexShader = `
                 varying float vLocalY;
@@ -444,7 +474,7 @@
                 `#include <begin_vertex>
                  vLocalY = position.y;
                  myUv = uv;`
-            ); 
+            );
 
             shader.fragmentShader = `
                 uniform vec3 colorA; uniform vec3 colorB; uniform float splitY;
@@ -493,23 +523,23 @@
                     }
                 }
                 `
-            ); 
+            );
         };
 
         // Static Materials
-        const faceColliderMaterial = new THREE.MeshBasicMaterial({ color: 0x4eff91, transparent: true, opacity: 0.35, side: THREE.DoubleSide }); 
-        const blackOutlineMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 }); 
-        const colliderLineMat = new THREE.LineBasicMaterial({ color: 0x4eff91, linewidth: 3 }); 
+        const faceColliderMaterial = new THREE.MeshBasicMaterial({ color: 0x4eff91, transparent: true, opacity: 0.35, side: THREE.DoubleSide });
+        const blackOutlineMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+        const colliderLineMat = new THREE.LineBasicMaterial({ color: 0x4eff91, linewidth: 3 });
 
         // Dynamic Previews
         const previewCubeContainer = new THREE.Group();
         scene.add(previewCubeContainer);
 
-        const previewColliderFace = new THREE.Mesh(new THREE.PlaneGeometry(CELL_SIZE, CELL_SIZE), new THREE.MeshBasicMaterial({color: 0x4eff91, transparent: true, opacity: 0.5, side: THREE.DoubleSide})); 
+        const previewColliderFace = new THREE.Mesh(new THREE.PlaneGeometry(CELL_SIZE, CELL_SIZE), new THREE.MeshBasicMaterial({ color: 0x4eff91, transparent: true, opacity: 0.5, side: THREE.DoubleSide }));
         previewColliderFace.visible = false;
         scene.add(previewColliderFace);
 
-        const previewNode = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), new THREE.MeshBasicMaterial({ color: 0x4eff91 })); 
+        const previewNode = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), new THREE.MeshBasicMaterial({ color: 0x4eff91 }));
         previewNode.visible = false;
         scene.add(previewNode);
 
@@ -525,11 +555,11 @@
             const cellX = Math.floor(localX / CELL_SIZE);
             const cellZ = Math.floor(localZ / CELL_SIZE);
 
-            if(cellX >= 0 && cellX < GRID_N && cellZ >= 0 && cellZ < GRID_N) {
+            if (cellX >= 0 && cellX < GRID_N && cellZ >= 0 && cellZ < GRID_N) {
                 return {
                     gridX: cellX, gridZ: cellZ,
-                    worldX: (cellX * CELL_SIZE) + CELL_SIZE/2 - halfGridSize,
-                    worldZ: (cellZ * CELL_SIZE) + CELL_SIZE/2 - halfGridSize
+                    worldX: (cellX * CELL_SIZE) + CELL_SIZE / 2 - halfGridSize,
+                    worldZ: (cellZ * CELL_SIZE) + CELL_SIZE / 2 - halfGridSize
                 };
             }
             return null;
@@ -568,7 +598,7 @@
                     const nodeData = getNearestVertex(point);
                     if (nodeData) {
                         previewNode.visible = true;
-                        previewNode.position.set(nodeData.worldX, CELL_SIZE, nodeData.worldZ); 
+                        previewNode.position.set(nodeData.worldX, CELL_SIZE, nodeData.worldZ);
 
                         if (lineStartNode) {
                             previewLine.visible = true;
@@ -588,14 +618,14 @@
 
                     if (matchedCubeType && activeLayer === 'cube') {
                         hidePreviews();
-                        
-                        while(previewCubeContainer.children.length > 0) { 
-                            previewCubeContainer.remove(previewCubeContainer.children[0]); 
+
+                        while (previewCubeContainer.children.length > 0) {
+                            previewCubeContainer.remove(previewCubeContainer.children[0]);
                         }
 
                         const currentActiveColorHex = document.getElementById('colA').value;
                         const pMesh = matchedCubeType.createMesh(currentActiveColorHex);
-                        
+
                         pMesh.traverse((child) => {
                             if (child.material) {
                                 child.material = child.material.clone();
@@ -607,20 +637,20 @@
                         previewCubeContainer.add(pMesh);
                         previewCubeContainer.position.set(gridData.worldX, CELL_SIZE / 2, gridData.worldZ);
                         previewCubeContainer.visible = true;
-                    } 
+                    }
                     else if (activeTool.startsWith('col-') && activeLayer === 'collider') {
                         hidePreviews();
                         previewColliderFace.visible = true;
                         previewColliderFace.rotation.set(0, 0, 0);
-                        
+
                         if (activeTool === 'col-top') {
                             previewColliderFace.rotation.x = Math.PI / 2;
-                            previewColliderFace.position.set(gridData.worldX, CELL_SIZE, gridData.worldZ); 
+                            previewColliderFace.position.set(gridData.worldX, CELL_SIZE, gridData.worldZ);
                         } else if (activeTool === 'col-left') {
                             previewColliderFace.rotation.y = Math.PI / 2;
-                            previewColliderFace.position.set(gridData.worldX - CELL_SIZE/2, CELL_SIZE/2, gridData.worldZ); 
+                            previewColliderFace.position.set(gridData.worldX - CELL_SIZE / 2, CELL_SIZE / 2, gridData.worldZ);
                         } else if (activeTool === 'col-right') {
-                            previewColliderFace.position.set(gridData.worldX, CELL_SIZE/2, gridData.worldZ + CELL_SIZE/2); 
+                            previewColliderFace.position.set(gridData.worldX, CELL_SIZE / 2, gridData.worldZ + CELL_SIZE / 2);
                         }
                     } else {
                         hidePreviews();
@@ -640,7 +670,7 @@
 
         // --- DRAW / PLACING CLICK HANDLING ---
         function handleDrawingClick(event) {
-            if (event.button !== 0) return; 
+            if (event.button !== 0) return;
 
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObject(interactionPlane);
@@ -654,7 +684,7 @@
 
                     if (!lineStartNode) {
                         lineStartNode = nodeData;
-                        UI.msg.textContent = '◎ click second vertex to finish line'; 
+                        UI.msg.textContent = '◎ click second vertex to finish line';
                     } else {
                         if (!(nodeData.vX === lineStartNode.vX && nodeData.vZ === lineStartNode.vZ)) {
                             const points = [
@@ -668,7 +698,7 @@
                             const cMat = new THREE.MeshBasicMaterial({ color: 0x4eff91 });
                             const joint1 = new THREE.Mesh(cGeo, cMat); joint1.position.copy(points[0]);
                             const joint2 = new THREE.Mesh(cGeo, cMat); joint2.position.copy(points[1]);
-                            
+
                             visualLine.add(joint1, joint2);
                             scene.add(visualLine);
 
@@ -680,7 +710,7 @@
                             activeLines.push(visualLine);
                         }
                         lineStartNode = null;
-                        UI.msg.textContent = '◎ click a vertex to start next line'; 
+                        UI.msg.textContent = '◎ click a vertex to start next line';
                     }
                     return;
                 }
@@ -688,16 +718,16 @@
                 const gridData = getGridCoordinates(point);
                 if (!gridData) return;
 
-                const cubeKey = `${gridData.gridX},${gridData.gridZ}`; 
+                const cubeKey = `${gridData.gridX},${gridData.gridZ}`;
 
                 if (activeTool === 'erase') {
                     if (activeLayer === 'cube' && activeCubes.has(cubeKey)) {
                         scene.remove(activeCubes.get(cubeKey));
-                        activeCubes.delete(cubeKey); 
-                    } 
+                        activeCubes.delete(cubeKey);
+                    }
                     else if (activeLayer === 'collider') {
                         ['top', 'left', 'right'].forEach(face => {
-                            const colKey = `${gridData.gridX},${gridData.gridZ},${face}`; 
+                            const colKey = `${gridData.gridX},${gridData.gridZ},${face}`;
                             if (activeColliders.has(colKey)) {
                                 scene.remove(activeColliders.get(colKey));
                                 activeColliders.delete(colKey);
@@ -711,12 +741,12 @@
                                 if ((ln.userData.x1 === nodeData.vX && ln.userData.z1 === nodeData.vZ) ||
                                     (ln.userData.x2 === nodeData.vX && ln.userData.z2 === nodeData.vZ)) {
                                     scene.remove(ln);
-                                    activeLines.splice(i, 1); 
+                                    activeLines.splice(i, 1);
                                 }
                             }
                         }
                     }
-                } 
+                }
                 else {
                     const selectedCubeType = CUBE_TYPES.find(c => c.id === activeTool);
 
@@ -741,27 +771,27 @@
                             scene.add(box);
                             activeCubes.set(cubeKey, box);
                         }
-                    } 
+                    }
                     else if (activeTool.startsWith('col-') && activeLayer === 'collider') {
                         const faceType = activeTool.replace('col-', '');
-                        const colKey = `${gridData.gridX},${gridData.gridZ},${faceType}`; 
+                        const colKey = `${gridData.gridX},${gridData.gridZ},${faceType}`;
 
                         if (activeColliders.has(colKey)) {
                             scene.remove(activeColliders.get(colKey));
-                            activeColliders.delete(colKey); 
+                            activeColliders.delete(colKey);
                         } else {
                             const visualCol = new THREE.Mesh(new THREE.PlaneGeometry(CELL_SIZE, CELL_SIZE), faceColliderMaterial);
-                            const wires = new THREE.LineSegments(new THREE.EdgesGeometry(visualCol.geometry), colliderLineMat); 
+                            const wires = new THREE.LineSegments(new THREE.EdgesGeometry(visualCol.geometry), colliderLineMat);
                             visualCol.add(wires);
 
                             if (faceType === 'top') {
                                 visualCol.rotation.x = Math.PI / 2;
-                                visualCol.position.set(gridData.worldX, CELL_SIZE, gridData.worldZ); 
+                                visualCol.position.set(gridData.worldX, CELL_SIZE, gridData.worldZ);
                             } else if (faceType === 'left') {
                                 visualCol.rotation.y = Math.PI / 2;
-                                visualCol.position.set(gridData.worldX - CELL_SIZE/2, CELL_SIZE/2, gridData.worldZ); 
+                                visualCol.position.set(gridData.worldX - CELL_SIZE / 2, CELL_SIZE / 2, gridData.worldZ);
                             } else if (faceType === 'right') {
-                                visualCol.position.set(gridData.worldX, CELL_SIZE/2, gridData.worldZ + CELL_SIZE/2); 
+                                visualCol.position.set(gridData.worldX, CELL_SIZE / 2, gridData.worldZ + CELL_SIZE / 2);
                             }
 
                             scene.add(visualCol);
@@ -793,7 +823,7 @@
                 btn.className = 'tool-btn';
                 btn.id = `btn-type-${cubeConfig.id}`;
                 btn.textContent = cubeConfig.label;
-                
+
                 if (cubeConfig.id === activeTool) {
                     btn.classList.add('active');
                 }
@@ -804,17 +834,17 @@
         }
 
         const STATUS_MESSAGES = {
-            'col-top': '◎ top face collider — click cell to toggle boundary', 
-            'col-left': '◎ left face collider — click cell to toggle boundary', 
-            'col-right': '◎ right face collider — click cell to toggle boundary', 
-            'col-line': '◎ line collider — click two grid vertices to draw', 
-            erase: 'click to wipe targeted asset inside active layers' 
+            'col-top': '◎ top face collider — click cell to toggle boundary',
+            'col-left': '◎ left face collider — click cell to toggle boundary',
+            'col-right': '◎ right face collider — click cell to toggle boundary',
+            'col-line': '◎ line collider — click two grid vertices to draw',
+            erase: 'click to wipe targeted asset inside active layers'
         };
 
         function setTool(toolName) {
-            activeTool = toolName; lineStartNode = null; 
+            activeTool = toolName; lineStartNode = null;
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-            
+
             const activeRegistryItem = CUBE_TYPES.find(c => c.id === toolName);
             if (activeRegistryItem) {
                 const targetBtn = document.getElementById(`btn-type-${toolName}`);
@@ -822,31 +852,31 @@
                 setLayer('cube');
                 UI.msg.textContent = activeRegistryItem.statusHint;
             } else {
-                if(toolName === 'col-top') UI.btnTop.classList.add('active');
-                if(toolName === 'col-left') UI.btnLeft.classList.add('active');
-                if(toolName === 'col-right') UI.btnRight.classList.add('active');
-                if(toolName === 'col-line') UI.btnLine.classList.add('active');
-                if(toolName === 'erase') UI.btnErase.classList.add('active');
-                
-                if(toolName.startsWith('col-')) setLayer('collider');
+                if (toolName === 'col-top') UI.btnTop.classList.add('active');
+                if (toolName === 'col-left') UI.btnLeft.classList.add('active');
+                if (toolName === 'col-right') UI.btnRight.classList.add('active');
+                if (toolName === 'col-line') UI.btnLine.classList.add('active');
+                if (toolName === 'erase') UI.btnErase.classList.add('active');
+
+                if (toolName.startsWith('col-')) setLayer('collider');
                 UI.msg.textContent = STATUS_MESSAGES[toolName] || '';
             }
             hidePreviews();
         }
 
         function setLayer(layerName) {
-            activeLayer = layerName; 
-            if(layerName === 'cube') {
-                UI.cubeTab.className = 'layer-tab active-cube'; 
-                UI.colTab.className = 'layer-tab'; 
+            activeLayer = layerName;
+            if (layerName === 'cube') {
+                UI.cubeTab.className = 'layer-tab active-cube';
+                UI.colTab.className = 'layer-tab';
                 UI.hint.textContent = "Painting Cubes";
                 activeCubes.forEach(m => m.visible = true);
-                activeColliders.forEach(m => m.material.opacity = 0.15); 
+                activeColliders.forEach(m => m.material.opacity = 0.15);
                 activeLines.forEach(l => l.material.opacity = 0.2);
             } else {
-                UI.cubeTab.className = 'layer-tab'; 
-                UI.colTab.className = 'layer-tab active-col'; 
-                UI.hint.textContent = "Painting Colliders — Green physical layouts"; 
+                UI.cubeTab.className = 'layer-tab';
+                UI.colTab.className = 'layer-tab active-col';
+                UI.hint.textContent = "Painting Colliders — Green physical layouts";
                 activeColliders.forEach(m => m.material.opacity = 0.6);
                 activeLines.forEach(l => l.material.opacity = 1.0);
             }
@@ -859,7 +889,7 @@
             // Moving camera CCW (positive angle) makes the canvas layout appear to rotate CW
             const angle = direction * (Math.PI / 2);
             const offset = new THREE.Vector3().copy(camera.position).sub(controls.target);
-            
+
             offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
             camera.position.copy(controls.target).add(offset);
             controls.update();
@@ -878,13 +908,13 @@
         document.getElementById('btn-rot-cw').addEventListener('click', () => rotateCanvas(1));
         document.getElementById('btn-rot-ccw').addEventListener('click', () => rotateCanvas(-1));
 
-        UI.cubeTab.addEventListener('click', () => { setLayer('cube'); setTool(CUBE_TYPES[0].id); }); 
-        UI.colTab.addEventListener('click', () => { setLayer('collider'); setTool('col-top'); }); 
+        UI.cubeTab.addEventListener('click', () => { setLayer('cube'); setTool(CUBE_TYPES[0].id); });
+        UI.colTab.addEventListener('click', () => { setLayer('collider'); setTool('col-top'); });
 
         // Update handlers for dynamic property selection updates
         document.getElementById('colA').addEventListener('input', e => {
             const nextColor = e.target.value;
-            globalUniforms.colorA.value.set(nextColor); 
+            globalUniforms.colorA.value.set(nextColor);
             // Broadly push dynamic updates to existing color-receptive boxes placed on the canvas
             activeCubes.forEach((cubeMesh) => {
                 const matchedDef = CUBE_TYPES.find(c => c.id === cubeMesh.userData.cubeTypeId);
@@ -892,10 +922,10 @@
                     matchedDef.updateColor(cubeMesh, nextColor);
                 }
             });
-        }); 
-        
-        document.getElementById('colB').addEventListener('input', e => globalUniforms.colorB.value.set(e.target.value)); 
-        document.getElementById('split').addEventListener('input', e => globalUniforms.splitY.value = (parseFloat(e.target.value) / 50) * (CELL_SIZE / 2)); 
+        });
+
+        document.getElementById('colB').addEventListener('input', e => globalUniforms.colorB.value.set(e.target.value));
+        document.getElementById('split').addEventListener('input', e => globalUniforms.splitY.value = (parseFloat(e.target.value) / 50) * (CELL_SIZE / 2));
 
         const swatchesContainer = document.getElementById('swatches');
         PALETTE.forEach((hexColor, index) => {
@@ -903,10 +933,10 @@
             dot.className = 'color-dot' + (index === 0 ? ' active' : '');
             dot.style.background = hexColor;
             dot.addEventListener('click', () => {
-                globalUniforms.colorA.value.set(hexColor); 
-                document.getElementById('colA').value = hexColor; 
-                document.querySelectorAll('.color-dot').forEach((d, i) => d.classList.toggle('active', i === index)); 
-                
+                globalUniforms.colorA.value.set(hexColor);
+                document.getElementById('colA').value = hexColor;
+                document.querySelectorAll('.color-dot').forEach((d, i) => d.classList.toggle('active', i === index));
+
                 // Propagate swatch choice to placed active objects
                 activeCubes.forEach((cubeMesh) => {
                     const matchedDef = CUBE_TYPES.find(c => c.id === cubeMesh.userData.cubeTypeId);
@@ -921,13 +951,13 @@
         document.getElementById('btn-clear').addEventListener('click', () => {
             if (activeLayer === 'cube') {
                 activeCubes.forEach(m => scene.remove(m));
-                activeCubes.clear(); 
+                activeCubes.clear();
             } else {
                 activeColliders.forEach(m => scene.remove(m));
                 activeColliders.clear();
                 activeLines.forEach(l => scene.remove(l));
-                activeLines.length = 0; 
-                lineStartNode = null; 
+                activeLines.length = 0;
+                lineStartNode = null;
             }
         });
 
@@ -943,13 +973,13 @@
             camera.bottom = -frustumSize / 2;
             camera.updateProjectionMatrix();
             renderer.setSize(container.clientWidth, container.clientHeight);
-        }); 
+        });
 
         // --- RENDERING LOOP ---
         function animate() {
             requestAnimationFrame(animate);
-            controls.update(); 
-            renderer.render(scene, camera); 
+            controls.update();
+            renderer.render(scene, camera);
         }
         animate();
 
@@ -958,4 +988,5 @@
 
     </script>
 </body>
+
 </html>

@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iso Drawing Tool v15 - Infinite Dynamic Grid & Canvas Zoom</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    body {
+      background: #0a0a0d;
+      font-family: 'Courier New', monospace;
+      min-height: 100vh;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      margin: 0;
+      gap: 0;
+      box-sizing: border-box;
+      overflow: hidden
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box
+    }
+
+    /* ── Drawing Workspace Layout Fixes ─────────────────────────────── */
+    #app-container {
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+      background: #111116;
+      border-radius: 0;
+      overflow: hidden;
+      border: none;
+    }
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      height: 100%;
+      overflow: hidden
+    }
+
+    #toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border-bottom: 1px solid #1e1e1e;
+      background: #0d0d10;
+      flex-shrink: 0;
+      flex-wrap: wrap
+    }
+
+    .tb-section {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 7px 10px;
+      border-right: 1px solid #1a1a1a
+    }
+
+    .tb-label {
+      font-size: 9px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #CCC;
+      margin-right: 2px;
+      white-space: nowrap
+    }
+
+    .tool-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 9px;
+      border: 1px solid #222;
+      border-radius: 4px;
+      cursor: pointer;
+      background: transparent;
+      color: #CCC;
+      font-size: 9px;
+      font-family: 'Courier New', monospace;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      transition: all .1s;
+      white-space: nowrap
+    }
+
+    .tool-btn svg {
+      flex-shrink: 0
+    }
+
+    .tool-btn:hover {
+      background: #161616;
+      color: #888;
+      border-color: #333
+    }
+
+    .tool-btn.active {
+      background: #1a1a1a;
+      color: #3ecfb2;
+      border-color: #3ecfb2
+    }
+
+    .tool-btn.col-btn.active {
+      color: #4eff91;
+      border-color: #4eff91
+    }
+
+    .color-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1.5px solid transparent;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform .1s
+    }
+
+    .color-dot:hover {
+      transform: scale(1.2)
+    }
+
+    .color-dot.active {
+      border-color: #fff
+    }
+
+    .tb-mini {
+      padding: 4px 8px;
+      border: 1px solid #1e1e1e;
+      border-radius: 3px;
+      font-size: 9px;
+      font-family: 'Courier New', monospace;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #CCC;
+      background: transparent;
+      cursor: pointer
+    }
+
+    .tb-mini:hover {
+      color: #888;
+      border-color: #333
+    }
+
+    #layer-bar {
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid #1a1a1a;
+      background: #0a0a0c;
+      flex-shrink: 0
+    }
+
+    .layer-tab {
+      padding: 5px 14px;
+      font-size: 9px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: #C6C6C6;
+      cursor: pointer;
+      border-right: 1px solid #141414;
+      border-bottom: 2px solid transparent;
+      transition: all .1s
+    }
+
+    .layer-tab:hover {
+      color: #CCC
+    }
+
+    .layer-tab.active-cube {
+      color: #3ecfb2;
+      border-bottom-color: #3ecfb2
+    }
+
+    .layer-tab.active-col {
+      color: #4eff91;
+      border-bottom-color: #4eff91
+    }
+
+    #layer-hint {
+      flex: 1;
+      padding: 5px 12px;
+      font-size: 9px;
+      color: #444;
+      letter-spacing: .08em
+    }
+
+    #cvwrap {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      overflow: hidden;
+      background: #0d0d12;
+    }
+
+    #cvwrap canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%
+    }
+
+    #c-grid {
+      z-index: 1
+    }
+
+    #c-cube {
+      z-index: 2
+    }
+
+    #c-col {
+      z-index: 3
+    }
+
+    #c-hit {
+      z-index: 4
+    }
+
+    /* ── Floating Zoom Menu Styles ────────────────────────────────── */
+    #zoom-floating-menu {
+      position: absolute;
+      top: 60px;
+      left: 20px;
+      background: rgba(13, 13, 18, 0.85);
+      border: 1px solid #222230;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 4px;
+      z-index: 10;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+    }
+
+    .zoom-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: #aaa;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.15s ease;
+      font-size: 13px;
+    }
+
+    .zoom-btn:hover {
+      background: #1c1c28;
+      color: #3ecfb2;
+      border-color: #2a2a3c;
+    }
+
+    .zoom-btn:active {
+      background: #111116;
+    }
+
+    #statusbar {
+      padding: 5px 12px;
+      border-top: 1px solid #141414;
+      background: #0d0d10;
+      font-size: 9px;
+      letter-spacing: .08em;
+      color: #C4C4C4;
+      flex-shrink: 0
+    }
+
+    /* ── Sidebar Component Layout Rules ── */
+    #mat-dock {
+      width: 300px;
+      background: #0d0d12;
+      border-left: 1px solid #1e1e1e;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      flex-shrink: 0;
+    }
+
+    #mat-dock .tb-section {
+      border-right: none;
+      border-bottom: 1px solid #1e1e1e;
+      padding: 10px;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    #mat-list-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .mat-type-section {
+      border: 1px solid #1a1a22;
+      border-radius: 4px;
+      background: #111116;
+      overflow: hidden;
+    }
+
+    .mat-type-header {
+      background: #161620;
+      padding: 8px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .mat-type-header:hover {
+      background: #1c1c28;
+    }
+
+    .mat-type-title {
+      font-size: 9px;
+      color: #aaa;
+      font-weight: bold;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .mat-type-arrow {
+      font-size: 8px;
+      color: #666;
+    }
+
+    .mat-type-content {
+      padding: 8px;
+      border-top: 1px solid #1a1a22;
+    }
+
+    .mat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .ml-item {
+      background: #09090d;
+      border: 1px solid #1f1f2e;
+      border-radius: 3px;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+
+    .ml-item:hover {
+      border-color: #3a3a52;
+      background: #12121a;
+    }
+
+    .ml-item.active {
+      border-color: #3ecfb2;
+      background: rgba(62, 207, 178, 0.05);
+    }
+
+    .ml-item canvas {
+      background: #050508;
+      border-radius: 2px;
+      margin-bottom: 4px;
+      max-width: 100%;
+    }
+
+    .ml-label {
+      font-size: 8px;
+      color: #888;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+    }
+
+    .ml-item.active .ml-label {
+      color: #3ecfb2;
+    }
+
+    .add-mat-bar {
+      display: flex;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .add-mat-input {
+      flex: 1;
+      background: #050508;
+      border: 1px solid #222230;
+      border-radius: 2px;
+      color: #ccc;
+      font-family: monospace;
+      font-size: 9px;
+      padding: 3px 6px;
+    }
+
+    .add-mat-input:focus {
+      outline: none;
+      border-color: #444460;
+    }
+
+    .add-mat-btn {
+      background: #1a1a26;
+      color: #aaa;
+      border: 1px solid #222230;
+      border-radius: 2px;
+      padding: 0 8px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .add-mat-btn:hover {
+      background: #252538;
+      color: #fff;
+    }
+
+    #mat-props-panel {
+      border-top: 1px solid #1e1e1e;
+      background: #09090d;
+      padding: 10px;
+      flex-shrink: 0;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+
+    #mat-props-header {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #666;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    #mat-empty {
+      font-size: 9px;
+      color: #444;
+      font-style: italic;
+    }
+
+    /* Properties Panel Structure styles */
+    .drawer-inner {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .drawer-col {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      background: #111116;
+      padding: 6px;
+      border-radius: 3px;
+      border: 1px solid #1a1a24;
+    }
+
+    .d-title {
+      font-size: 8px;
+      font-weight: bold;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--dt-color, #3ecfb2);
+      margin-bottom: 2px;
+    }
+
+    .d-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 9px;
+      color: #aaa;
+    }
+
+    .d-row span {
+      font-size: 8px;
+      text-transform: uppercase;
+      color: #888;
+      min-width: 65px;
+    }
+
+    .d-row input[type="text"] {
+      flex: 1;
+      background: #050508;
+      border: 1px solid #222230;
+      border-radius: 2px;
+      color: #ccc;
+      font-family: monospace;
+      font-size: 9px;
+      padding: 3px 6px;
+    }
+
+    .d-row input[type="range"] {
+      flex: 1;
+      height: 2px;
+      accent-color: #3ecfb2;
+      background: #252535;
+      border: none;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .d-row input[type="color"] {
+      width: 32px;
+      height: 18px;
+      border: 1px solid #252535;
+      background: none;
+      padding: 0;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+
+    .d-row select {
+      flex: 1;
+      background: #050508;
+      color: #ccc;
+      border: 1px solid #252535;
+      padding: 2px;
+      font-family: monospace;
+      font-size: 9px;
+    }
+
+    .drawer-action-btn {
+      background: #1a1a26;
+      color: #aaa;
+      border: 1px solid #222230;
+      border-radius: 3px;
+      padding: 6px;
+      font-size: 9px;
+      font-family: monospace;
+      text-transform: uppercase;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 4px;
+    }
+
+    .drawer-action-btn:hover {
+      background: #252538;
+      color: #fff;
+      border-color: #3ecfb2;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="app-container">
+    <div id="app">
+      <div id="toolbar">
+        <div class="tb-section">
+          <span class="tb-label">Collider</span>
+          <button class="tool-btn col-btn" id="btn-col-top" onclick="setTool('col-top')">Top</button>
+          <button class="tool-btn col-btn" id="btn-col-left" onclick="setTool('col-left')">Left</button>
+          <button class="tool-btn col-btn" id="btn-col-right" onclick="setTool('col-right')">Right</button>
+          <button class="tool-btn col-btn" id="btn-col-line" onclick="setTool('col-line')">Line</button>
+        </div>
+        <div class="tb-section">
+          <span class="tb-label">Erase</span>
+          <button class="tool-btn" id="btn-erase" onclick="setTool('erase')">Eraser</button>
+        </div>
+        <div class="tb-section">
+          <span class="tb-label">View</span>
+          <button class="tool-btn" onclick="rotateView(-1)">CCW</button>
+          <button class="tool-btn" onclick="rotateView(1)">CW</button>
+        </div>
+        <div class="tb-section">
+          <span class="tb-label">Level Z</span>
+          <button class="tool-btn" onclick="changeZ(-1)" style="padding:5px 8px">-</button>
+          <span id="lbl-z-level"
+            style="font-size:10px;color:#3ecfb2;font-weight:bold;margin:0 4px;min-width:12px;text-align:center">0</span>
+          <button class="tool-btn" onclick="changeZ(1)" style="padding:5px 8px">+</button>
+        </div>
+        <div class="tb-section" style="gap:6px">
+          <button class="tb-mini" onclick="clearAll()">Clear</button>
+        </div>
+      </div>
+
+      <div id="layer-bar">
+        <div class="layer-tab active-cube" id="tab-cube" onclick="setLayer('cube')">● Cube layer</div>
+        <div class="layer-tab" id="tab-col" onclick="setLayer('collider')">◎ Collider layer</div>
+        <div id="layer-hint">painting cubes</div>
+      </div>
+
+      <div id="cvwrap">
+        <canvas id="c-grid"></canvas>
+        <canvas id="c-cube"></canvas>
+        <canvas id="c-col"></canvas>
+        <canvas id="c-hit"></canvas>
+
+        <div id="zoom-floating-menu">
+          <button class="zoom-btn" onclick="zoomIn()" title="Zoom In">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+          <button class="zoom-btn" onclick="zoomOut()" title="Zoom Out">
+            <i class="fa-solid fa-minus"></i>
+          </button>
+          <button class="zoom-btn" onclick="resetZoom()" title="Reset Auto Layout">
+            <i class="fa-solid fa-arrows-to-dot"></i>
+          </button>
+        </div>
+      </div>
+      <div id="statusbar"><span id="status-msg">Click tile to draw inside layer</span></div>
+    </div>
+
+    <div id="mat-dock">
+      <div class="tb-section">
+        <span class="tb-label">Shape Class</span>
+        <div style="display:flex; gap:2px; flex-wrap:wrap;">
+          <button class="tool-btn active" id="btn-cube" onclick="setTool('cube')">Split</button>
+          <button class="tool-btn" id="btn-cube-solid" onclick="setTool('cube-solid')">Solid</button>
+          <button class="tool-btn" id="btn-cube-water" onclick="setTool('cube-water')">Water</button>
+          <button class="tool-btn" id="btn-cube-river" onclick="setTool('cube-river')">River</button>
+        </div>
+      </div>
+
+      <div id="mat-list-container"></div>
+
+      <div id="mat-props-panel">
+        <div id="mat-props-header">Material Attributes</div>
+        <div id="mat-props">
+          <div id="mat-empty">Select a Material template from categories</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let MATERIAL_GROUPS = {
+      'cube': {
+        title: 'Split Cubes',
+        items: {
+          'cube': { label: 'Default Split', name: 'Default Split', type: 'split', alpha: 1.0, colA: '#3ecfb2', colB: '#c94b6e', split: 50, dither: 'none' }
+        }
+      },
+      'cube-solid': {
+        title: 'Solid Cubes',
+        items: {
+          'cube-solid': { label: 'Default Solid', name: 'Default Solid', type: 'solid', color: '#a3d39c', dMode: 'none', dInkMode: 'opaque', dSpace: 8, dThick: 2, dAlpha: 1.0 }
+        }
+      },
+      'cube-water': {
+        title: 'Water Cubes',
+        items: {
+          'cube-water': { label: 'Default Water', name: 'Default Water', type: 'water', opacity: 0.5, dDMode: 'none', dDInkMode: 'opaque', dDSpace: 6, dDThick: 1, dDBright: 0.0, dDAlpha: 0.6 }
+        }
+      },
+      'cube-river': {
+        title: 'Terrain Tiles',
+        items: {
+          'cube-river': { label: 'Default River', name: 'Default River', type: 'river', colorA: '#3ecfb2', colorB: '#a3d39c', opacity: 1.0, colorRiver: '#1d557a', colorBank: '#a3d39c', riverWidth: 0.2, pStart: [0.0, -1.0], pEnd: [1.0, 0.0], tMode: 0, tSpace: 6, tThick: 1, tBright: 0.0, tAlpha: 0.0, bMode: 0, bSpace: 6, bThick: 1, bBright: 0.0, bAlpha: 0.0 }
+        }
+      },
+      'cube-dither': {
+        title: 'Dither Cubes',
+        items: {
+          'cube-dither': { label: 'Default Dither', name: 'Default Dither', type: 'dither', colorA: '#3ecfb2', colorB: '#c94b6e', splitY: 0.0, tMode: 1, tSpace: 8, tThick: 2, tAlpha: 0.5, bMode: 0, bSpace: 6, bThick: 1, bAlpha: 0.0 }
+        }
+      }
+    };
+
+    function getActiveMaterialConfig(materialId) {
+      for (let shapeId in MATERIAL_GROUPS) {
+        if (MATERIAL_GROUPS[shapeId].items[materialId]) {
+          return { shapeId, config: MATERIAL_GROUPS[shapeId].items[materialId] };
+        }
+      }
+      return null;
+    }
+
+    // Dynamic grid configuration variables
+    let minGridX = 0, maxGridX = 6;
+    let minGridY = 0, maxGridY = 6;
+    let paddingSize = 2;
+
+    let S = 42;
+    let manualZoomModifier = 1.0;
+    let activeTool = 'cube';
+    let activeLayer = 'cube';
+    let lineStart = null;
+    let hoverTile = null;
+    let hoverDot = null;
+    let activeZ = 0;
+    let camRot = 0;
+
+    let openSections = { 'cube': true, 'cube-solid': false, 'cube-water': false, 'cube-river': false, 'cube-dither': false };
+
+    const cGrid = document.getElementById('c-grid');
+    const cCube = document.getElementById('c-cube');
+    const cCol = document.getElementById('c-col');
+    const cHit = document.getElementById('c-hit');
+    const gx = cGrid.getContext('2d');
+    const cx = cCube.getContext('2d');
+    const lx = cCol.getContext('2d');
+
+    let W, H, OX, OY;
+    let cubes = {};
+    let colliders = [];
+    const PALETTE = ['#3ecfb2', '#c94b6e', '#5b9bd5', '#e8a838', '#9b7fd4', '#74c476', '#fa9fb5', '#aaaaaa'];
+
+    function renderMaterialDock() {
+      const container = document.getElementById('mat-list-container');
+      container.innerHTML = '';
+
+      for (let shapeId in MATERIAL_GROUPS) {
+        const group = MATERIAL_GROUPS[shapeId];
+        const isExpanded = !!openSections[shapeId];
+
+        const sectionEl = document.createElement('div');
+        sectionEl.className = 'mat-type-section';
+
+        const headerEl = document.createElement('div');
+        headerEl.className = `mat-type-header`;
+        headerEl.innerHTML = `
+          <span class="mat-type-title">${group.title}</span>
+          <span class="mat-type-arrow">${isExpanded ? '▼' : '►'}</span>
+        `;
+
+        headerEl.onclick = () => {
+          openSections[shapeId] = !openSections[shapeId];
+          renderMaterialDock();
+        };
+        sectionEl.appendChild(headerEl);
+
+        const contentEl = document.createElement('div');
+        contentEl.className = 'mat-type-content';
+        contentEl.style.display = isExpanded ? 'block' : 'none';
+
+        const gridEl = document.createElement('div');
+        gridEl.className = 'mat-grid';
+
+        for (let matKey in group.items) {
+          const mat = group.items[matKey];
+          const itemEl = document.createElement('div');
+          itemEl.className = `ml-item ${activeTool === matKey ? 'active' : ''}`;
+
+          const thumbId = `thumb-${matKey}`;
+          itemEl.innerHTML = `
+            <canvas id="${thumbId}" width="56" height="52"></canvas>
+            <span class="ml-label" title="${mat.label || mat.name}">${mat.label || mat.name}</span>
+          `;
+
+          itemEl.onclick = (e) => {
+            e.stopPropagation();
+            selectMaterial(matKey);
+          };
+          gridEl.appendChild(itemEl);
+
+          setTimeout(() => renderThumbnail(thumbId, mat), 0);
+        }
+        contentEl.appendChild(gridEl);
+
+        const addBar = document.createElement('div');
+        addBar.className = 'add-mat-bar';
+
+        let placeholderTxt = "New material...";
+        addBar.innerHTML = `
+          <input type="text" class="add-mat-input" id="input-add-${shapeId}" placeholder="${placeholderTxt}" />
+          <button class="add-mat-btn">+</button>
+        `;
+
+        const inputField = addBar.querySelector('input');
+        const addBtn = addBar.querySelector('button');
+
+        const triggerAdd = () => {
+          const name = inputField.value.trim();
+          if (!name) return;
+
+          const newKey = `${shapeId}-custom-${Date.now()}`;
+          let baseCopy = Object.values(group.items)[0];
+
+          MATERIAL_GROUPS[shapeId].items[newKey] = JSON.parse(JSON.stringify(baseCopy));
+          MATERIAL_GROUPS[shapeId].items[newKey].name = name;
+          MATERIAL_GROUPS[shapeId].items[newKey].label = name;
+
+          inputField.value = '';
+          activeTool = newKey;
+          renderMaterialDock();
+          renderPropertyControls();
+          recalculateGridBounds();
+        };
+
+        addBtn.onclick = (e) => { e.stopPropagation(); triggerAdd(); };
+        inputField.onkeydown = (e) => { if (e.key === 'Enter') { e.stopPropagation(); triggerAdd(); } };
+        inputField.onclick = (e) => e.stopPropagation();
+
+        contentEl.appendChild(addBar);
+        sectionEl.appendChild(contentEl);
+        container.appendChild(sectionEl);
+      }
+    }
+
+    function selectMaterial(matKey) {
+      activeTool = matKey;
+      const info = getActiveMaterialConfig(matKey);
+      if (info) {
+        if (info.shapeId.startsWith('cube')) {
+          activeLayer = 'cube';
+          document.getElementById('tab-cube').className = 'layer-tab active-cube';
+          document.getElementById('tab-col').className = 'layer-tab';
+          document.getElementById('layer-hint').textContent = `painting cubes (${info.config.label || info.config.name})`;
+        }
+
+        ['btn-cube', 'btn-cube-solid', 'btn-cube-water', 'btn-cube-river', 'btn-col-top', 'btn-col-left', 'btn-col-right', 'btn-col-line', 'btn-erase'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.remove('active');
+        });
+        const targetBtn = document.getElementById(`btn-${info.shapeId}`);
+        if (targetBtn) targetBtn.classList.add('active');
+      }
+
+      renderMaterialDock();
+      renderPropertyControls();
+      recalculateGridBounds();
+    }
+
+    function renderThumbnail(canvasId, mat) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, 56, 52);
+
+      const OX_old = OX, OY_old = OY, S_old = S;
+      OX = 28; OY = 36; S = 22;
+
+      ctx.globalAlpha = mat.opacity !== undefined ? mat.opacity : (mat.alpha !== undefined ? mat.alpha : 1.0);
+      const v = [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1], [0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]];
+
+      function drawThumbFace(verts3d, light, customColor) {
+        const pts = verts3d.map(pt => [OX + (pt[0] - pt[1]) * S, OY + (pt[0] + pt[1]) * 0.5 * S - pt[2] * S]);
+        ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]); ctx.closePath();
+        ctx.fillStyle = shaded(customColor || mat.color || mat.colA || '#3ecfb2', light); ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1; ctx.stroke();
+      }
+
+      if (mat.type === 'river') {
+        drawThumbFace([v[3], v[2], v[6], v[7]], 0.70, mat.colorB);
+        drawThumbFace([v[1], v[2], v[6], v[5]], 0.88, mat.colorB);
+        drawThumbFace([v[0], v[1], v[2], v[3]], 1.12, mat.colorA);
+      } else if (mat.type === 'dither') {
+        drawThumbFace([v[3], v[2], v[6], v[7]], 0.70, mat.colorB);
+        drawThumbFace([v[1], v[2], v[6], v[5]], 0.88, mat.colorB);
+        drawThumbFace([v[0], v[1], v[2], v[3]], 1.12, mat.colorA);
+      } else {
+        drawThumbFace([v[3], v[2], v[6], v[7]], 0.70);
+        drawThumbFace([v[1], v[2], v[6], v[5]], 0.88);
+        drawThumbFace([v[0], v[1], v[2], v[3]], 1.12);
+      }
+
+      ctx.save();
+      ctx.font = "bold 7px 'Courier New', monospace";
+      ctx.fillStyle = "#CCC560";
+      ctx.textAlign = "center";
+      ctx.fillText((mat.type || 'CUBE').toUpperCase(), 28, 9);
+      ctx.restore();
+      ctx.globalAlpha = 1.0;
+      OX = OX_old; OY = OY_old; S = S_old;
+    }
+
+    function renderPropertyControls() {
+      const drawer = document.getElementById('mat-props');
+      if (!drawer) return;
+
+      const activeConf = getActiveMaterialConfig(activeTool);
+      if (!activeConf) {
+        drawer.innerHTML = `<div id="mat-empty">Select a Material template from categories</div>`;
+        return;
+      }
+
+      const blob = activeConf.config;
+      const s = blob;
+      const accent = '#3ecfb2';
+
+      const DMODE_OPTS = { 'none': 'None', 'ordered': 'Ordered 4x4', 'bayer': 'Bayer 8x8', 'halftone': 'Halftone' };
+      const IMODE_OPTS = { 'opaque': 'Opaque Ink', 'multiply': 'Multiply Blend', 'screen': 'Screen Layer' };
+
+      const mkSelect = (id, options, currentVal) => {
+        let optionsHtml = '';
+        for (const [key, label] of Object.entries(options)) {
+          optionsHtml += `<option value="${key}" ${currentVal == key ? 'selected' : ''}>${label}</option>`;
+        }
+        return `<select id="${id}">${optionsHtml}</select>`;
+      };
+
+      let html = `
+        <div class="drawer-inner" style="--dt-color: ${accent}">
+            <div class="drawer-col">
+                <div class="d-title">Title Property</div>
+                <div class="d-row">
+                    <input type="text" id="mLabel" value="${blob.label || blob.name || ''}" placeholder="Material Title..."/>
+                </div>
+            </div>
+      `;
+
+      if (blob.type === 'solid') {
+        html += `
+            <div class="drawer-col">
+                <div class="d-title" style="--dt-color:#3ecfb2">Solid Properties</div>
+                <div class="d-row"><span>Color</span><input type="color" id="sColor" value="${s.color || '#ffffff'}"></div>
+            </div>
+            <div class="drawer-col">
+                <div class="d-title" style="--dt-color:#e8a838">Dither Overlay</div>
+                <div class="d-row"><span>Mode</span>${mkSelect('sDMode', DMODE_OPTS, s.dMode)}</div>
+                <div class="d-row"><span>Ink</span>${mkSelect('sDInkMode', IMODE_OPTS, s.dInkMode)}</div>
+                <div class="d-row"><span>Spacing</span><input type="range" id="sDSpace" min="2" max="25" value="${s.dSpace}"></div>
+                <div class="d-row"><span>Thickness</span><input type="range" id="sDThick" min="1" max="8" value="${s.dThick}"></div>
+                <div class="d-row"><span>Blend</span><input type="range" id="sDAlpha" min="0" max="100" value="${s.dAlpha * 100}"></div>
+            </div>
+        `;
+      } else if (blob.type === 'water') {
+        html += `
+            <div class="drawer-col">
+                <div class="d-title" style="--dt-color:#5b9bd5">Fluid Properties</div>
+                <div class="d-row"><span>Opacity</span><input type="range" id="wOpacity" min="10" max="100" value="${s.opacity * 100}"></div>
+            </div>
+            <div class="drawer-col">
+                 <div class="d-title" style="--dt-color:#e8a838">Dither Overlay</div>
+                <div class="d-row"><span>Mode</span>${mkSelect('dDMode', DMODE_OPTS, s.dDMode)}</div>
+                <div class="d-row"><span>Ink</span>${mkSelect('dDInkMode', IMODE_OPTS, s.dDInkMode)}</div>
+                <div class="d-row"><span>Spacing</span><input type="range" id="dDSpace" min="2" max="25" value="${s.dDSpace}"></div>
+                <div class="d-row"><span>Thickness</span><input type="range" id="dDThick" min="1" max="8" value="${s.dDThick}"></div>
+                <div class="d-row"><span>Bright</span><input type="range" id="dDBright" min="-100" max="100" value="${Math.round(s.dDBright * 100)}"></div>
+                <div class="d-row"><span>Blend</span><input type="range" id="dDAlpha" min="0" max="100" value="${Math.round(s.dDAlpha * 100)}"></div>
+            </div>
+        `;
+      } else if (blob.type === 'dither') {
+        html += `
+            <div class="drawer-col">
+                <div class="d-title">Dual Splitting</div>
+                <div class="d-row"><span>Color A</span><input type="color" id="dColA" value="${s.colorA}"></div>
+                <div class="d-row"><span>Color B</span><input type="color" id="dColB" value="${s.colorB}"></div>
+                <div class="d-row"><span>Height Split</span><input type="range" id="dSplitY" min="-50" max="50" value="${s.splitY * 100}"></div>
+            </div>
+            <div class="drawer-col">
+                <div class="d-title">Top Hatch Layer</div>
+                <div class="d-row"><span>Pattern</span>
+                    <select id="dtMode">
+                        <option value="0" ${s.tMode == 0 ? 'selected' : ''}>None</option>
+                        <option value="1" ${s.tMode == 1 ? 'selected' : ''}>Noise Voxel</option>
+                        <option value="2" ${s.tMode == 2 ? 'selected' : ''}>Horizontal</option>
+                        <option value="3" ${s.tMode == 3 ? 'selected' : ''}>Vertical</option>
+                        <option value="4" ${s.tMode == 4 ? 'selected' : ''}>Crosshatch</option>
+                    </select>
+                </div>
+                <div class="d-row"><span>Spacing</span><input type="range" id="dtSpace" min="2" max="25" value="${s.tSpace}"></div>
+                <div class="d-row"><span>Thickness</span><input type="range" id="dtThick" min="1" max="8" value="${s.tThick}"></div>
+                <div class="d-row"><span>Alpha Blend</span><input type="range" id="dtAlpha" min="0" max="100" value="${s.tAlpha * 100}"></div>
+            </div>
+
+            <div class="drawer-col">
+                <div class="d-title">Bottom Hatch Layer</div>
+                <div class="d-row"><span>Pattern</span>
+                    <select id="dbMode">
+                        <option value="0" ${s.bMode == 0 ? 'selected' : ''}>None</option>
+                        <option value="1" ${s.bMode == 1 ? 'selected' : ''}>Noise Voxel</option>
+                        <option value="2" ${s.bMode == 2 ? 'selected' : ''}>Horizontal</option>
+                        <option value="3" ${s.bMode == 3 ? 'selected' : ''}>Vertical</option>
+                        <option value="4" ${s.bMode == 4 ? 'selected' : ''}>Crosshatch</option>
+                    </select>
+                </div>
+                <div class="d-row"><span>Spacing</span><input type="range" id="dbSpace" min="2" max="25" value="${s.bSpace}"></div>
+                <div class="d-row"><span>Thickness</span><input type="range" id="dbThick" min="1" max="8" value="${s.bThick}"></div>
+                <div class="d-row"><span>Alpha Blend</span><input type="range" id="dbAlpha" min="0" max="100" value="${s.bAlpha * 100}"></div>
+            </div>
+        `;
+      } else if (blob.type === 'river') {
+        html += `
+            <div class="drawer-col">
+                <div class="d-title">Base Cube Colors</div>
+                <div class="d-row"><span>Top Face</span><input type="color" id="rColA" value="${s.colorA}"></div>
+                <div class="d-row"><span>Bot Face</span><input type="color" id="rColB" value="${s.colorB}"></div>
+                <div class="d-row"><span>Opacity</span><input type="range" id="rOpacity" min="0" max="100" value="${(s.opacity ?? 1.0) * 100}"></div>
+            </div>
+            <div class="drawer-col">
+                <div class="d-title">Terrain Matrices</div>
+                <div class="d-row"><span>Flow Color</span><input type="color" id="rColRiver" value="${s.colorRiver}"></div>
+                <div class="d-row"><span>Bank Boundary</span><input type="color" id="rColBank" value="${s.colorBank}"></div>
+                <div class="d-row"><span>Channel Width</span><input type="range" id="rWidth" min="5" max="90" value="${s.riverWidth * 100}"></div>
+            </div>
+            <div class="drawer-col">
+                <div class="d-title">Path Start</div>
+                <div class="d-row"><span>Pos X</span><input type="range" id="rSX" min="-100" max="100" value="${s.pStart[0] * 100}"></div>
+                <div class="d-row"><span>Pos Z</span><input type="range" id="rSZ" min="-100" max="100" value="${s.pStart[1] * 100}"></div>
+            </div>
+            <div class="drawer-col">
+                <div class="d-title">Path End</div>
+                <div class="d-row"><span>Pos X</span><input type="range" id="rEX" min="-100" max="100" value="${s.pEnd[0] * 100}"></div>
+                <div class="d-row"><span>Pos Z</span><input type="range" id="rEZ" min="-100" max="100" value="${s.pEnd[1] * 100}"></div>
+            </div>
+            <div class="drawer-col">
+                <div class="d-title">Top Hatch Layer</div>
+                <div class="d-row"><span>Pattern</span>
+                    <select id="rtMode">
+                        <option value="0" ${s.tMode == 0 ? 'selected' : ''}>None</option>
+                        <option value="1" ${s.tMode == 1 ? 'selected' : ''}>Noise Voxel</option>
+                        <option value="2" ${s.tMode == 2 ? 'selected' : ''}>Horizontal</option>
+                        <option value="3" ${s.tMode == 3 ? 'selected' : ''}>Vertical</option>
+                        <option value="4" ${s.tMode == 4 ? 'selected' : ''}>Crosshatch</option>
+                    </select>
+                </div>
+                <div class="d-row"><span>Spacing</span><input type="range" id="rtSpace" min="2" max="25" value="${s.tSpace}"></div>
+                <div class="d-row"><span>Thickness</span><input type="range" id="rtThick" min="1" max="8" value="${s.tThick}"></div>
+                <div class="d-row"><span>Bright</span><input type="range" id="rtBright" min="-100" max="100" value="${Math.round(s.tBright * 100)}"></div>
+                <div class="d-row"><span>Alpha</span><input type="range" id="rtAlpha" min="0" max="100" value="${Math.round(s.tAlpha * 100)}"></div>
+            </div>
+            <div class="drawer-col">
+                <div class="d-title">Bottom Hatch Layer</div>
+                <div class="d-row"><span>Pattern</span>
+                    <select id="rbMode">
+                        <option value="0" ${s.bMode == 0 ? 'selected' : ''}>None</option>
+                        <option value="1" ${s.bMode == 1 ? 'selected' : ''}>Noise Voxel</option>
+                        <option value="2" ${s.bMode == 2 ? 'selected' : ''}>Horizontal</option>
+                        <option value="3" ${s.bMode == 3 ? 'selected' : ''}>Vertical</option>
+                        <option value="4" ${s.bMode == 4 ? 'selected' : ''}>Crosshatch</option>
+                    </select>
+                </div>
+                <div class="d-row"><span>Spacing</span><input type="range" id="rbSpace" min="2" max="25" value="${s.bSpace}"></div>
+                <div class="d-row"><span>Thickness</span><input type="range" id="rbThick" min="1" max="8" value="${s.bThick}"></div>
+                <div class="d-row"><span>Bright</span><input type="range" id="rbBright" min="-100" max="100" value="${Math.round(s.bBright * 100)}"></div>
+                <div class="d-row"><span>Alpha</span><input type="range" id="rbAlpha" min="0" max="100" value="${Math.round(s.bAlpha * 100)}"></div>
+            </div>
+        `;
+      } else if (blob.type === 'split') {
+        html += `
+          <div class="drawer-col">
+              <div class="d-title">Split Configuration</div>
+              <div class="d-row"><span>Split Ratio</span><input type="range" id="spRatio" min="0" max="100" value="${s.split}"></div>
+          </div>
+        `;
+      }
+
+      html += `
+            <button class="drawer-action-btn" id="btn-save-as-new">Duplicate as Template</button>
+        </div>
+      `;
+      drawer.innerHTML = html;
+
+      attachPropertyListeners(blob);
+    }
+
+    function attachPropertyListeners(blob) {
+      const drawer = document.getElementById('mat-props');
+
+      drawer.querySelectorAll('input, select').forEach(input => {
+        input.addEventListener('input', () => {
+          if (input.id === 'mLabel') {
+            blob.label = input.value;
+            blob.name = input.value;
+            const labelSpan = document.querySelector(`.ml-item.active .ml-label`);
+            if (labelSpan) labelSpan.textContent = input.value;
+            return;
+          }
+
+          if (blob.type === 'solid') {
+            if (input.id === 'sColor') blob.color = input.value;
+            if (input.id === 'sDMode') blob.dMode = input.value;
+            if (input.id === 'sDInkMode') blob.dInkMode = input.value;
+            if (input.id === 'sDSpace') blob.dSpace = parseInt(input.value);
+            if (input.id === 'sDThick') blob.dThick = parseInt(input.value);
+            if (input.id === 'sDAlpha') blob.dAlpha = parseFloat(input.value) / 100;
+          }
+          else if (blob.type === 'water') {
+            if (input.id === 'wOpacity') blob.opacity = parseFloat(input.value) / 100;
+            if (input.id === 'dDMode') blob.dDMode = input.value;
+            if (input.id === 'dDInkMode') blob.dDInkMode = input.value;
+            if (input.id === 'dDSpace') blob.dDSpace = parseInt(input.value);
+            if (input.id === 'dDThick') blob.dDThick = parseInt(input.value);
+            if (input.id === 'dDBright') blob.dDBright = parseFloat(input.value) / 100;
+            if (input.id === 'dDAlpha') blob.dDAlpha = parseFloat(input.value) / 100;
+          }
+          else if (blob.type === 'dither') {
+            if (input.id === 'dColA') blob.colorA = input.value;
+            if (input.id === 'dColB') blob.colorB = input.value;
+            if (input.id === 'dSplitY') blob.splitY = parseFloat(input.value) / 100;
+            if (input.id === 'dtMode') blob.tMode = parseInt(input.value);
+            if (input.id === 'dtSpace') blob.tSpace = parseInt(input.value);
+            if (input.id === 'dtThick') blob.tThick = parseInt(input.value);
+            if (input.id === 'dtAlpha') blob.tAlpha = parseFloat(input.value) / 100;
+            if (input.id === 'dbMode') blob.bMode = parseInt(input.value);
+            if (input.id === 'dbSpace') blob.bSpace = parseInt(input.value);
+            if (input.id === 'dbThick') blob.bThick = parseInt(input.value);
+            if (input.id === 'dbAlpha') blob.bAlpha = parseFloat(input.value) / 100;
+          }
+          else if (blob.type === 'river') {
+            if (input.id === 'rColA') blob.colorA = input.value;
+            if (input.id === 'rColB') blob.colorB = input.value;
+            if (input.id === 'rOpacity') blob.opacity = parseFloat(input.value) / 100;
+            if (input.id === 'rColRiver') blob.colorRiver = input.value;
+            if (input.id === 'rColBank') blob.colorBank = input.value;
+            if (input.id === 'rWidth') blob.riverWidth = parseFloat(input.value) / 100;
+            if (input.id === 'rSX') blob.pStart[0] = parseFloat(input.value) / 100;
+            if (input.id === 'rSZ') blob.pStart[1] = parseFloat(input.value) / 100;
+            if (input.id === 'rEX') blob.pEnd[0] = parseFloat(input.value) / 100;
+            if (input.id === 'rEZ') blob.pEnd[1] = parseFloat(input.value) / 100;
+            if (input.id === 'rtMode') blob.tMode = parseInt(input.value);
+            if (input.id === 'rtSpace') blob.tSpace = parseInt(input.value);
+            if (input.id === 'rtThick') blob.tThick = parseInt(input.value);
+            if (input.id === 'rtBright') blob.tBright = parseFloat(input.value) / 100;
+            if (input.id === 'rtAlpha') blob.tAlpha = parseFloat(input.value) / 100;
+            if (input.id === 'rbMode') blob.bMode = parseInt(input.value);
+            if (input.id === 'rbSpace') blob.bSpace = parseInt(input.value);
+            if (input.id === 'rbThick') blob.bThick = parseInt(input.value);
+            if (input.id === 'rbBright') blob.bBright = parseFloat(input.value) / 100;
+            if (input.id === 'rbAlpha') blob.bAlpha = parseFloat(input.value) / 100;
+          }
+          else if (blob.type === 'split') {
+            if (input.id === 'spRatio') blob.split = parseInt(input.value);
+          }
+
+          requestAnimationFrame(() => {
+            const activeThumb = document.getElementById(`thumb-${activeTool}`);
+            if (activeThumb) renderThumbnail(`thumb-${activeTool}`, blob);
+            drawCubes();
+          });
+        });
+      });
+
+      const dupBtn = document.getElementById('btn-save-as-new');
+      if (dupBtn) {
+        dupBtn.onclick = () => {
+          const activeConf = getActiveMaterialConfig(activeTool);
+          if (!activeConf) return;
+          const newKey = `${activeConf.shapeId}-custom-${Date.now()}`;
+          MATERIAL_GROUPS[activeConf.shapeId].items[newKey] = JSON.parse(JSON.stringify(blob));
+          MATERIAL_GROUPS[activeConf.shapeId].items[newKey].label += " (Copy)";
+          MATERIAL_GROUPS[activeConf.shapeId].items[newKey].name += " (Copy)";
+          activeTool = newKey;
+          renderMaterialDock();
+          renderPropertyControls();
+        };
+      }
+    }
+
+    function shaded(color, percent) {
+      let num = parseInt(color.replace("#", ""), 16),
+        amt = Math.round(2.55 * (percent - 1.0) * 100),
+        R = (num >> 16) + amt,
+        G = (num >> 8 & 0x00FF) + amt,
+        B = (num & 0x0000FF) + amt;
+      return "#" + (0x1000000 + (R < 255 ? R < 0 ? 0 : R : 255) * 0x10000 + (G < 255 ? G < 0 ? 0 : G : 255) * 0x100 + (B < 255 ? B < 0 ? 0 : B : 255)).toString(16).slice(1);
+    }
+
+    function setTool(tool) {
+      if (tool.startsWith('cube')) {
+        const defaultKeys = { 'cube': 'cube', 'cube-solid': 'cube-solid', 'cube-water': 'cube-water', 'cube-river': 'cube-river' };
+        activeTool = defaultKeys[tool] || tool;
+        activeLayer = 'cube';
+        document.getElementById('tab-cube').className = 'layer-tab active-cube';
+        document.getElementById('tab-col').className = 'layer-tab';
+      } else {
+        activeTool = tool;
+        activeLayer = 'collider';
+        document.getElementById('tab-col').className = 'layer-tab active-col';
+        document.getElementById('tab-cube').className = 'layer-tab';
+      }
+
+      ['btn-cube', 'btn-cube-solid', 'btn-cube-water', 'btn-cube-river', 'btn-col-top', 'btn-col-left', 'btn-col-right', 'btn-col-line', 'btn-erase'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+      });
+
+      const conf = getActiveMaterialConfig(activeTool);
+      const targetId = conf ? `btn-${conf.shapeId}` : `btn-${tool}`;
+      const targetBtn = document.getElementById(targetId);
+      if (targetBtn) targetBtn.classList.add('active');
+
+      renderMaterialDock();
+      renderPropertyControls();
+    }
+
+    function setLayer(layer) {
+      if (layer === 'cube') setTool('cube');
+      else setTool('col-top');
+    }
+
+    function changeZ(amt) {
+      activeZ += amt;
+      document.getElementById('lbl-z-level').textContent = activeZ;
+      drawCubes();
+      drawColliders();
+    }
+
+    function rotateView(dir) {
+      camRot = (camRot + dir + 4) % 4;
+      drawCubes();
+      drawGrid();
+      drawColliders();
+    }
+
+    function recalculateGridBounds() {
+      let keys = Object.keys(cubes);
+      if (keys.length === 0 && colliders.length === 0) {
+        minGridX = 0; maxGridX = 6;
+        minGridY = 0; maxGridY = 6;
+      } else {
+        let xs = [], ys = [];
+        keys.forEach(k => { const [c, r] = k.split(',').map(Number); xs.push(c); ys.push(r); });
+        colliders.forEach(c => { if (c.col !== undefined) { xs.push(c.col); ys.push(c.row); } });
+        if (xs.length > 0) {
+          minGridX = Math.min(...xs) - paddingSize; maxGridX = Math.max(...xs) + paddingSize;
+          minGridY = Math.min(...ys) - paddingSize; maxGridY = Math.max(...ys) + paddingSize;
+        }
+      }
+      autoLayoutDimensions();
+    }
+
+    function autoLayoutDimensions() {
+      OX = W / 2;
+      OY = H / 2;
+      S = 42 * manualZoomModifier;
+      drawGrid();
+      drawCubes();
+      drawColliders();
+    }
+
+    function zoomIn() { manualZoomModifier *= 1.15; autoLayoutDimensions(); }
+    function zoomOut() { manualZoomModifier /= 1.15; autoLayoutDimensions(); }
+    function resetZoom() { manualZoomModifier = 1.0; recalculateGridBounds(); }
+
+    function drawGrid() {
+      gx.clearRect(0, 0, W, H);
+      gx.strokeStyle = '#222230';
+      gx.lineWidth = 1;
+
+      for (let c = minGridX; c <= maxGridX; c++) {
+        for (let r = minGridY; r <= maxGridY; r++) {
+          let pts = [
+            isoProject(c, r, 0),
+            isoProject(c + 1, r, 0),
+            isoProject(c + 1, r + 1, 0),
+            isoProject(c, r + 1, 0)
+          ];
+          gx.beginPath();
+          gx.moveTo(pts[0].x, pts[0].y);
+          for (let i = 1; i < pts.length; i++) gx.lineTo(pts[i].x, pts[i].y);
+          gx.closePath();
+          gx.stroke();
+        }
+      }
+    }
+
+    function drawCubes() {
+      cx.clearRect(0, 0, W, H);
+      let list = [];
+      Object.keys(cubes).forEach(k => {
+        const [c, r] = k.split(',').map(Number);
+        cubes[k].forEach(cube => {
+          list.push({ c, r, z: cube.z, mat: cube.mat });
+        });
+      });
+
+      list.sort((a, b) => {
+        if (a.z !== b.z) return a.z - b.z;
+        return (a.c + a.r) - (b.c + b.r);
+      });
+
+      list.forEach(item => {
+        renderCubeObject(item.c, item.r, item.z, item.mat);
+      });
+    }
+
+    function renderCubeObject(c, r, z, mat) {
+      const v = [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1], [0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]];
+
+      function drawFace(verts, light, customColor) {
+        let pts = verts.map(pt => isoProject(c + pt[0], r + pt[1], z + pt[2]));
+        cx.beginPath();
+        cx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) cx.lineTo(pts[i].x, pts[i].y);
+        cx.closePath();
+        cx.fillStyle = shaded(customColor || mat.color || mat.colA || '#3ecfb2', light);
+        cx.globalAlpha = mat.opacity !== undefined ? mat.opacity : (mat.alpha !== undefined ? mat.alpha : 1.0);
+        cx.fill();
+        cx.strokeStyle = 'rgba(0,0,0,0.15)';
+        cx.lineWidth = 0.5;
+        cx.stroke();
+      }
+
+      if (mat.type === 'river' || mat.type === 'dither') {
+        drawFace([v[3], v[2], v[6], v[7]], 0.70, mat.colorB);
+        drawFace([v[1], v[2], v[6], v[5]], 0.88, mat.colorB);
+        drawFace([v[0], v[1], v[2], v[3]], 1.12, mat.colorA);
+      } else {
+        drawFace([v[3], v[2], v[6], v[7]], 0.70);
+        drawFace([v[1], v[2], v[6], v[5]], 0.88);
+        drawFace([v[0], v[1], v[2], v[3]], 1.12);
+      }
+      cx.globalAlpha = 1.0;
+    }
+
+    function drawColliders() {
+      lx.clearRect(0, 0, W, H);
+      colliders.forEach(col => {
+        lx.fillStyle = 'rgba(78, 255, 145, 0.4)';
+        lx.strokeStyle = '#4eff91';
+        lx.lineWidth = 2;
+
+        if (col.type === 'top') {
+          let pts = [isoProject(col.col, col.row, col.z + 1), isoProject(col.col + 1, col.row, col.z + 1), isoProject(col.col + 1, col.row + 1, col.z + 1), isoProject(col.col, col.row + 1, col.z + 1)];
+          lx.beginPath(); lx.moveTo(pts[0].x, pts[0].y); pts.forEach(p => lx.lineTo(p.x, p.y)); lx.closePath(); lx.fill(); lx.stroke();
+        }
+      });
+    }
+
+    function isoProject(c, r, z) {
+      let nc = c, nr = r;
+      if (camRot === 1) { nc = -r; nr = c; }
+      else if (camRot === 2) { nc = -c; nr = -r; }
+      else if (camRot === 3) { nc = r; nr = -c; }
+
+      let x = OX + (nc - nr) * S;
+      let y = OY + (nc + nr) * 0.5 * S - z * S;
+      return { x, y };
+    }
+
+    function screenToGrid(sx, sy) {
+      let minD = Infinity, target = null;
+      for (let c = minGridX - 4; c <= maxGridX + 4; c++) {
+        for (let r = minGridY - 4; r <= maxGridY + 4; r++) {
+          let cen = isoProject(c + 0.5, r + 0.5, activeZ);
+          let d = Math.hypot(sx - cen.x, sy - cen.y);
+          if (d < minD) { minD = d; target = { c, r }; }
+        }
+      }
+      return minD < S * 1.5 ? target : null;
+    }
+
+    function clearAll() {
+      cubes = {};
+      colliders = [];
+      recalculateGridBounds();
+    }
+
+    function init() {
+      const container = document.getElementById('cvwrap');
+      W = cGrid.width = cCube.width = cCol.width = cHit.width = container.offsetWidth;
+      H = cGrid.height = cCube.height = cCol.height = cHit.height = container.offsetHeight;
+
+      window.addEventListener('resize', () => {
+        W = cGrid.width = cCube.width = cCol.width = cHit.width = container.offsetWidth;
+        H = cGrid.height = cCube.height = cCol.height = cHit.height = container.offsetHeight;
+        autoLayoutDimensions();
+      });
+
+      cHit.addEventListener('click', (e) => {
+        const rect = cHit.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        let gridPos = screenToGrid(mouseX, mouseY);
+        if (!gridPos) return;
+
+        let key = `${gridPos.c},${gridPos.h || gridPos.r}`;
+        const activeConf = getActiveMaterialConfig(activeTool);
+
+        if (activeLayer === 'cube' && activeConf) {
+          if (!cubes[key]) cubes[key] = [];
+          cubes[key] = cubes[key].filter(cu => cu.z !== activeZ);
+
+          if (activeTool !== 'erase') {
+            cubes[key].push({ z: activeZ, mat: JSON.parse(JSON.stringify(activeConf.config)) });
+          }
+          recalculateGridBounds();
+        } else if (activeLayer === 'collider') {
+          if (activeTool === 'col-top') {
+            colliders.push({ type: 'top', col: gridPos.c, row: gridPos.r, z: activeZ });
+            drawColliders();
+          }
+        }
+      });
+
+      renderMaterialDock();
+      selectMaterial('cube');
+    }
+
+    window.onload = init;
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Isometric Drawing Tool v8 (Fixed Title & Custom Materials)</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #0d0d10;
+            font-family: 'Space Mono', monospace;
+            color: #4a4a60;
+            user-select: none;
+        }
+
+        #app-layout {
+            display: flex;
+            flex-direction: column;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* ── TOP TOOLBAR ───────────────────────────────── */
+        #toolbar {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #1f1f28;
+            background: #111115;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            z-index: 10;
+        }
+
+        .tb-section {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-right: 1px solid #1f1f28;
+        }
+
+        .tb-label {
+            font-size: 10px;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: #55556a;
+            white-space: nowrap;
+        }
+
+        .tool-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border: 1px solid #2a2a38;
+            border-radius: 4px;
+            cursor: pointer;
+            background: transparent;
+            color: #7a7a9a;
+            font-size: 10px;
+            font-family: 'Space Mono', monospace;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            transition: all .15s ease;
+            white-space: nowrap;
+        }
+
+        .tool-btn:hover {
+            background: #191920;
+            color: #a0a0c0;
+            border-color: #4a4a60;
+        }
+
+        .tool-btn.active {
+            background: #1c1c24;
+            color: #3ecfb2;
+            border-color: #3ecfb2;
+        }
+
+        .tool-btn.col-btn.active {
+            color: #4eff91;
+            border-color: #4eff91;
+        }
+
+        .color-dot {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: transform .1s;
+        }
+
+        .color-dot:hover {
+            transform: scale(1.15);
+        }
+
+        .color-dot.active {
+            border-color: #fff;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 60px;
+            height: 3px;
+            background: #2a2a38;
+            border-radius: 2px;
+            outline: none;
+            accent-color: #3ecfb2;
+        }
+
+        input[type="color"] {
+            background: none;
+            border: 1px solid #2a2a38;
+            cursor: pointer;
+            height: 20px;
+            width: 30px;
+            padding: 0;
+        }
+
+        .tb-mini {
+            padding: 4px 8px;
+            border: 1px solid #2a2a38;
+            border-radius: 3px;
+            font-size: 10px;
+            font-family: 'Space Mono', monospace;
+            color: #7a7a9a;
+            background: transparent;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .tb-mini:hover {
+            color: #fff;
+            border-color: #3ecfb2;
+        }
+
+        /* ── LAYER BAR ─────────────────────────────────── */
+        #layer-bar {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #14141a;
+            background: #09090c;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .layer-tab {
+            padding: 5px 16px;
+            font-size: 10px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: #4a4a60;
+            cursor: pointer;
+            border-right: 1px solid #14141a;
+            border-bottom: 2px solid transparent;
+            transition: all .15s;
+        }
+
+        .layer-tab:hover {
+            color: #7a7a9a;
+        }
+
+        .layer-tab.active-cube {
+            color: #3ecfb2;
+            border-bottom-color: #3ecfb2;
+        }
+
+        .layer-tab.active-col {
+            color: #4eff91;
+            border-bottom-color: #4eff91;
+        }
+
+        #layer-hint {
+            flex: 1;
+            padding: 5px 16px;
+            font-size: 10px;
+            color: #3a3a4a;
+            letter-spacing: .08em;
+            text-align: right;
+        }
+
+        /* ── MAIN CONTAINER ────────────────────────────── */
+        #main-container {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            width: 100%;
+        }
+
+        /* ── WORKSPACE ─────────────────────────────────── */
+        #workspace {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        #viewport-container {
+            flex: 1;
+            position: relative;
+            outline: none;
+            min-height: 0;
+        }
+
+        /* ── Floating Zoom Menu ────────────────────────────────── */
+        #zoom-floating-menu {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: rgba(13, 13, 18, 0.88);
+            border: 1px solid #2a2a3c;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 4px;
+            z-index: 10;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(6px);
+        }
+
+        .zoom-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: #999;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+            font-size: 14px;
+        }
+
+        .zoom-btn:hover {
+            background: #1c1c28;
+            color: #3ecfb2;
+            border-color: #3a3a52;
+        }
+
+        .zoom-btn:active {
+            background: #111116;
+        }
+
+        /* ── RIGHT HAND PANEL (Bar + Drawer Combined) ───── */
+        #right-panel {
+            width: 320px;
+            background: #0d0d10;
+            border-left: 1px solid #1a1a22;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+
+        #right-panel::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        #right-panel::-webkit-scrollbar-thumb {
+            background: #2a2a38;
+        }
+
+        /* MATERIAL BAR */
+        #mat-bar {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 16px;
+            border-bottom: 1px solid #1a1a22;
+        }
+
+        .mat-section-title {
+            font-size: 10px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: #55556a;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mat-add-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .mat-add-btn {
+            background: transparent;
+            border: 1px dashed #3a3a4a;
+            color: #3ecfb2;
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .mat-add-btn:hover {
+            border-color: #3ecfb2;
+            background: #14141c;
+        }
+
+        .mat-chips-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .mat-chip {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 8px;
+            border: 1px solid #1a1a22;
+            background: #111115;
+            transition: all .18s ease;
+            width: calc(33.33% - 6px);
+            min-width: 76px;
+        }
+
+        .mat-chip:hover {
+            background: #14141c;
+            border-color: #2a2a38;
+        }
+
+        .mat-chip.active {
+            background: #13131c;
+            border-color: var(--chip-color, #3ecfb2);
+        }
+
+        .mat-chip.active .mat-label {
+            color: var(--chip-color, #3ecfb2);
+        }
+
+        .mat-icon {
+            width: 44px;
+            height: 38px;
+            position: relative;
+        }
+
+        .mat-icon svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .mat-label {
+            font-size: 8px;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: #4a4a60;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            text-align: center;
+        }
+
+        /* MATERIAL SETTINGS DRAWER */
+        #mat-drawer {
+            background: #0e0e14;
+            flex: 1;
+        }
+
+        .drawer-inner {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 16px;
+        }
+
+        .drawer-col {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .d-title {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: .18em;
+            color: var(--dt-color, #7a7a9a);
+            border-bottom: 1px solid #1f1f28;
+            padding-bottom: 4px;
+            margin-bottom: 4px;
+            white-space: nowrap;
+        }
+
+        .d-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            font-size: 10px;
+            color: #7a7a9a;
+            min-height: 20px;
+            white-space: nowrap;
+        }
+
+        .d-row input[type="text"] {
+            background: #0f0f14;
+            color: #fff;
+            border: 1px solid #2a2a38;
+            padding: 4px 6px;
+            font-family: 'Space Mono';
+            font-size: 10px;
+            width: 100%;
+            border-radius: 3px;
+        }
+
+        .d-row input[type="text"]:focus {
+            outline: none;
+            border-color: #3ecfb2;
+        }
+
+        .d-row input[type="range"] {
+            width: 110px;
+        }
+
+        .d-row input[type="color"] {
+            height: 20px;
+            width: 28px;
+        }
+
+        .d-row select {
+            background: #0f0f14;
+            color: #7a7a9a;
+            border: 1px solid #2a2a38;
+            padding: 2px 4px;
+            font-family: 'Space Mono';
+            font-size: 9px;
+            text-transform: uppercase;
+            width: 110px;
+        }
+
+        .drawer-action-btn {
+            background: #1c1c24;
+            border: 1px solid #3ecfb2;
+            color: #3ecfb2;
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            padding: 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            margin-top: 4px;
+            text-align: center;
+        }
+
+        .drawer-action-btn:hover {
+            background: #3ecfb2;
+            color: #0d0d10;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* ── STATUS BAR ────────────────────────────────── */
+        #statusbar {
+            padding: 5px 16px;
+            border-top: 1px solid #14141a;
+            background: #0d0d10;
+            font-size: 10px;
+            letter-spacing: .08em;
+            color: #55556a;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .hint-overlay {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #3ecfb2;
+            font-size: 11px;
+            pointer-events: none;
+            letter-spacing: .05em;
+            background: rgba(13, 13, 16, .8);
+            padding: 4px 12px;
+            border-radius: 4px;
+            border: 1px solid #1f1f28;
+            white-space: nowrap;
+        }
+
+        .iso-top {
+            fill-opacity: 1;
+        }
+
+        .iso-left {
+            fill-opacity: .7;
+        }
+
+        .iso-right {
+            fill-opacity: .5;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app-layout">
+
+        <div id="toolbar">
+            <div class="tb-section">
+                <span class="tb-label">Collider</span>
+                <button class="tool-btn col-btn" id="btn-col-top">Top</button>
+                <button class="tool-btn col-btn" id="btn-col-left">Left</button>
+                <button class="tool-btn col-btn" id="btn-col-right">Right</button>
+                <button class="tool-btn col-btn" id="btn-col-line">Line</button>
+            </div>
+            <div class="tb-section">
+                <span class="tb-label">Erase</span>
+                <button class="tool-btn" id="btn-erase">Erase</button>
+            </div>
+            <div class="tb-section" style="gap:4px">
+                <span class="tb-label">Height</span>
+                <button class="tb-mini" id="btn-height-down">▼</button>
+                <span id="height-label"
+                    style="font-size:11px;color:#3ecfb2;min-width:18px;text-align:center;font-weight:bold">0</span>
+                <button class="tb-mini" id="btn-height-up">▲</button>
+            </div>
+            <div class="tb-section">
+                <span class="tb-label">Rotate</span>
+                <button class="tool-btn" id="btn-rot-cw">⟳ CW</button>
+                <button class="tool-btn" id="btn-rot-ccw">⟲ CCW</button>
+            </div>
+
+            <div class="tb-section" style="gap:7px;flex:1;justify-content:flex-end;border-right:none">
+                <button class="tb-mini" id="btn-clear">Clear</button>
+            </div>
+        </div>
+
+        <div id="layer-bar">
+            <div class="layer-tab active-cube" id="tab-cube">● Cube layer</div>
+            <div class="layer-tab" id="tab-col">◎ Collider layer</div>
+            <div id="layer-hint">Painting Cubes</div>
+        </div>
+
+        <div id="main-container">
+            <div id="workspace">
+                <div id="viewport-container">
+                    <div class="hint-overlay">Left Click: Action&nbsp;•&nbsp;Right Click+Drag: Orbit&nbsp;•&nbsp;Scroll:
+                        Zoom</div>
+
+                    <div id="zoom-floating-menu">
+                        <button class="zoom-btn" onclick="zoomIn()" title="Zoom In">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                        <button class="zoom-btn" onclick="zoomOut()" title="Zoom Out">
+                            <i class="fa-solid fa-minus"></i>
+                        </button>
+                        <button class="zoom-btn" onclick="resetZoom()" title="Reset Auto Layout">
+                            <i class="fa-solid fa-arrows-to-dot"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="right-panel">
+                <div id="mat-bar"></div>
+                <div id="mat-drawer"></div>
+            </div>
+        </div>
+
+        <div id="statusbar"><span id="status-msg">select a material, then click a cell</span></div>
+    </div>
+
+    <script type="importmap">
+    { 
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // ── CONSTANTS & STATE ───────────────────────────────────
+        let activeLayer = 'cube';
+        let activeHeightIndex = 0;
+        let lineStartNode = null;
+        let camRot = 0; // Camera angle in increments of 90 degrees (0, 1, 2, 3)
+        let currentGridSize = 16; 
+
+        const activeCubes = new Map();
+        const activeColliders = new Map();
+        const activeLines = [];
+
+        // Track allocated assets dynamically to feed standard raycasters cleanly
+        const objects = []; 
+        const materialsMap = {};
+        let activeMaterialKey = 'cube-dither';
+
+        // ── GLSL INJECTIONS FOR SHARED CUSTOM SHADERS ──────────
+        const ditherGLSL = `
+        if (dMode > 0) {
+            bool isDither = false;
+            vec2 scaledUv = myUv * (100.0 / dSpace);
+            float lineThreshold = dThick / dSpace;
+            if (dMode == 1) {
+                vec2 gridUv = floor(scaledUv);
+                float noise = fract(sin(dot(gridUv, vec2(12.9898,78.233)))*43758.5453);
+                isDither = noise > 0.5;
+            } else if (dMode == 2) {
+                isDither = fract(scaledUv.y) < lineThreshold;
+            } else if (dMode == 3) {
+                isDither = fract(scaledUv.x) < lineThreshold;
+            } else if (dMode == 4) {
+                isDither = (fract(scaledUv.y) < lineThreshold) || (fract(scaledUv.x) < lineThreshold);
+            }
+            if (isDither) {
+                vec3 targetCol;
+                if (dInkMode == 1) {
+                    float baseLum = dot(splitBase, vec3(0.299,0.587,0.114));
+                    float fragLum = dot(gl_FragColor.rgb, vec3(0.299,0.587,0.114));
+                    float lightingScale = fragLum / max(baseLum, 0.001);
+                    targetCol = dInkColor * lightingScale;
+                } else {
+                    vec3 brightShift = dBright > 0.0 ? vec3(1.0) : vec3(0.0);
+                    targetCol = mix(gl_FragColor.rgb, brightShift, abs(dBright));
+                }
+                gl_FragColor.rgb = mix(gl_FragColor.rgb, targetCol, dAlpha);
+            }
+        }
+        `;
+
+        const ditherSolidGLSL = `
+        if (dMode > 0) {
+            bool isDither = false;
+            vec2 scaledUv = myUv * (100.0 / dSpace);
+            float lineThreshold = dThick / dSpace;
+            if (dMode == 1) {
+                vec2 gridUv = floor(scaledUv);
+                float noise = fract(sin(dot(gridUv, vec2(12.9898,78.233)))*43758.5453);
+                isDither = noise > 0.5;
+            } else if (dMode == 2) {
+                isDither = fract(scaledUv.y) < lineThreshold;
+            } else if (dMode == 3) {
+                isDither = fract(scaledUv.x) < lineThreshold;
+            } else if (dMode == 4) {
+                isDither = (fract(scaledUv.y) < lineThreshold) || (fract(scaledUv.x) < lineThreshold);
+            }
+            if (isDither) {
+                vec3 targetCol;
+                if (dInkMode == 1) {
+                    vec3 fragLumLuma = vec3(dot(gl_FragColor.rgb, vec3(0.299,0.587,0.114)));
+                    targetCol = dInkColor * max(fragLumLuma, vec3(0.001));
+                } else {
+                    vec3 brightShift = dBright > 0.0 ? vec3(1.0) : vec3(0.0);
+                    targetCol = mix(gl_FragColor.rgb, brightShift, abs(dBright));
+                }
+                gl_FragColor.rgb = mix(gl_FragColor.rgb, targetCol, dAlpha);
+            }
+        }
+        `;
+
+        const ditherWaterGLSL = `
+        if (dMode > 0) {
+            bool isDither = false;
+            vec2 scaledUv = myUv * (100.0 / dSpace);
+            float lineThreshold = dThick / dSpace;
+            if (dMode == 1) {
+                vec2 gridUv = floor(scaledUv);
+                float noise = fract(sin(dot(gridUv, vec2(12.9898,78.233)))*43758.5453);
+                isDither = noise > 0.5;
+            } else if (dMode == 2) {
+                isDither = fract(scaledUv.y) < lineThreshold;
+            } else if (dMode == 3) {
+                isDither = fract(scaledUv.x) < lineThreshold;
+            } else if (dMode == 4) {
+                isDither = (fract(scaledUv.y) < lineThreshold) || (fract(scaledUv.x) < lineThreshold);
+            }
+            if (isDither) {
+                vec3 targetCol;
+                if (dInkMode == 1) {
+                    vec3 fragLumLuma = vec3(dot(gl_FragColor.rgb, vec3(0.299,0.587,0.114)));
+                    targetCol = dInkColor * max(fragLumLuma, vec3(0.001));
+                } else {
+                    vec3 brightShift = dBright > 0.0 ? vec3(1.0) : vec3(0.0);
+                    targetCol = mix(gl_FragColor.rgb, brightShift, abs(dBright));
+                }
+                gl_FragColor.rgb = mix(gl_FragColor.rgb, targetCol, dAlpha);
+            }
+        }
+        `;
+
+        // Helper Utility
+        const $ = id => document.getElementById(id);
+
+        // ── DEFAULT MATERIAL CONFIGURATIONS ──────────────────────
+        const materialBlobs = {
+            'cube-dither': {
+                id: 'cube-dither',
+                name: 'Dither Alpha',
+                type: 'cube-dither',
+                settings: {
+                    colorA: '#43435c', colorB: '#222230', splitY: 0.5,
+                    tMode: 4, tInkMode: 1, tInkColor: '#3ecfb2', tSpace: 12.0, tThick: 2.0, tBright: 0.2, tAlpha: 0.8,
+                    bMode: 1, bInkMode: 0, bInkColor: '#000000', bSpace: 8.0,  bThick: 1.5, bBright: -0.3, bAlpha: 0.5
+                }
+            },
+            'cube-solid': {
+                id: 'cube-solid',
+                name: 'Solid Voxel',
+                type: 'cube-solid',
+                settings: {
+                    color: '#ff6b6b', dMode: 2, dInkMode: 0, dInkColor: '#000000', dSpace: 10.0, dThick: 2.0, dBright: -0.2, dAlpha: 0.6
+                }
+            },
+            'cube-water': {
+                id: 'cube-water',
+                name: 'Water Flow',
+                type: 'cube-water',
+                settings: {
+                    opacity: 0.6, dDMode: 4, dDInkMode: 1, dDInkColor: '#ffffff', dDSpace: 15.0, dDThick: 1.5, dDBright: 0.4, dDAlpha: 0.7
+                }
+            },
+            'cube-river': {
+                id: 'cube-river',
+                name: 'River Bed',
+                type: 'cube-river',
+                settings: {
+                    colorA: '#2e4057', colorB: '#0d1b2a', colorRiver: '#00b4d8', colorBank: '#f77f00', riverWidth: 0.4,
+                    pStart: [0.0, 0.0], pEnd: [1.0, 1.0], dMode: 0, dSpace: 10, dThick: 2, dBright: 0, dAlpha: 0
+                }
+            }
+        };
+
+        // ── THREE.JS ENVIRONMENT SETUP ───────────────────────────
+        const container = $('viewport-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0d0d10);
+
+        // Ambiance Lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        dirLight.position.set(20, 40, 20);
+        scene.add(dirLight);
+
+        // Setup Isometric Orthographic Camera
+        let frustumSize = 16;
+        const aspect = container.clientWidth / container.clientHeight;
+        const camera = new THREE.OrthographicCamera(
+            -frustumSize * aspect / 2, frustumSize * aspect / 2,
+            frustumSize / 2, -frustumSize / 2,
+            0.1, 1000
+        );
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.screenSpacePanning = false;
+        controls.minZoom = 0.5;
+        controls.maxZoom = 4;
+        // Restrict orbit to protect isometric views if preferred, right-click can turn normally
+        controls.mouseButtons = {
+            LEFT: THREE.MOUSE.NONE,
+            MIDDLE: THREE.MOUSE.DOLLY,
+            RIGHT: THREE.MOUSE.ROTATE
+        };
+
+        // Standardized visual grid helper floor reference
+        let gridHelper = new THREE.GridHelper(currentGridSize, currentGridSize, 0x4a4a60, 0x1f1f28);
+        gridHelper.position.y = 0.001; 
+        scene.add(gridHelper);
+
+        // Interaction helper plane tracking height index shifts cleanly
+        const interactionPlaneGeo = new THREE.PlaneGeometry(200, 200);
+        interactionPlaneGeo.rotateX(-Math.PI / 2);
+        const interactionPlane = new THREE.Mesh(
+            interactionPlaneGeo,
+            new THREE.MeshBasicMaterial({ visible: false, depthWrite: false })
+        );
+        scene.add(interactionPlane);
+        objects.push(interactionPlane);
+
+        // Set initial standard isometric view target vectors
+        function resetCameraView() {
+            const angle = (camRot * Math.PI) / 2; 
+            const radius = 30;
+            camera.position.x = radius * Math.cos(angle + Math.PI / 4);
+            camera.position.y = radius * Math.sin(Math.PI / 4); 
+            camera.position.z = radius * Math.sin(angle + Math.PI / 4);
+            controls.target.set(0, 0, 0);
+            camera.lookAt(0, 0, 0);
+            camera.updateProjectionMatrix();
+        }
+        resetCameraView();
+
+        // ── DYNAMIC GRID RESIZER ────────────────────────────────
+        function checkAndExpandGrid(x, z) {
+            const maxCoord = Math.max(Math.abs(x), Math.abs(z));
+            if (maxCoord >= currentGridSize / 2) {
+                // Resize up matching the bounds expansion requirements cleanly
+                currentGridSize = Math.ceil(maxCoord * 2) + 8;
+                scene.remove(gridHelper);
+                gridHelper = new THREE.GridHelper(currentGridSize, currentGridSize, 0x4a4a60, 0x1f1f28);
+                gridHelper.position.y = 0.001;
+                scene.add(gridHelper);
+            }
+        }
+
+        // ── MATERIAL GENERATION & INJECTIONS ─────────────────────
+        function generateNewMaterialInstance(type, customSettings = null, name = 'Custom Material') {
+            const defaultBlob = materialBlobs[type];
+            const s = customSettings || defaultBlob.settings;
+            let mat;
+
+            if (type === 'cube-dither') {
+                mat = new THREE.MeshStandardMaterial({
+                    color: new THREE.Color(s.colorA),
+                    roughness: 0.4,
+                    metalness: 0.1
+                });
+                mat.onBeforeCompile = (shader) => {
+                    shader.uniforms.colorA = { value: new THREE.Color(s.colorA) };
+                    shader.uniforms.colorB = { value: new THREE.Color(s.colorB) };
+                    shader.uniforms.splitY = { value: s.splitY };
+                    shader.uniforms.tMode = { value: s.tMode };
+                    shader.uniforms.tInkMode = { value: s.tInkMode };
+                    shader.uniforms.tInkColor = { value: new THREE.Color(s.tInkColor) };
+                    shader.uniforms.tSpace = { value: s.tSpace };
+                    shader.uniforms.tThick = { value: s.tThick };
+                    shader.uniforms.tBright = { value: s.tBright };
+                    shader.uniforms.tAlpha = { value: s.tAlpha };
+                    shader.uniforms.bMode = { value: s.bMode };
+                    shader.uniforms.bInkMode = { value: s.bInkMode };
+                    shader.uniforms.bInkColor = { value: new THREE.Color(s.bInkColor) };
+                    shader.uniforms.bSpace = { value: s.bSpace };
+                    shader.uniforms.bThick = { value: s.bThick };
+                    shader.uniforms.bBright = { value: s.bBright };
+                    shader.uniforms.bAlpha = { value: s.bAlpha };
+
+                    shader.vertexShader = shader.vertexShader.replace(
+                        `#include <uv_vertex>`,
+                        `#include <uv_vertex>\nvarying vec2 myUv; myUv = uv;\nvarying vec3 vModelPos; vModelPos = position;`
+                    );
+                    shader.fragmentShader = `
+                        varying vec2 myUv;
+                        varying vec3 vModelPos;
+                        uniform vec3 colorA;
+                        uniform vec3 colorB;
+                        uniform float splitY;
+                        uniform int tMode; uniform int tInkMode; uniform vec3 tInkColor; uniform float tSpace; uniform float tThick; uniform float tBright; uniform float tAlpha;
+                        uniform int bMode; uniform int bInkMode; uniform vec3 bInkColor; uniform float bSpace; uniform float bThick; uniform float bBright; uniform float bAlpha;
+                        ${ditherGLSL}
+                    ` + shader.fragmentShader;
+
+                    shader.fragmentShader = shader.fragmentShader.replace(
+                        `vec4 diffuseColor = vec4( diffuse, opacity );`,
+                        `bool isTop = (vModelPos.y > (splitY - 0.5));
+                         vec3 splitBase = isTop ? colorA : colorB;
+                         vec4 diffuseColor = vec4( splitBase, opacity );`
+                    ).replace(
+                        `#include <dithering_fragment>`,
+                        `#include <dithering_fragment>
+                         int dMode = isTop ? tMode : bMode;
+                         int dInkMode = isTop ? tInkMode : bInkMode;
+                         vec3 dInkColor = isTop ? tInkColor : bInkColor;
+                         float dSpace = isTop ? tSpace : bSpace;
+                         float dThick = isTop ? tThick : bThick;
+                         float dBright = isTop ? tBright : bBright;
+                         float dAlpha = isTop ? tAlpha : bAlpha;
+                         ${ditherGLSL}`
+                    );
+                };
+            } else if (type === 'cube-solid') {
+                mat = new THREE.MeshStandardMaterial({
+                    color: new THREE.Color(s.color),
+                    roughness: 0.5,
+                    metalness: 0.0
+                });
+                mat.onBeforeCompile = (shader) => {
+                    shader.uniforms.dMode = { value: s.dMode };
+                    shader.uniforms.dInkMode = { value: s.dInkMode };
+                    shader.uniforms.dInkColor = { value: new THREE.Color(s.dInkColor) };
+                    shader.uniforms.dSpace = { value: s.dSpace };
+                    shader.uniforms.dThick = { value: s.dThick };
+                    shader.uniforms.dBright = { value: s.dBright };
+                    shader.uniforms.dAlpha = { value: s.dAlpha };
+
+                    shader.vertexShader = shader.vertexShader.replace(`#include <uv_vertex>`, `#include <uv_vertex>\nvarying vec2 myUv; myUv = uv;`);
+                    shader.fragmentShader = `
+                        varying vec2 myUv;
+                        uniform int dMode; uniform int dInkMode; uniform vec3 dInkColor; uniform float dSpace; uniform float dThick; uniform float dBright; uniform float dAlpha;
+                        ${ditherSolidGLSL}
+                    ` + shader.fragmentShader;
+
+                    shader.fragmentShader = shader.fragmentShader.replace(
+                        `#include <dithering_fragment>`,
+                        `#include <dithering_fragment>
+                         vec3 splitBase = diffuse.rgb;
+                         ${ditherSolidGLSL}`
+                    );
+                };
+            } else if (type === 'cube-water') {
+                mat = new THREE.MeshStandardMaterial({
+                    color: new THREE.Color(0x3a86c8),
+                    transparent: true,
+                    opacity: s.opacity,
+                    roughness: 0.2,
+                    metalness: 0.1
+                });
+                mat.onBeforeCompile = (shader) => {
+                    shader.uniforms.dMode = { value: s.dDMode };
+                    shader.uniforms.dInkMode = { value: s.dDInkMode };
+                    shader.uniforms.dInkColor = { value: new THREE.Color(s.dDInkColor) };
+                    shader.uniforms.dSpace = { value: s.dDSpace };
+                    shader.uniforms.dThick = { value: s.dDThick };
+                    shader.uniforms.dBright = { value: s.dDBright };
+                    shader.uniforms.dAlpha = { value: s.dDAlpha };
+
+                    shader.vertexShader = shader.vertexShader.replace(`#include <uv_vertex>`, `#include <uv_vertex>\nvarying vec2 myUv; myUv = uv;`);
+                    shader.fragmentShader = `
+                        varying vec2 myUv;
+                        uniform int dMode; uniform int dInkMode; uniform vec3 dInkColor; uniform float dSpace; uniform float dThick; uniform float dBright; uniform float dAlpha;
+                        ${ditherWaterGLSL}
+                    ` + shader.fragmentShader;
+
+                    shader.fragmentShader = shader.fragmentShader.replace(
+                        `#include <dithering_fragment>`,
+                        `#include <dithering_fragment>
+                         vec3 splitBase = diffuse.rgb;
+                         ${ditherWaterGLSL}`
+                    );
+                };
+            } else {
+                // Fallback standard material safely
+                mat = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x888888) });
+            }
+
+            materialsMap[type] = mat;
+            return mat;
+        }
+
+        // ── INTERACTION LOGIC (SNAPPING & DRAWING) ───────────────
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        // Safe coordinates calculation using flooring mechanisms directly
+        function getInteractionGridPosition(event) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(objects, true);
+
+            if (intersects.length > 0) {
+                const intersect = intersects[0];
+                const pt = intersect.point;
+
+                // Base coords snap logic cleanly aligned to half voxel translations
+                let gx = Math.floor(pt.x + 0.5);
+                let gz = Math.floor(pt.z + 0.5);
+                let gy = activeHeightIndex;
+
+                if (intersect.object !== interactionPlane && activeTool !== 'erase') {
+                    // Normal distribution offset logic to find neighbor coordinate cleanly
+                    const norm = intersect.face.normal;
+                    const neighbor = pt.clone().add(norm.clone().multiplyScalar(0.5));
+                    gx = Math.floor(neighbor.x + 0.5);
+                    gz = Math.floor(neighbor.z + 0.5);
+                    gy = Math.floor(neighbor.y + 0.5);
+                }
+                return { x: gx, y: gy, z: gz };
+            }
+            return null;
+        }
+
+        // Node Preview Meshes
+        const previewCube = new THREE.Mesh(new THREE.BoxGeometry(0.98, 0.98, 0.98), new THREE.MeshBasicMaterial({ color: 0x3ecfb2, wireframe: true, transparent: true, opacity: 0.4 }));
+        scene.add(previewCube);
+        const previewNode = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 16), new THREE.MeshBasicMaterial({ color: 0x4eff91 }));
+        scene.add(previewNode);
+
+        function updateInteractionPlane() {
+            interactionPlane.position.y = activeHeightIndex;
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            const coord = getInteractionGridPosition(e);
+            if (coord) {
+                if (activeLayer === 'cube') {
+                    previewCube.visible = true;
+                    previewNode.visible = false;
+                    previewCube.position.set(coord.x, coord.y + 0.5, coord.z);
+                } else {
+                    previewCube.visible = false;
+                    previewNode.visible = true;
+                    previewNode.position.set(coord.x, coord.y, coord.z);
+                }
+            } else {
+                previewCube.visible = false;
+                previewNode.visible = false;
+            }
+        });
+
+        window.addEventListener('pointerdown', (e) => {
+            // Only capture main left-click for painting interactions safely
+            if (e.button !== 0) return;
+
+            const coord = getInteractionGridPosition(e);
+            if (!coord) return;
+
+            const key = `${coord.x},${coord.y},${coord.z}`;
+
+            if (activeTool === 'erase') {
+                if (activeLayer === 'cube' && activeCubes.has(key)) {
+                    const m = activeCubes.get(key);
+                    scene.remove(m);
+                    const idx = objects.indexOf(m);
+                    if (idx > -1) objects.splice(idx, 1);
+                    activeCubes.delete(key);
+                } else if (activeLayer === 'col') {
+                    // Match floor coordinates node check safely
+                    const nKey = `${coord.x},${coord.z}`;
+                    if (activeColliders.has(nKey)) {
+                        const colObj = activeColliders.get(nKey);
+                        scene.remove(colObj);
+                        activeColliders.delete(nKey);
+                    }
+                }
+                return;
+            }
+
+            // Paint mode
+            if (activeLayer === 'cube') {
+                if (!activeCubes.has(key)) {
+                    // Dynamic Grid expansion logic triggered upon coordinate reach thresholds
+                    checkAndExpandGrid(coord.x, coord.z);
+
+                    const currentMat = materialsMap[activeMaterialKey] || materialsMap['cube-dither'];
+                    const geo = new THREE.BoxGeometry(1, 1, 1);
+                    const mesh = new THREE.Mesh(geo, currentMat);
+                    mesh.position.set(coord.x, coord.y + 0.5, coord.z);
+                    scene.add(mesh);
+                    objects.push(mesh);
+                    activeCubes.set(key, mesh);
+                }
+            } else if (activeLayer === 'col') {
+                if (activeTool === 'line') {
+                    if (!lineStartNode) {
+                        lineStartNode = coord;
+                        $('status-msg').textContent = `Line starting at (${coord.x}, ${coord.z}). Click next node.`;
+                    } else {
+                        // Create Line
+                        const p1 = new THREE.Vector3(lineStartNode.x, lineStartNode.y, lineStartNode.z);
+                        const p2 = new THREE.Vector3(coord.x, coord.y, coord.z);
+                        const mat = new THREE.LineBasicMaterial({ color: 0x4eff91, linewidth: 2 });
+                        const lineGeo = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+                        const line = new THREE.Line(lineGeo, mat);
+                        scene.add(line);
+                        activeLines.push(line);
+                        
+                        lineStartNode = null;
+                        $('status-msg').textContent = "Line complete. Select next start or change tool.";
+                    }
+                } else {
+                    // Node dot collider markers
+                    const nKey = `${coord.x},${coord.z}`;
+                    if (!activeColliders.has(nKey)) {
+                        checkAndExpandGrid(coord.x, coord.z);
+                        const sphereMat = new THREE.MeshBasicMaterial({ color: 0x4eff91 });
+                        const sphereGeo = new THREE.SphereGeometry(0.12, 16, 16);
+                        const nodeMesh = new THREE.Mesh(sphereGeo, sphereMat);
+                        nodeMesh.position.set(coord.x, coord.y, coord.z);
+                        scene.add(nodeMesh);
+                        activeColliders.set(nKey, nodeMesh);
+                    }
+                }
+            }
+        });
+
+        // ── ROTATION CORE VIEW LOGIC ─────────────────────────────
+        function rotateView(direction) {
+            if (direction === 'CW') {
+                camRot = (camRot + 1) % 4;
+            } else {
+                camRot = (camRot + 3) % 4;
+            }
+            resetCameraView();
+            $('status-msg').textContent = `Viewport angle shifted → Direction state index = ${camRot}`;
+        }
+
+        // ── SETTINGS DRAWER LAYOUT READERS ───────────────────────
+        function readDrawerSettings(blob) {
+            const s = blob.settings;
+            if (blob.type === 'cube-dither') {
+                return {
+                    colorA: $('dColA')?.value ?? s.colorA,
+                    colorB: $('dColB')?.value ?? s.colorB,
+                    splitY: parseFloat($('dSplitY')?.value ?? s.splitY * 100) / 100,
+                    tMode: parseInt($('dtMode')?.value ?? s.tMode),
+                    tInkMode: parseInt($('dtInkMode')?.value ?? s.tInkMode),
+                    tInkColor: $('dtInkCol')?.value ?? s.tInkColor,
+                    tSpace: parseFloat($('dtSpace')?.value ?? s.tSpace),
+                    tThick: parseFloat($('dtThick')?.value ?? s.tThick),
+                    tBright: parseFloat($('dtBright')?.value ?? s.tBright * 100) / 100,
+                    tAlpha: parseFloat($('dtAlpha')?.value ?? s.tAlpha * 100) / 100,
+                    bMode: parseInt($('dbMode')?.value ?? s.bMode),
+                    bInkMode: parseInt($('dbInkMode')?.value ?? s.bInkMode),
+                    bInkColor: $('dbInkCol')?.value ?? s.bInkColor,
+                    bSpace: parseFloat($('dbSpace')?.value ?? s.bSpace),
+                    bThick: parseFloat($('dbThick')?.value ?? s.bThick),
+                    bBright: parseFloat($('dbBright')?.value ?? s.bBright * 100) / 100,
+                    bAlpha: parseFloat($('dbAlpha')?.value ?? s.bAlpha * 100) / 100,
+                };
+            }
+            if (blob.type === 'cube-solid') {
+                return {
+                    color:       $('sColor')?.value ?? s.color,
+                    dMode:       parseInt($('sDMode')?.value ?? s.dMode),
+                    dInkMode:    parseInt($('sDInkMode')?.value ?? s.dInkMode),
+                    dInkColor:   ($('sDInkCol')?.value ?? s.dInkColor),
+                    dSpace:      parseFloat($('sDSpace')?.value ?? s.dSpace),
+                    dThick:      parseFloat($('sDThick')?.value ?? s.dThick),
+                    dBright:     parseFloat($('sDBright')?.value ?? s.dBright * 100) / 100,
+                    dAlpha:      parseFloat($('sDAlpha')?.value ?? s.dAlpha * 100) / 100,
+                };
+            }
+            if (blob.type === 'cube-water') {
+                return {
+                    opacity:     parseFloat($('wOpacity')?.value ?? s.opacity * 100) / 100,
+                    dDMode:      parseInt($('dDMode')?.value ?? s.dDMode),
+                    dDInkMode:   parseInt($('dDInkMode')?.value ?? s.dDInkMode),
+                    dDInkColor:  ($('dDInkCol')?.value ?? s.dDInkColor),
+                    dDSpace:     parseFloat($('dDSpace')?.value ?? s.dDSpace),
+                    dDThick:     parseFloat($('dDThick')?.value ?? s.dDThick),
+                    dDBright:    parseFloat($('dDBright')?.value ?? s.dDBright * 100) / 100,
+                    dDAlpha:     parseFloat($('dDAlpha')?.value ?? s.dDAlpha * 100) / 100,
+                };
+            }
+            return s;
+        }
+
+        function updateLiveMaterial() {
+            const blob = materialBlobs[activeMaterialKey];
+            if (!blob) return;
+            blob.settings = readDrawerSettings(blob);
+            generateNewMaterialInstance(blob.type, blob.settings, blob.name);
+        }
+
+        // ── UI RENDERING COMPONENT IMPLEMENTATIONS ───────────────
+        function rebuildMaterialBarUI() {
+            const bar = $('mat-bar');
+            bar.innerHTML = `<div class="mat-section-title"><span>VOXEL PALETTE</span></div>`;
+            
+            const grid = document.createElement('div');
+            grid.className = 'mat-chips-grid';
+            
+            Object.values(materialBlobs).forEach(b => {
+                const chip = document.createElement('div');
+                chip.className = `mat-chip ${b.id === activeMaterialKey ? 'active' : ''}`;
+                chip.onclick = () => {
+                    activeMaterialKey = b.id;
+                    activeTool = 'paint';
+                    $('btn-erase').classList.remove('active');
+                    rebuildMaterialBarUI();
+                    renderSettingsDrawer();
+                };
+                
+                // Pure CSS/SVG Isometric asset thumbnail generation routines
+                chip.innerHTML = `
+                    <div class="mat-icon">
+                        <svg viewBox="0 0 54 46">
+                            <polygon class="iso-top" points="27,3 49,15 27,27 5,15" fill="${b.settings.color || b.settings.colorA || '#3a86c8'}"/>
+                            <polygon class="iso-left" points="5,15 27,27 27,43 5,31" fill="${b.settings.color || b.settings.colorB || '#2a6699'}" opacity="0.8"/>
+                            <polygon class="iso-right" points="27,27 49,15 49,31 27,43" fill="${b.settings.color || b.settings.colorB || '#1a4477'}" opacity="0.6"/>
+                        </svg>
+                    </div>
+                    <div class="mat-label">${b.name}</div>
+                `;
+                grid.appendChild(chip);
+            });
+            bar.appendChild(grid);
+        }
+
+        function renderSettingsDrawer() {
+            const d = $('mat-drawer');
+            const blob = materialBlobs[activeMaterialKey];
+            if (!blob) { d.innerHTML = ''; return; }
+            
+            let html = `<div class="drawer-inner">`;
+            const s = blob.settings;
+
+            if (blob.type === 'cube-dither') {
+                html += `
+                    <div class="drawer-col"><div class="d-title">Dither Setup</div>
+                        <div class="d-row"><span>Color Top</span><input type="color" id="dColA" value="${s.colorA}"></div>
+                        <div class="d-row"><span>Color Base</span><input type="color" id="dColB" value="${s.colorB}"></div>
+                        <div class="d-row"><span>Split Line</span><input type="range" id="dSplitY" min="0" max="100" value="${s.splitY * 100}"></div>
+                    </div>
+                    <div class="drawer-col"><div class="d-title">Top Face Hashing</div>
+                        <div class="d-row"><span>Pattern</span><select id="dtMode"><option value="1" ${s.tMode==1?'selected':''}>Noise</option><option value="2" ${s.tMode==2?'selected':''}>Horiz</option><option value="3" ${s.tMode==3?'selected':''}>Vert</option><option value="4" ${s.tMode==4?'selected':''}>Cross</option></select></div>
+                        <div class="d-row"><span>Ink Mode</span><select id="dtInkMode"><option value="0" ${s.tInkMode==0?'selected':''}>Offset</option><option value="1" ${s.tInkMode==1?'selected':''}>Custom</option></select></div>
+                        <div class="d-row"><span>Ink Color</span><input type="color" id="dtInkCol" value="${s.tInkColor}"></div>
+                        <div class="d-row"><span>Spacing</span><input type="range" id="dtSpace" min="4" max="30" value="${s.tSpace}"></div>
+                        <div class="d-row"><span>Thick</span><input type="range" id="dtThick" min="1" max="6" value="${s.tThick}"></div>
+                        <div class="d-row"><span>Alpha</span><input type="range" id="dtAlpha" min="0" max="100" value="${s.tAlpha * 100}"></div>
+                    </div>
+                `;
+            } else if (blob.type === 'cube-solid') {
+                html += `
+                    <div class="drawer-col"><div class="d-title">Voxel Settings</div>
+                        <div class="d-row"><span>Base Color</span><input type="color" id="sColor" value="${s.color}"></div>
+                        <div class="d-row"><span>Hatch Type</span><select id="sDMode"><option value="0" ${s.dMode==0?'selected':''}>None</option><option value="2" ${s.dMode==2?'selected':''}>Lines</option><option value="4" ${s.dMode==4?'selected':''}>Cross</option></select></div>
+                        <div class="d-row"><span>Spacing</span><input type="range" id="sDSpace" min="4" max="30" value="${s.dSpace}"></div>
+                        <div class="d-row"><span>Thick</span><input type="range" id="sDThick" min="1" max="6" value="${s.dThick}"></div>
+                        <div class="d-row"><span>Intensity</span><input type="range" id="sDAlpha" min="0" max="100" value="${s.dAlpha * 100}"></div>
+                    </div>
+                `;
+            } else if (blob.type === 'cube-water') {
+                html += `
+                    <div class="drawer-col"><div class="d-title">Fluid Settings</div>
+                        <div class="d-row"><span>Opacity</span><input type="range" id="wOpacity" min="10" max="100" value="${s.opacity * 100}"></div>
+                        <div class="d-row"><span>Ripple Style</span><select id="dDMode"><option value="1" ${s.dDMode==1?'selected':''}>Noise Grid</option><option value="4" ${s.dDMode==4?'selected':''}>Waves Cross</option></select></div>
+                        <div class="d-row"><span>Ripple Color</span><input type="color" id="dDInkCol" value="${s.dDInkColor}"></div>
+                        <div class="d-row"><span>Frequency</span><input type="range" id="dDSpace" min="5" max="40" value="${s.dDSpace}"></div>
+                        <div class="d-row"><span>Alpha</span><input type="range" id="dDAlpha" min="0" max="100" value="${s.dDAlpha * 100}"></div>
+                    </div>
+                `;
+            }
+
+            html += `</div>`;
+            d.innerHTML = html;
+
+            // Bind dynamic mutation tracking directly 
+            d.querySelectorAll('input, select').forEach(el => {
+                el.oninput = () => updateLiveMaterial();
+            });
+        }
+
+        // ── TOOLBAR SELECTION HANDLERS ───────────────────────────
+        $('btn-erase').onclick = () => {
+            activeTool = 'erase';
+            $('btn-erase').classList.add('active');
+            lineStartNode = null;
+        };
+
+        $('btn-height-up').onclick = () => {
+            activeHeightIndex++;
+            $('height-label').textContent = activeHeightIndex;
+            updateInteractionPlane();
+        };
+
+        $('btn-height-down').onclick = () => {
+            if (activeHeightIndex > 0) {
+                activeHeightIndex--;
+                $('height-label').textContent = activeHeightIndex;
+                updateInteractionPlane();
+            }
+        };
+
+        $('btn-rot-cw').onclick  = () => rotateView('CW');
+        $('btn-rot-ccw').onclick = () => rotateView('CCW');
+
+        $('btn-clear').onclick = () => {
+            activeCubes.forEach(m => scene.remove(m));
+            activeCubes.clear();
+            activeColliders.forEach(n => scene.remove(n));
+            activeColliders.clear();
+            activeLines.forEach(l => scene.remove(l));
+            activeLines.length = 0;
+            objects.length = 0;
+            objects.push(interactionPlane);
+            lineStartNode = null;
+        };
+
+        // Layer Tabs
+        $('tab-cube').onclick = () => {
+            activeLayer = 'cube';
+            $('tab-cube').className = 'layer-tab active-cube';
+            $('tab-col').className = 'layer-tab';
+            $('layer-hint').textContent = "Painting Cubes Mode";
+        };
+
+        $('tab-col').onclick = () => {
+            activeLayer = 'col';
+            $('tab-col').className = 'layer-tab active-col';
+            $('tab-cube').className = 'layer-tab';
+            $('layer-hint').textContent = "Painting Colliders/Nodes Mode";
+        };
+
+        // ── FLOATING ZOOM WINDOW CONTROLS ────────────────────────
+        function applyZoom() {
+            const aspect = container.clientWidth / container.clientHeight;
+            camera.left   = -frustumSize * aspect / 2;
+            camera.right  =  frustumSize * aspect / 2;
+            camera.top    =  frustumSize / 2;
+            camera.bottom = -frustumSize / 2;
+            camera.updateProjectionMatrix();
+        }
+
+        window.zoomIn  = () => { frustumSize = Math.max(4,  frustumSize * 0.75); applyZoom(); };
+        window.zoomOut = () => { frustumSize = Math.min(80, frustumSize * 1.25); applyZoom(); };
+        window.resetZoom = () => { frustumSize = 16; resetCameraView(); applyZoom(); };
+
+        window.addEventListener('resize', () => {
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            applyZoom();
+        });
+
+        // ── ENGINE ANIMATION TICK LOOP ───────────────────────────
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Initialize App State
+        generateNewMaterialInstance('cube-dither');
+        generateNewMaterialInstance('cube-solid');
+        generateNewMaterialInstance('cube-water');
+        
+        rebuildMaterialBarUI();
+        renderSettingsDrawer();
+        updateInteractionPlane();
+        animate();
+    </script>
+</body>
+
+</html>

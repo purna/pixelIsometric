@@ -136,8 +136,9 @@ function init() {
     textureManagerInstance = textureManager;
     textureManager.init(config);
 
-    // Initialize materials manager
-    materialsManager = new MaterialsManager(this);
+    // Initialize materials manager (pass undefined — the 3D adapter
+    // does not consult this reference at startup)
+    materialsManager = new MaterialsManager();
 
     // Initialize material builder for preview canvas
     materialBuilder = new MaterialBuilder();

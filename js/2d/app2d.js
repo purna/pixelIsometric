@@ -238,7 +238,7 @@ function setTool(tool) {
     activeTool = tool; renderer.activeTool = tool;
     renderer._lineStart = null; renderer.hoverTile = null; renderer.hoverDot = null;
     document.querySelectorAll('.tool-btn')?.forEach(b => b.classList.remove('active'));
-    const map = { cube: 'btn-cube', 'col-top': 'btn-col-top', 'col-left': 'btn-col-left', 'col-right': 'btn-col-right', 'col-line': 'btn-col-line', erase: 'btn-erase' };
+    const map = { cube: 'btn-cube', 'add-cube': 'btn-cube', 'col-top': 'btn-col-top', 'col-left': 'btn-col-left', 'col-right': 'btn-col-right', 'col-line': 'btn-col-line', erase: 'btn-erase' };
     document.getElementById(map[tool])?.classList.add('active');
     const layer = tool.startsWith('col-') ? 'collider' : (tool === 'erase' ? activeLayer : 'cube');
     const hintEl = document.getElementById('layer-hint');
@@ -255,9 +255,9 @@ function clearAll() {
 }
 
 // ── Stamp persistence (delegates to stampLayer.js / BlobStorage) ────────────
-function saveStamp()   { /* implemented in stampLayer.js */ }
-function removeStamp(id){ /* implemented in stampLayer.js */ }
-function selectStamp(id){ /* implemented in stampLayer.js */ }
+function saveStamp(label)   { return stampLayer.saveStamp(label); }
+function removeStamp(id){ return stampLayer.removeStamp(id); }
+function selectStamp(id){ return stampLayer.selectStamp(id); }
 
 // ── Exports ─────────────────────────────────────────────────────────────────
 const _app2d = { init, getApp: () => app, setTool, clearAll, sharedRedraw };

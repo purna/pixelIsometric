@@ -22,7 +22,59 @@
 <body>
     <svg xmlns="http://www.w3.org/2000/svg" class="hidden-defs"></svg>
     <div id="container">
-        <div id="scene-container"></div>
+         <div id="scene-container">
+          <div id="floating-camera-panel" class="floating-panel">
+              <div class="panel-header">
+                  <div class="panel-title"><h3>Camera</h3></div>
+              </div>
+              <div class="panel-content button-group">
+                  <button id="floating-reset-camera" class="icon-button" title="Reset"><i class="fas fa-sync-alt"></i></button>
+                  <button id="floating-rotate-cw" class="icon-button" title="Rotate CW"><i class="fas fa-undo"></i></button>
+                  <button id="floating-rotate-ccw" class="icon-button" title="Rotate CCW"><i class="fas fa-redo"></i></button>
+                  <div>
+                      <label for="floating-camera-position">Position:</label>
+                      <input type="text" id="floating-camera-position" readonly>
+                  </div>
+              </div>
+          </div>
+          <div id="viewport-top-bar">
+              <div id="obj-tile-bar"></div>
+              <div id="mat-chip-bar"></div>
+              <div id="height-bar">
+                  <button id="btn-height-down" title="Lower layer">&#9660;</button>
+                  <span id="height-label">0</span>
+                  <button id="btn-height-up" title="Raise layer">&#9650;</button>
+              </div>
+          </div>
+          <div id="viewport-bottom-drawer">
+              <div id="drawer-inner"></div>
+          </div>
+          <!-- Floating Movement Panel -->
+          <div id="floating-movement-panel" class="floating-panel">
+              <div class="panel-header">
+                  <div class="panel-title"><h3>Movement</h3></div>
+              </div>
+              <div class="panel-content">
+                  <div>
+                      <label for="object-select">Select:</label>
+                      <select id="object-select"><option value="">None</option></select>
+                  </div>
+                  <div>
+                      <label>Move:</label>
+                      <div class="button-group">
+                          <button id="move-left">↖</button>
+                          <button id="move-up">↑</button>
+                          <button id="move-right-up">↗</button>
+                      </div>
+                      <div class="button-group">
+                          <button id="move-left-down">↙</button>
+                          <button id="move-down">↓</button>
+                          <button id="move-right">↘</button>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
         <div id="sidebar">
             <div class="sidebar-header">
                 <h2>Isometric Builder</h2>

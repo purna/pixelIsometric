@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iso Drawing Tool v14 - Enhanced UI & Dynamic Materials</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    body {
+      background: #0a0a0d;
+      font-family: 'Courier New', monospace;
+      min-height: 100vh;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      margin: 0;
+      gap: 0;
+      box-sizing: border-box;
+      overflow: hidden
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box
+    }
+
+    /* ── Drawing Workspace Layout Fixes ─────────────────────────────── */
+    #app-container {
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+      background: #111116;
+      border-radius: 0;
+      overflow: hidden;
+      border: none;
+    }
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      height: 100%;
+      overflow: hidden
+    }
+
+    #toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border-bottom: 1px solid #1e1e1e;
+      background: #0d0d10;
+      flex-shrink: 0;
+      flex-wrap: wrap
+    }
+
+    .tb-section {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 7px 10px;
+      border-right: 1px solid #1a1a1a
+    }
+
+    .tb-label {
+      font-size: 9px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #CCC;
+      margin-right: 2px;
+      white-space: nowrap
+    }
+
+    .tool-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 9px;
+      border: 1px solid #222;
+      border-radius: 4px;
+      cursor: pointer;
+      background: transparent;
+      color: #CCC;
+      font-size: 9px;
+      font-family: 'Courier New', monospace;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      transition: all .1s;
+      white-space: nowrap
+    }
+
+    .tool-btn svg {
+      flex-shrink: 0
+    }
+
+    .tool-btn:hover {
+      background: #161616;
+      color: #888;
+      border-color: #333
+    }
+
+    .tool-btn.active {
+      background: #1a1a1a;
+      color: #3ecfb2;
+      border-color: #3ecfb2
+    }
+
+    .tool-btn.col-btn.active {
+      color: #4eff91;
+      border-color: #4eff91
+    }
+
+    .color-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1.5px solid transparent;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform .1s
+    }
+
+    .color-dot:hover {
+      transform: scale(1.2)
+    }
+
+    .color-dot.active {
+      border-color: #fff
+    }
+
+    .tb-mini {
+      padding: 4px 8px;
+      border: 1px solid #1e1e1e;
+      border-radius: 3px;
+      font-size: 9px;
+      font-family: 'Courier New', monospace;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #CCC;
+      background: transparent;
+      cursor: pointer
+    }
+
+    .tb-mini:hover {
+      color: #888;
+      border-color: #333
+    }
+
+    #layer-bar {
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid #1a1a1a;
+      background: #0a0a0c;
+      flex-shrink: 0
+    }
+
+    .layer-tab {
+      padding: 5px 14px;
+      font-size: 9px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: #C6C6C6;
+      cursor: pointer;
+      border-right: 1px solid #141414;
+      border-bottom: 2px solid transparent;
+      transition: all .1s
+    }
+
+    .layer-tab:hover {
+      color: #CCC
+    }
+
+    .layer-tab.active-cube {
+      color: #3ecfb2;
+      border-bottom-color: #3ecfb2
+    }
+
+    .layer-tab.active-col {
+      color: #4eff91;
+      border-bottom-color: #4eff91
+    }
+
+    #layer-hint {
+      flex: 1;
+      padding: 5px 12px;
+      font-size: 9px;
+      color: #444;
+      letter-spacing: .08em
+    }
+
+    #cvwrap {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      overflow: hidden;
+      background: #0d0d12;
+    }
+
+    #cvwrap canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%
+    }
+
+    #c-grid { z-index: 1 }
+    #c-cube { z-index: 2 }
+    #c-col { z-index: 3 }
+    #c-hit { z-index: 4 }
+
+    #statusbar {
+      padding: 5px 12px;
+      border-top: 1px solid #141414;
+      background: #0d0d10;
+      font-size: 9px;
+      letter-spacing: .08em;
+      color: #C4C4C4;
+      flex-shrink: 0
+    }
+
+    /* ── Sidebar Component Layout Layout Rules ── */
+    #mat-dock {
+      width: 280px;
+      background: #0d0d12;
+      border-left: 1px solid #1e1e1e;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      flex-shrink: 0;
+    }
+
+    #mat-dock .tb-section {
+      border-right: none;
+      border-bottom: 1px solid #1e1e1e;
+      padding: 10px;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    #mat-list-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .mat-type-section {
+      border: 1px solid #1a1a22;
+      border-radius: 4px;
+      background: #111116;
+      overflow: hidden;
+    }
+
+    .mat-type-header {
+      background: #161620;
+      padding: 8px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .mat-type-header:hover {
+      background: #1c1c28;
+    }
+
+    .mat-type-title {
+      font-size: 9px;
+      color: #aaa;
+      font-weight: bold;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .mat-type-arrow {
+      font-size: 8px;
+      color: #666;
+    }
+
+    .mat-type-content {
+      padding: 8px;
+      border-top: 1px solid #1a1a22;
+    }
+
+    .mat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .ml-item {
+      background: #09090d;
+      border: 1px solid #1f1f2e;
+      border-radius: 3px;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+
+    .ml-item:hover {
+      border-color: #3a3a52;
+      background: #12121a;
+    }
+
+    .ml-item.active {
+      border-color: #3ecfb2;
+      background: rgba(62, 207, 178, 0.05);
+    }
+
+    .ml-item canvas {
+      background: #050508;
+      border-radius: 2px;
+      margin-bottom: 4px;
+      max-width: 100%;
+    }
+
+    .ml-label {
+      font-size: 8px;
+      color: #888;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+    }
+
+    .ml-item.active .ml-label {
+      color: #3ecfb2;
+    }
+
+    .add-mat-bar {
+      display: flex;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .add-mat-input {
+      flex: 1;
+      background: #050508;
+      border: 1px solid #222230;
+      border-radius: 2px;
+      color: #ccc;
+      font-family: monospace;
+      font-size: 9px;
+      padding: 3px 6px;
+    }
+
+    .add-mat-input:focus {
+      outline: none;
+      border-color: #444460;
+    }
+
+    .add-mat-btn {
+      background: #1a1a26;
+      color: #aaa;
+      border: 1px solid #222230;
+      border-radius: 2px;
+      padding: 0 8px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .add-mat-btn:hover {
+      background: #252538;
+      color: #fff;
+    }
+
+    #mat-props-panel {
+      border-top: 1px solid #1e1e1e;
+      background: #09090d;
+      padding: 12px;
+      flex-shrink: 0;
+    }
+
+    #mat-props-header {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #666;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    #mat-empty {
+      font-size: 9px;
+      color: #444;
+      font-style: italic;
+    }
+
+    /* Custom Uniform Property controls */
+    .ps {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      width: 100%;
+    }
+
+    .pr {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 9px;
+      color: #666;
+    }
+
+    .pr label {
+      width: 60px;
+      white-space: nowrap;
+      color: #CCC;
+      text-transform: uppercase;
+      font-size: 8px;
+    }
+
+    .pr input[type=range] {
+      flex: 1;
+      height: 2px;
+      accent-color: #3ecfb2;
+      background: #1c1c24;
+      border: none;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .pr input[type=color] {
+      width: 28px;
+      height: 18px;
+      border: 1px solid #232330;
+      background: none;
+      padding: 0;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+
+    .pr select {
+      flex: 1;
+      background: #050507;
+      color: #888;
+      border: 1px solid #232330;
+      padding: 2px 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+    }
+
+    .pr .pv {
+      min-width: 25px;
+      text-align: right;
+      color: #555;
+      font-size: 8px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="app-container">
+    <div id="app">
+      <div id="toolbar">
+        <div class="tb-section">
+          <span class="tb-label">Cubes</span>
+          <button class="tool-btn active" id="btn-cube" onclick="setTool('cube')">
+            <svg width="14" height="14" viewBox="0 0 32 26" fill="none">
+              <polygon points="16,2 30,9 16,16 2,9" fill="currentColor" opacity=".9" />
+              <polygon points="2,9 16,16 16,26 2,19" fill="currentColor" opacity=".5" />
+              <polygon points="30,9 16,16 16,26 30,19" fill="currentColor" opacity=".7" />
+            </svg>Split
+          </button>
+          <button class="tool-btn" id="btn-cube-solid" onclick="setTool('cube-solid')">
+            <svg width="14" height="14" viewBox="0 0 32 26" fill="none">
+              <polygon points="16,2 30,9 16,16 2,9" fill="currentColor" />
+              <polygon points="2,9 16,16 16,26 2,19" fill="currentColor" opacity=".7" />
+              <polygon points="30,9 16,16 16,26 30,19" fill="currentColor" opacity=".8" />
+            </svg>Solid
+          </button>
+          <button class="tool-btn" id="btn-cube-water" onclick="setTool('cube-water')">
+            <svg width="14" height="14" viewBox="0 0 32 26" fill="none">
+              <polygon points="16,2 30,9 16,16 2,9" fill="#4fa3e3" opacity=".5" />
+              <polygon points="2,9 16,16 16,26 2,19" fill="#2d6fa3" opacity=".4" />
+              <polygon points="30,9 16,16 16,26 30,19" fill="#3b87c4" opacity=".45" />
+            </svg>Water
+          </button>
+          <button class="tool-btn" id="btn-cube-river" onclick="setTool('cube-river')">
+            <svg width="14" height="14" viewBox="0 0 26 20" fill="none">
+              <polygon points="13,1 25,6 25,14 13,19 1,14 1,6" fill="currentColor" opacity=".9" />
+              <polygon points="1,6 13,13 13,19 1,14" fill="currentColor" opacity=".6" />
+              <polygon points="25,6 13,13 13,19 25,14" fill="currentColor" opacity=".75" />
+            </svg>River
+          </button>
+        </div>
+        <div class="tb-section">
+          <button class="tool-btn col-btn" id="btn-col-top" onclick="setTool('col-top')">Top</button>
+          <button class="tool-btn col-btn" id="btn-col-left" onclick="setTool('col-left')">Left</button>
+          <button class="tool-btn col-btn" id="btn-col-right" onclick="setTool('col-right')">Right</button>
+          <button class="tool-btn col-btn" id="btn-col-line" onclick="setTool('col-line')">Line</button>
+        </div>
+        <div class="tb-section">
+          <span class="tb-label">Erase</span>
+          <button class="tool-btn" id="btn-erase" onclick="setTool('erase')">Eraser</button>
+        </div>
+        <div class="tb-section">
+          <span class="tb-label">View</span>
+          <button class="tool-btn" onclick="rotateView(-1)">CCW</button>
+          <button class="tool-btn" onclick="rotateView(1)">CW</button>
+        </div>
+        <div class="tb-section">
+          <span class="tb-label">Level Z</span>
+          <button class="tool-btn" onclick="changeZ(-1)" style="padding:5px 8px">-</button>
+          <span id="lbl-z-level" style="font-size:10px;color:#3ecfb2;font-weight:bold;margin:0 4px;min-width:12px;text-align:center">0</span>
+          <button class="tool-btn" onclick="changeZ(1)" style="padding:5px 8px">+</button>
+        </div>
+        <div class="tb-section" style="gap:6px">
+          <button class="tb-mini" onclick="clearAll()">Clear</button>
+        </div>
+      </div>
+
+      <div id="layer-bar">
+        <div class="layer-tab active-cube" id="tab-cube" onclick="setLayer('cube')">● Cube layer</div>
+        <div class="layer-tab" id="tab-col" onclick="setLayer('collider')">◎ Collider layer</div>
+        <div id="layer-hint">painting cubes</div>
+      </div>
+
+      <div id="cvwrap">
+        <canvas id="c-grid"></canvas>
+        <canvas id="c-cube"></canvas> 
+        <canvas id="c-col"></canvas>
+        <canvas id="c-hit"></canvas>
+      </div>
+      <div id="statusbar"><span id="status-msg">Click tile to draw inside layer</span></div>
+    </div>
+
+    <div id="mat-dock">
+      <div id="mat-list-container"></div>
+
+      <div id="mat-props-panel">
+        <div id="mat-props-header">Material Attributes</div>
+        <div id="mat-props">
+          <div id="mat-empty">Select a Material template from categories</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let MATERIAL_GROUPS = {
+      'cube': {
+        title: 'Split Cubes',
+        items: {
+          'cube': { name: 'Default Split', type: 'split', alpha: 1.0, colA: '#3ecfb2', colB: '#c94b6e', split: 50, dither: 'none' }
+        }
+      },
+      'cube-solid': {
+        title: 'Solid Cubes',
+        items: {
+          'cube-solid': { name: 'Default Solid', type: 'solid', alpha: 1.0, colA: '#a3d39c', colB: '#a3d39c', split: 0, dither: 'none' }
+        }
+      },
+      'cube-water': {
+        title: 'Water Cubes',
+        items: {
+          'cube-water': { name: 'Default Water', type: 'water', alpha: 0.5, colA: '#5caee6', colB: '#3582bd', split: 0, dither: 'none' }
+        }
+      },
+      'cube-river': {
+        title: 'Terrain Tiles',
+        items: {
+          'cube-river': { name: 'Default River', type: 'river', alpha: 1.0, colGround: '#3ecfb2', colPath: '#1d557a', colBank: '#a3d39c', pathWidth: 20, startX: 0, startY: -100, endX: 100, endY: 0, dither: 'none' }
+        }
+      }
+    };
+
+    function getActiveMaterialConfig(materialId) {
+      for (let shapeId in MATERIAL_GROUPS) {
+        if (MATERIAL_GROUPS[shapeId].items[materialId]) {
+          return { shapeId, config: MATERIAL_GROUPS[shapeId].items[materialId] };
+        }
+      }
+      return null;
+    }
+
+    const GRID_N = 7;
+    let S = 42;
+    let activeTool = 'cube'; 
+    let activeLayer = 'cube';
+    let lineStart = null;
+    let hoverTile = null;
+    let hoverDot = null;
+    let activeZ = 0;
+    let camRot = 0;
+
+    let openSections = { 'cube': true, 'cube-solid': false, 'cube-water': false, 'cube-river': false };
+
+    const cGrid = document.getElementById('c-grid');
+    const cCube = document.getElementById('c-cube');
+    const cCol = document.getElementById('c-col');
+    const cHit = document.getElementById('c-hit');
+    const gx = cGrid.getContext('2d');
+    const cx = cCube.getContext('2d');
+    const lx = cCol.getContext('2d');
+
+    let W, H, OX, OY;
+    let cubes = {};
+    let colliders = [];
+    const PALETTE = ['#3ecfb2', '#c94b6e', '#5b9bd5', '#e8a838', '#9b7fd4', '#74c476', '#fa9fb5', '#aaaaaa'];
+
+    function renderMaterialDock() {
+      const container = document.getElementById('mat-list-container');
+      container.innerHTML = '';
+
+      for (let shapeId in MATERIAL_GROUPS) {
+        const group = MATERIAL_GROUPS[shapeId];
+        const isExpanded = !!openSections[shapeId];
+
+        const sectionEl = document.createElement('div');
+        sectionEl.className = 'mat-type-section';
+
+        const headerEl = document.createElement('div');
+        headerEl.className = `mat-type-header ${isExpanded ? 'active-section' : ''}`;
+        headerEl.innerHTML = `
+          <span class="mat-type-title">${group.title}</span>
+          <span class="mat-type-arrow">${isExpanded ? '▼' : '►'}</span>
+        `;
+
+        headerEl.onclick = () => {
+          openSections[shapeId] = !openSections[shapeId];
+          renderMaterialDock();
+        };
+        sectionEl.appendChild(headerEl);
+
+        const contentEl = document.createElement('div');
+        contentEl.className = 'mat-type-content';
+        contentEl.style.display = isExpanded ? 'block' : 'none';
+
+        const gridEl = document.createElement('div');
+        gridEl.className = 'mat-grid';
+
+        for (let matKey in group.items) {
+          const mat = group.items[matKey];
+          const itemEl = document.createElement('div');
+          itemEl.className = `ml-item ${activeTool === matKey ? 'active' : ''}`;
+
+          const thumbId = `thumb-${matKey}`;
+          itemEl.innerHTML = `
+            <canvas id="${thumbId}" width="56" height="52"></canvas>
+            <span class="ml-label" title="${mat.name}">${mat.name}</span>
+          `;
+
+          itemEl.onclick = (e) => {
+            e.stopPropagation();
+            selectMaterial(matKey);
+          };
+          gridEl.appendChild(itemEl);
+
+          setTimeout(() => renderThumbnail(thumbId, mat), 0);
+        }
+        contentEl.appendChild(gridEl);
+
+        const addBar = document.createElement('div');
+        addBar.className = 'add-mat-bar';
+
+        let placeholderTxt = "New material...";
+        if (shapeId === 'cube-water') placeholderTxt = "e.g., Blood, Acid...";
+        if (shapeId === 'cube-river') placeholderTxt = "e.g., Stream, Canal...";
+        if (shapeId === 'cube') placeholderTxt = "e.g., Striped, Moss...";
+        if (shapeId === 'cube-solid') placeholderTxt = "e.g., Brick, Dark...";
+
+        addBar.innerHTML = `
+          <input type="text" class="add-mat-input" id="input-add-${shapeId}" placeholder="${placeholderTxt}" />
+          <button class="add-mat-btn">+</button>
+        `;
+
+        const inputField = addBar.querySelector('input');
+        const addBtn = addBar.querySelector('button');
+
+        const triggerAdd = () => {
+          const name = inputField.value.trim();
+          if (!name) return;
+
+          const newKey = `${shapeId}-custom-${Date.now()}`;
+          let baseCopy = Object.values(group.items)[0];
+
+          MATERIAL_GROUPS[shapeId].items[newKey] = {
+            name: name,
+            type: baseCopy.type,
+            alpha: baseCopy.alpha,
+            colA: baseCopy.colA === baseCopy.colB ? PALETTE[Math.floor(Math.random() * PALETTE.length)] : baseCopy.colA,
+            colB: baseCopy.colB,
+            split: baseCopy.split,
+            dither: baseCopy.dither || 'none',
+            colGround: baseCopy.colGround,
+            colPath: baseCopy.colPath,
+            colBank: baseCopy.colBank,
+            pathWidth: baseCopy.pathWidth,
+            startX: baseCopy.startX,
+            startY: baseCopy.startY,
+            endX: baseCopy.endX,
+            endY: baseCopy.endY
+          };
+
+          inputField.value = '';
+          // Fix loop: set properties without full re-dock trigger cycle 
+          activeTool = newKey;
+          renderMaterialDock();
+          renderPropertyControls();
+          drawCubes();
+        };
+
+        addBtn.onclick = (e) => { e.stopPropagation(); triggerAdd(); };
+        inputField.onkeydown = (e) => { if (e.key === 'Enter') { e.stopPropagation(); triggerAdd(); } };
+        inputField.onclick = (e) => e.stopPropagation();
+
+        contentEl.appendChild(addBar);
+        sectionEl.appendChild(contentEl);
+        container.appendChild(sectionEl);
+      }
+    }
+
+    function selectMaterial(matKey) {
+      activeTool = matKey;
+      const info = getActiveMaterialConfig(matKey);
+      if (info) {
+        if (info.shapeId.startsWith('cube')) {
+          activeLayer = 'cube';
+          document.getElementById('tab-cube').className = 'layer-tab active-cube';
+          document.getElementById('tab-col').className = 'layer-tab';
+          document.getElementById('layer-hint').textContent = `painting cubes (${info.config.name})`;
+        }
+
+        ['btn-cube', 'btn-cube-solid', 'btn-cube-water', 'btn-cube-river', 'btn-col-top', 'btn-col-left', 'btn-col-right', 'btn-col-line', 'btn-erase'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.remove('active');
+        });
+        const targetBtn = document.getElementById(`btn-${info.shapeId}`);
+        if (targetBtn) targetBtn.classList.add('active');
+      }
+
+      renderMaterialDock();
+      renderPropertyControls();
+      drawCubes();
+    }
+
+    function renderThumbnail(canvasId, mat) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, 56, 52);
+
+      const OX_old = OX, OY_old = OY, S_old = S;
+
+      OX = 28; OY = 36; S = 22;
+      ctx.globalAlpha = mat.alpha;
+      const v = [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1], [0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]];
+
+      function drawThumbFace(verts3d, light) {
+        const pts = verts3d.map(pt => [OX + (pt[0] - pt[1]) * S, OY + (pt[0] + pt[1]) * 0.5 * S - pt[2] * S]);
+        ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]); ctx.closePath();
+        ctx.fillStyle = shaded(mat.colA, light); ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1; ctx.stroke();
+      }
+
+      if (mat.type === 'river') {
+        const { colGround: cG, colPath: cP, pathWidth: pw, startX: sX, startY: sY, endX: eX, endY: eY } = mat;
+        const tCX = 28, tCY = 36, tSc = 22;
+        const topT    = [tCX,           tCY - tSc * 0.5];
+        const leftT   = [tCX - tSc * 1.0, tCY + tSc * 0.5];
+        const rightT  = [tCX + tSc * 1.0, tCY + tSc * 0.5];
+        const botT    = [tCX,           tCY + tSc * 1.5 * 0.43];
+        ctx.beginPath(); ctx.moveTo(topT[0], topT[1]);
+        ctx.lineTo(rightT[0], rightT[1]); ctx.lineTo(botT[0], botT[1]);
+        ctx.lineTo(leftT[0],  leftT[1]);  ctx.closePath();
+        ctx.fillStyle = shaded(cG, 1.0); ctx.fill();
+        ctx.save(); ctx.clip();
+        const sx2 = sX / 200, sy2 = sY / 200, ex2 = eX / 200, ey2 = eY / 200;
+        const pp1 = [tCX + (sx2 - sy2) * tSc * 1.8, tCY + (sx2 + sy2) * tSc * 0.9];
+        const pp2 = [tCX + (ex2 - ey2) * tSc * 1.8, tCY + (ex2 + ey2) * tSc * 0.9];
+        const d2 = pp2[0]-pp1[0], dy2 = pp2[1]-pp1[1], l2 = Math.hypot(d2, dy2) || 1;
+        const npw = -(dy2/l2)*tSc*(pw/100)*1.4, nph = (d2/l2)*tSc*(pw/100)*1.4;
+        ctx.beginPath(); ctx.moveTo(pp1[0]+npw, pp1[1]+nph); ctx.lineTo(pp2[0]+npw, pp2[1]+nph);
+        ctx.lineTo(pp2[0]-npw, pp2[1]-nph); ctx.lineTo(pp1[0]-npw, pp1[1]-nph); ctx.closePath();
+        const g2 = ctx.createLinearGradient(pp1[0], pp1[1], pp2[0], pp2[1]);
+        g2.addColorStop(0, cP); g2.addColorStop(1, shaded(cP, 0.75)); ctx.fillStyle = g2; ctx.fill();
+        ctx.restore();
+        ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.moveTo(topT[0], topT[1]); ctx.lineTo(rightT[0], rightT[1]);
+        ctx.lineTo(botT[0], botT[1]); ctx.lineTo(leftT[0], leftT[1]); ctx.closePath(); ctx.stroke();
+      } else {
+        drawThumbFace([v[3], v[2], v[6], v[7]], 0.70);
+        drawThumbFace([v[1], v[2], v[6], v[5]], 0.88);
+        drawThumbFace([v[0], v[1], v[2], v[3]], 1.12);
+      }
+
+      ctx.save();
+      ctx.font = "bold 7px 'Courier New', monospace";
+      ctx.fillStyle = "#CCC560";
+      ctx.textAlign = "center";
+      ctx.fillText(mat.type.toUpperCase(), 28, 9);
+      ctx.restore();
+
+      ctx.globalAlpha = 1.0;
+      OX = OX_old; OY = OY_old; S = S_old;
+    }
+
+    function renderPropertyControls() {
+      const panel = document.getElementById('mat-props');
+      const info = getActiveMaterialConfig(activeTool);
+
+      if (!info) {
+        panel.innerHTML = '<div id="mat-empty">Select a material template from categories</div>';
+        return;
+      }
+
+      const mat = info.config;
+      let html = `<div class="ps">`;
+
+      html += `
+        <div class="pr"><label>Name</label><input type="text" id="prop-name" value="${mat.name}" style="flex:1; background:#000; border:1px solid #222; color:#fff; font-size:9px; padding:2px 4px;" /></div>
+        <div class="pr"><label>Opacity</label><input type="range" id="prop-alpha" min="10" max="100" value="${mat.alpha * 100}" /><span class="pv">${Math.round(mat.alpha * 100)}%</span></div>
+        <div class="pr"><label>Color A</label><input type="color" id="prop-colA" value="${mat.colA}" /></div>
+      `;
+
+      if (mat.type === 'split') {
+        html += `
+          <div class="pr"><label>Color B</label><input type="color" id="prop-colB" value="${mat.colB}" /></div>
+          <div class="pr"><label>Split</label><input type="range" id="prop-split" min="0" max="100" value="${mat.split}" /><span class="pv">${mat.split}%</span></div>
+        `;
+      }
+
+      if (mat.type === 'river') {
+        html += `
+          <div class="pr"><label>Ground</label><input type="color" id="prop-colGround" value="${mat.colGround}" /></div>
+          <div class="pr"><label>Path</label><input type="color" id="prop-colPath" value="${mat.colPath}" /></div>
+          <div class="pr"><label>Bank</label><input type="color" id="prop-colBank" value="${mat.colBank}" /></div>
+          <div class="pr"><label>P.Width</label><input type="range" id="prop-pathWidth" min="5" max="60" value="${mat.pathWidth}" /><span class="pv" id="pv-pathWidth">${mat.pathWidth}%</span></div>
+          <div class="pr"><label>Start X</label><input type="range" id="prop-startX" min="-100" max="100" value="${mat.startX}" /><span class="pv" id="pv-startX">${mat.startX}</span></div>
+          <div class="pr"><label>Start Y</label><input type="range" id="prop-startY" min="-100" max="100" value="${mat.startY}" /><span class="pv" id="pv-startY">${mat.startY}</span></div>
+          <div class="pr"><label>End X</label><input type="range" id="prop-endX" min="-100" max="100" value="${mat.endX}" /><span class="pv" id="pv-endX">${mat.endX}</span></div>
+          <div class="pr"><label>End Y</label><input type="range" id="prop-endY" min="-100" max="100" value="${mat.endY}" /><span class="pv" id="pv-endY">${mat.endY}</span></div>
+        `;
+      }
+
+      html += `
+        <div class="pr">
+          <label>Pattern</label>
+          <select id="prop-dither">
+            <option value="none" ${mat.dither === 'none' ? 'selected' : ''}>None</option>
+            <option value="dither-50" ${mat.dither === 'dither-50' ? 'selected' : ''}>Dither 50%</option>
+            <option value="dither-25" ${mat.dither === 'dither-25' ? 'selected' : ''}>Dither 25%</option>
+            <option value="stripes" ${mat.dither === 'stripes' ? 'selected' : ''}>Stripes</option>
+          </select>
+        </div>
+      `;
+
+      html += `</div>`;
+      panel.innerHTML = html;
+
+      document.getElementById('prop-name').oninput = (e) => {
+        mat.name = e.target.value;
+        const labels = document.querySelectorAll('.ml-item.active .ml-label');
+        if(labels.length > 0) labels[0].textContent = mat.name;
+      };
+      document.getElementById('prop-alpha').oninput = (e) => {
+        mat.alpha = parseInt(e.target.value) / 100;
+        e.target.nextElementSibling.textContent = e.target.value + '%';
+        drawCubes();
+      };
+      document.getElementById('prop-colA').onchange = (e) => {
+        mat.colA = e.target.value;
+        if (mat.type === 'solid') mat.colB = e.target.value;
+        drawCubes(); renderMaterialDock();
+      };
+      if (mat.type === 'split') {
+        document.getElementById('prop-colB').onchange = (e) => {
+          mat.colB = e.target.value;
+          drawCubes(); renderMaterialDock();
+        };
+        document.getElementById('prop-split').oninput = (e) => {
+          mat.split = parseInt(e.target.value);
+          e.target.nextElementSibling.textContent = e.target.value + '%';
+          drawCubes();
+        };
+      }
+      if (mat.type === 'river') {
+        const bindRiverVal = (id, key, displayKey) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.oninput = (e) => {
+            mat[key] = parseFloat(e.target.value);
+            const pv = document.getElementById('pv-' + (displayKey || key));
+            if (pv) pv.textContent = e.target.value + (key === 'pathWidth' ? '%' : '');
+            drawCubes();
+          };
+        };
+        document.getElementById('prop-colGround')?.addEventListener('change', e => { mat.colGround = e.target.value; drawCubes(); renderMaterialDock(); });
+        document.getElementById('prop-colPath')?.addEventListener('change',   e => { mat.colPath   = e.target.value; drawCubes(); renderMaterialDock(); });
+        document.getElementById('prop-colBank')?.addEventListener('change',   e => { mat.colBank   = e.target.value; drawCubes(); renderMaterialDock(); });
+        bindRiverVal('prop-pathWidth', 'pathWidth', 'pathWidth');
+        bindRiverVal('prop-startX',    'startX',    'startX');
+        bindRiverVal('prop-startY',    'startY',    'startY');
+        bindRiverVal('prop-endX',      'endX',      'endX');
+        bindRiverVal('prop-endY',      'endY',      'endY');
+      }
+      document.getElementById('prop-dither').onchange = (e) => {
+        mat.dither = e.target.value;
+        drawCubes();
+      };
+    }
+
+    function getViewCell(c, r) {
+      if (camRot === 1) return { c: GRID_N - 1 - r, r: c };
+      if (camRot === 2) return { c: GRID_N - 1 - c, r: GRID_N - 1 - r };
+      if (camRot === 3) return { c: r, r: GRID_N - 1 - c };
+      return { c, r };
+    }
+    function getDataCell(vc, vr) {
+      if (camRot === 1) return { c: vr, r: GRID_N - 1 - vc };
+      if (camRot === 2) return { c: GRID_N - 1 - vc, r: GRID_N - 1 - vr };
+      if (camRot === 3) return { c: GRID_N - 1 - vr, r: vc };
+      return { c: vc, r: vr };
+    }
+    function getViewVertex(x, y) {
+      if (camRot === 1) return { x: GRID_N - y, y: x };
+      if (camRot === 2) return { x: GRID_N - x, y: GRID_N - y };
+      if (camRot === 3) return { x: y, y: GRID_N - x };
+      return { x, y };
+    }
+    function getDataVertex(vx, vy) {
+      if (camRot === 1) return { x: vy, y: GRID_N - vx };
+      if (camRot === 2) return { x: GRID_N - vx, y: GRID_N - vy };
+      if (camRot === 3) return { x: GRID_N - vy, y: vx };
+      return { x: vx, y: vy };
+    }
+    function getViewFace(type) {
+      if (type === 'top' || type === 'line') return type;
+      const map = { 'left': 'backLeft', 'backLeft': 'backRight', 'backRight': 'right', 'right': 'left' };
+      let v = type; for (let i = 0; i < camRot; i++) v = map[v];
+      return v;
+    }
+    function getDataFace(vType) {
+      if (vType === 'top' || vType === 'line') return vType;
+      const map = { 'left': 'right', 'right': 'backRight', 'backRight': 'backLeft', 'backLeft': 'left' };
+      let type = vType; for (let i = 0; i < camRot; i++) type = map[type];
+      return type;
+    }
+
+    function rotateView(dir) {
+      camRot = (camRot + dir + 4) % 4;
+      lineStart = null; hoverTile = null; hoverDot = null;
+      drawGrid(); drawCubes(); drawColliders();
+      const deg = camRot === 0 ? 0 : camRot === 1 ? 90 : camRot === 2 ? 180 : 270;
+      document.getElementById('status-msg').textContent = `✓ View rotated ${deg}°`;
+    }
+
+    function changeZ(dir) {
+      activeZ = Math.max(0, activeZ + dir);
+      document.getElementById('lbl-z-level').textContent = activeZ;
+      lineStart = null; hoverTile = null; hoverDot = null;
+      drawGrid(); drawCubes(); drawColliders();
+    }
+
+    function iso(x, y, z) { return [OX + (x - y) * S, OY + (x + y) * 0.5 * S - z * S]; }
+    function hexToRgb(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
+    function shaded(hex, f) {
+      const [r, g, b] = hexToRgb(hex);
+      return `rgb(${Math.min(255, r * f | 0)},${Math.min(255, g * f | 0)},${Math.min(255, b * f | 0)})`;
+    }
+
+    function drawGrid() {
+      gx.clearRect(0, 0, W, H);
+      for (let col = 0; col < GRID_N; col++) {
+        for (let row = 0; row < GRID_N; row++) {
+          const pts = [iso(col, row, activeZ), iso(col + 1, row, activeZ), iso(col + 1, row + 1, activeZ), iso(col, row + 1, activeZ)];
+          const isHov = hoverTile && (!activeTool.startsWith('col-') && activeTool !== 'erase') && hoverTile.col === col && hoverTile.row === row;
+          gx.beginPath(); gx.moveTo(pts[0][0], pts[0][1]);
+          pts.slice(1).forEach(p => gx.lineTo(p[0], p[1])); gx.closePath();
+          gx.fillStyle = isHov ? 'rgba(62,207,178,0.12)' : 'rgba(255,255,255,0.02)'; gx.fill();
+          gx.strokeStyle = isHov ? 'rgba(62,207,178,0.5)' : 'rgba(255,255,255,0.07)'; gx.lineWidth = isHov ? 1 : 0.5; gx.stroke();
+        }
+      }
+
+      gx.save();
+      gx.font = "bold 9px 'Courier New', monospace";
+      gx.fillStyle = "#3ecfb2";
+      gx.fillText("WORKSPACE // ISO_MATRIX", 14, 22);
+
+      gx.font = "8px 'Courier New', monospace";
+      gx.fillStyle = "#44444a";
+      gx.fillText(`ACTIVE_Z: ${activeZ} | CAM_ROT: ${camRot * 90}°`, 14, 34);
+      gx.restore();
+    }
+
+    function drawFace(ctx2, verts3d, light, splitZ, cA, cB, ditherPattern = 'none') {
+      const zs = verts3d.map(v => v[2]);
+      const maxZ = Math.max(...zs), minZ = Math.min(...zs), n = verts3d.length;
+      function proj(v) { return iso(v[0], v[1], v[2]); }
+
+      function fill(pts3d, color) {
+        if (pts3d.length < 3) return;
+        const pts = pts3d.map(proj);
+        ctx2.beginPath(); ctx2.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++)ctx2.lineTo(pts[i][0], pts[i][1]);
+        ctx2.closePath();
+
+        ctx2.fillStyle = shaded(color, light);
+        ctx2.fill();
+
+        if (ditherPattern && ditherPattern !== 'none') {
+          ctx2.save();
+          ctx2.clip();
+          ctx2.strokeStyle = 'rgba(255,255,255,0.15)';
+          ctx2.lineWidth = 1;
+
+          if (ditherPattern === 'stripes') {
+            for (let i = -100; i < W + 100; i += 6) {
+              ctx2.beginPath(); ctx2.moveTo(i, 0); ctx2.lineTo(i + H, H); ctx2.stroke();
+            }
+          } else if (ditherPattern.startsWith('dither')) {
+            let step = ditherPattern === 'dither-50' ? 4 : 8;
+            ctx2.fillStyle = 'rgba(0,0,0,0.2)';
+            for (let x = 0; x < W; x += step) {
+              for (let y = 0; y < H; y += step) {
+                if ((x + y) % 2 === 0) ctx2.fillRect(x, y, 2, 2);
+              }
+            }
+          }
+          ctx2.restore();
+        }
+      }
+
+      function outline(pts3d) {
+        const pts = pts3d.map(proj);
+        ctx2.beginPath(); ctx2.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++)ctx2.lineTo(pts[i][0], pts[i][1]);
+        ctx2.closePath(); ctx2.strokeStyle = 'rgba(0,0,0,0.4)'; ctx2.lineWidth = 1.2; ctx2.setLineDash([]); ctx2.stroke();
+      }
+
+      function crossPt(a, b) { const t = (splitZ - a[2]) / (b[2] - a[2]); return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, splitZ]; }
+      if (splitZ >= maxZ) { fill(verts3d, cB); outline(verts3d); return; }
+      if (splitZ <= minZ) { fill(verts3d, cA); outline(verts3d); return; }
+      const upper = [], lower = [], seam = [];
+      for (let i = 0; i < n; i++) {
+        const a = verts3d[i], b = verts3d[(i + 1) % n];
+        const aUp = a[2] > splitZ, bUp = b[2] > splitZ;
+        if (aUp) upper.push(a); else lower.push(a);
+        if (aUp !== bUp) { const cp = crossPt(a, b); upper.push(cp); lower.push(cp); seam.push(cp); }
+      }
+      fill(upper, cA); fill(lower, cB);
+      if (seam.length === 2) {
+        const [p0, p1] = seam.map(proj);
+        ctx2.beginPath(); ctx2.moveTo(p0[0], p0[1]); ctx2.lineTo(p1[0], p1[1]);
+        ctx2.strokeStyle = 'rgba(0,0,0,0.45)'; ctx2.lineWidth = 1.2; ctx2.stroke();
+      }
+      outline(verts3d);
+    }
+
+    function renderCube(ctx2, col, row, z, materialId, alphaMultiplier = 1.0) {
+      const info = getActiveMaterialConfig(materialId);
+      if (!info) return;
+      const mat = info.config;
+
+      if (mat.type === 'river') {
+        drawRiverTile(ctx2, col, row, z, mat, alphaMultiplier);
+        return;
+      }
+
+      ctx2.globalAlpha = mat.alpha * alphaMultiplier;
+      const v = [[col, row, z + 1], [col + 1, row, z + 1], [col + 1, row + 1, z + 1], [col, row + 1, z + 1], [col, row, z], [col + 1, row, z], [col + 1, row + 1, z], [col, row + 1, z]];
+
+      let derivedSplitZ = z + (mat.split / 100);
+      if (mat.type === 'solid' || mat.type === 'water') derivedSplitZ = z;
+
+      drawFace(ctx2, [v[3], v[2], v[6], v[7]], 0.70, derivedSplitZ, mat.colA, mat.colB, mat.dither);
+      drawFace(ctx2, [v[1], v[2], v[6], v[5]], 0.88, derivedSplitZ, mat.colA, mat.colB, mat.dither);
+      drawFace(ctx2, [v[0], v[1], v[2], v[3]], 1.12, derivedSplitZ, mat.colA, mat.colB, mat.dither);
+      ctx2.globalAlpha = 1;
+    }
+
+    function drawRiverTile(ctx2, col, row, z, mat, alphaMult = 1.0) {
+      const { colGround, colPath, colBank, pathWidth, startX, startY, endX, endY } = mat;
+      const ctx = ctx2;
+      const cx2 = OX + (col - row) * S + 0.5 * S;      
+      const cy2 = OY + (col + row) * 0.5 * S - (z + 1) * S;  
+      const sc = 0.88 * S;
+      const a = mat.alpha * alphaMult;
+
+      const top    = [cx2,           cy2 - sc * 0.5];
+      const left   = [cx2 - sc * 1.0, cy2 + sc * 0.5];
+      const right  = [cx2 + sc * 1.0, cy2 + sc * 0.5];
+      const bottom = [cx2,           cy2 + sc * 1.5 * 0.43];
+
+      ctx.save();
+      ctx.beginPath(); ctx.moveTo(top[0], top[1]);
+      ctx.lineTo(right[0], right[1]); ctx.lineTo(bottom[0], bottom[1]);
+      ctx.lineTo(left[0],  left[1]);  ctx.closePath();
+
+      ctx.globalAlpha = a;
+      ctx.fillStyle = shaded(colGround, 1.0);
+      ctx.fill();
+
+      ctx.clip();
+      ctx.globalAlpha = a * 0.85;
+      const sx = startX / 200, sy = startY / 200, ex = endX / 200, ey = endY / 200;
+      const p1 = [cx2 + (sx - sy) * sc * 1.8, cy2 + (sx + sy) * sc * 0.9];
+      const p2 = [cx2 + (ex - ey) * sc * 1.8, cy2 + (ex + ey) * sc * 0.9];
+      const dx = p2[0] - p1[0], dy = p2[1] - p1[1];
+      const len = Math.hypot(dx, dy) || 1;
+      const nx = -dy / len * sc * (pathWidth / 100) * 1.4;
+      const ny =  dx / len * sc * (pathWidth / 100) * 1.4;
+      ctx.beginPath(); ctx.moveTo(p1[0]+nx, p1[1]+ny); ctx.lineTo(p2[0]+nx, p2[1]+ny);
+      ctx.lineTo(p2[0]-nx, p2[1]-ny); ctx.lineTo(p1[0]-nx, p1[1]-ny); ctx.closePath();
+      const pathGr = ctx.createLinearGradient(p1[0], p1[1], p2[0], p2[1]);
+      pathGr.addColorStop(0.0, colPath);
+      pathGr.addColorStop(1.0, shaded(colPath, 0.75));
+      ctx.fillStyle = pathGr; ctx.fill();
+
+      ctx.globalAlpha = a * 0.6;
+      ctx.fillStyle = colBank; ctx.fillRect(left[0], left[1], right[0] - left[0], 2);
+
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1; ctx.beginPath();
+      ctx.moveTo(top[0], top[1]); ctx.lineTo(right[0], right[1]);
+      ctx.lineTo(bottom[0], bottom[1]); ctx.lineTo(left[0], left[1]); ctx.closePath(); ctx.stroke();
+    }
+
+    function drawCubes() {
+      cx.clearRect(0, 0, W, H);
+      let viewArr = [];
+      for (const key in cubes) {
+        const parts = key.split(',').map(Number);
+        if (parts.length < 3) continue;
+        const [c, r, z] = parts;
+        const vCell = getViewCell(c, r);
+        viewArr.push({ vc: vCell.c, vr: vCell.r, vz: z, type: cubes[key] });
+      }
+      viewArr.sort((a, b) => {
+        if ((a.vc + a.vr) !== (b.vc + b.vr)) return (a.vc + a.vr) - (b.vc + b.vr);
+        return a.vz - b.vz;
+      });
+      viewArr.forEach(cb => renderCube(cx, cb.vc, cb.vr, cb.vz, cb.type, 1.0));
+
+      if (hoverTile && !activeTool.startsWith('col-') && activeTool !== 'erase') {
+        let dCell = getDataCell(hoverTile.col, hoverTile.row);
+        if (!cubes[`${dCell.c},${dCell.r},${activeZ}`]) renderCube(cx, hoverTile.col, hoverTile.row, activeZ, activeTool, 0.35);
+      }
+    }
+
+    function colliderVerts(c) {
+      const col = c.col, row = c.row, z = c.z || 0;
+      if (c.type === 'top') return [iso(col, row, z + 1), iso(col + 1, row, z + 1), iso(col + 1, row + 1, z + 1), iso(col, row + 1, z + 1)];
+      if (c.type === 'left') return [iso(col, row + 1, z + 1), iso(col + 1, row + 1, z + 1), iso(col + 1, row + 1, z), iso(col, row + 1, z)];
+      if (c.type === 'right') return [iso(col + 1, row, z + 1), iso(col + 1, row + 1, z + 1), iso(col + 1, row + 1, z), iso(col + 1, row, z)];
+      if (c.type === 'backLeft') return [iso(col, row, z + 1), iso(col, row + 1, z + 1), iso(col, row + 1, z), iso(col, row, z)];
+      if (c.type === 'backRight') return [iso(col, row, z + 1), iso(col + 1, row, z + 1), iso(col + 1, row, z), iso(col, row, z)];
+      return [];
+    }
+
+    const COL_STROKE = 'rgba(78,255,145,0.9)', COL_FILL = 'rgba(78,255,145,0.07)', COL_GHOST = 'rgba(78,255,145,0.4)', COL_DOT = '#4eff91';
+    function drawOneCollider(ctx2, c, ghost) {
+      if (c.type === 'line') {
+        const z = c.z || 0;
+        const p1 = iso(c.x1, c.y1, z + 1), p2 = iso(c.x2, c.y2, z + 1);
+        ctx2.beginPath(); ctx2.moveTo(p1[0], p1[1]); ctx2.lineTo(p2[0], p2[1]);
+        ctx2.strokeStyle = ghost ? COL_GHOST : COL_STROKE; ctx2.lineWidth = ghost ? 1.5 : 2.5;
+        ctx2.setLineDash(ghost ? [5, 4] : []); ctx2.lineCap = 'round'; ctx2.stroke(); ctx2.setLineDash([]);
+        [p1, p2].forEach(p => { ctx2.beginPath(); ctx2.arc(p[0], p[1], 3.5, 0, Math.PI * 2); ctx2.fillStyle = ghost ? COL_GHOST : COL_DOT; ctx2.fill(); });
+        return;
+      }
+      const verts = colliderVerts(c); if (!verts.length) return;
+      ctx2.beginPath(); ctx2.moveTo(verts[0][0], verts[0][1]);
+      for (let i = 1; i < verts.length; i++)ctx2.lineTo(verts[i][0], verts[i][1]); ctx2.closePath();
+      ctx2.fillStyle = ghost ? 'rgba(78,255,145,0.04)' : COL_FILL; ctx2.fill();
+      ctx2.strokeStyle = ghost ? COL_GHOST : COL_STROKE; ctx2.lineWidth = ghost ? 1.2 : 2;
+      ctx2.setLineDash(ghost ? [5, 4] : []); ctx2.stroke(); ctx2.setLineDash([]);
+      if (!ghost) verts.forEach(p => { ctx2.beginPath(); ctx2.arc(p[0], p[1], 2.5, 0, Math.PI * 2); ctx2.fillStyle = COL_DOT; ctx2.fill(); });
+    }
+
+    function drawColliders() {
+      lx.clearRect(0, 0, W, H);
+      let viewColls = colliders.map(c => {
+        if (c.type === 'line') {
+          let p1 = getViewVertex(c.x1, c.y1); let p2 = getViewVertex(c.x2, c.y2);
+          return { type: 'line', x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, z: c.z };
+        } else {
+          let vCell = getViewCell(c.col, c.row);
+          return { type: getViewFace(c.type), col: vCell.c, row: vCell.r, z: c.z };
+        }
+      });
+      viewColls.forEach(c => drawOneCollider(lx, c, false));
+
+      if (hoverTile && (activeTool === 'col-top' || activeTool === 'col-left' || activeTool === 'col-right'))
+        drawOneCollider(lx, { type: activeTool.replace('col-', ''), col: hoverTile.col, row: hoverTile.row, z: activeZ }, true);
+
+      if (lineStart) {
+        const p = iso(lineStart.gx, lineStart.gy, activeZ + 1);
+        lx.beginPath(); lx.arc(p[0], p[1], 6, 0, Math.PI * 2); lx.fillStyle = 'rgba(78,255,145,0.2)'; lx.fill();
+        lx.strokeStyle = COL_DOT; lx.lineWidth = 1.8; lx.stroke();
+        if (hoverDot) drawOneCollider(lx, { type: 'line', x1: lineStart.gx, y1: lineStart.gy, x2: hoverDot.gx, y2: hoverDot.gy, z: activeZ }, true);
+      }
+      if (hoverDot && activeTool == 'col-line') {
+        const p = iso(hoverDot.gx, hoverDot.gy, activeZ + 1);
+        lx.beginPath(); lx.arc(p[0], p[1], 5, 0, Math.PI * 2); lx.fillStyle = 'rgba(78,255,145,0.55)'; lx.fill();
+      }
+    }
+
+    function nearestTile(mx, my) {
+      const adjustedMy = my + activeZ * S;
+      const xmy = (mx - OX) / S, xpy = (adjustedMy - OY) / (0.5 * S);
+      const col = Math.floor((xpy + xmy) / 2), row = Math.floor((xpy - xmy) / 2);
+      if (col >= 0 && col < GRID_N && row >= 0 && row < GRID_N) return { col, row };
+      return null;
+    }
+    function nearestVertex(mx, my) {
+      const adjustedMy = my + activeZ * S;
+      const xmy = (mx - OX) / S, xpy = (adjustedMy - OY + S) / (0.5 * S);
+      const vx = Math.round((xpy + xmy) / 2), vy = Math.round((xpy - xmy) / 2);
+      const snapped = iso(vx, vy, activeZ + 1);
+      if (Math.hypot(snapped[0] - mx, snapped[1] - my) < S * 0.55) return { gx: vx, gy: vy };
+      return null;
+    }
+
+    function setTool(toolId) {
+      if (toolId.startsWith('col-') || toolId === 'erase') {
+        activeTool = toolId;
+        if (toolId.startsWith('col-')) {
+          activeLayer = 'collider';
+          document.getElementById('tab-col').className = 'layer-tab active-col';
+          document.getElementById('tab-cube').className = 'layer-tab';
+          document.getElementById('layer-hint').textContent = 'painting colliders';
+        } else {
+          document.getElementById('layer-hint').textContent = 'eraser selected';
+        }
+
+        ['btn-cube', 'btn-cube-solid', 'btn-cube-water', 'btn-cube-river', 'btn-col-top', 'btn-col-left', 'btn-col-right', 'btn-col-line', 'btn-erase'].forEach(id => {
+          const el = document.getElementById(id); if (el) el.classList.remove('active');
+        });
+        const btn = document.getElementById(`btn-${toolId}`); if (btn) btn.classList.add('active');
+
+        renderMaterialDock();
+        renderPropertyControls();
+        drawCubes();
+      } else {
+        const keys = Object.keys(MATERIAL_GROUPS[toolId].items);
+        if (keys.length > 0) {
+          openSections[toolId] = true;
+          selectMaterial(keys[0]);
+        }
+      }
+    }
+
+    function setLayer(layerId) {
+      if (layerId === 'cube') {
+        const fallbackKey = Object.keys(MATERIAL_GROUPS['cube'].items)[0];
+        selectMaterial(fallbackKey);
+      } else {
+        setTool('col-top');
+      }
+    }
+
+    cHit.addEventListener('mousemove', e => {
+      const r = cHit.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+      if (activeTool === 'col-line') { hoverTile = null; hoverDot = nearestVertex(px, py); }
+      else { hoverDot = null; hoverTile = nearestTile(px, py); }
+      drawGrid(); drawCubes(); drawColliders();
+    });
+    cHit.addEventListener('mouseleave', () => { hoverTile = null; hoverDot = null; drawGrid(); drawCubes(); drawColliders(); });
+
+    cHit.addEventListener('click', e => {
+      const r = cHit.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+      if (!activeTool.startsWith('col-') && activeTool !== 'erase') {
+        const t = nearestTile(px, py); if (!t) return;
+        const d = getDataCell(t.col, t.row);
+        const k = `${d.c},${d.r},${activeZ}`;
+        if (cubes[k] === activeTool) delete cubes[k]; else cubes[k] = activeTool;
+        drawCubes();
+      } else if (activeTool === 'erase') {
+        const t = nearestTile(px, py); if (!t) return;
+        const d = getDataCell(t.col, t.row);
+        delete cubes[`${d.c},${d.r},${activeZ}`];
+        drawCubes();
+      } else if (activeTool === 'col-top' || activeTool === 'col-left' || activeTool === 'col-right') {
+        const t = nearestTile(px, py); if (!t) return;
+        const d = getDataCell(t.col, t.row);
+        const dFace = getDataFace(activeTool.replace('col-', ''));
+        const idx = colliders.findIndex(c => c.type === dFace && c.col === d.c && c.row === d.r && c.z === activeZ);
+        if (idx >= 0) colliders.splice(idx, 1); else colliders.push({ type: dFace, col: d.c, row: d.r, z: activeZ });
+        drawColliders();
+      } else if (activeTool === 'col-line') {
+        const dot = nearestVertex(px, py); if (!dot) return;
+        if (!lineStart) { lineStart = dot; document.getElementById('status-msg').textContent = '◎ Click second vertex to complete line'; }
+        else {
+          if (!(dot.gx === lineStart.gx && dot.gy === lineStart.gy)) {
+            let d1 = getDataVertex(lineStart.gx, lineStart.gy); let d2 = getDataVertex(dot.gx, dot.gy);
+            colliders.push({ type: 'line', x1: d1.x, y1: d1.y, x2: d2.x, y2: d2.y, z: activeZ });
+          }
+          lineStart = null; document.getElementById('status-msg').textContent = '◎ Line placed'; drawColliders();
+        }
+      }
+    });
+
+    function resize() {
+      W = cHit.width = cGrid.width = cCube.width = cCol.width = cHit.offsetWidth;
+      H = cHit.height = cGrid.height = cCube.height = cCol.height = cHit.offsetHeight;
+      OX = W / 2; OY = H / 2 - 20; drawGrid(); drawCubes(); drawColliders();
+    }
+
+    function clearAll() { cubes = {}; colliders = []; lineStart = null; drawCubes(); drawColliders(); }
+
+    window.onload = () => {
+      renderMaterialDock();
+      renderPropertyControls();
+      resize();
+    };
+    window.onresize = resize;
+  </script>
+</body>
+</html>
