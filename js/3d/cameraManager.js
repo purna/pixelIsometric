@@ -74,7 +74,7 @@ class CameraManager {
      * Update camera position display in UI
      */
     updateCameraInfo() {
-        const cameraPos = document.getElementById('camera-position');
+        const cameraPos = document.getElementById('floating-camera-position');
         if (cameraPos) {
             cameraPos.value = `X: ${this.camera.position.x.toFixed(2)}, Y: ${this.camera.position.y.toFixed(2)}, Z: ${this.camera.position.z.toFixed(2)}`;
         }
@@ -114,6 +114,14 @@ class CameraManager {
         this.camera.lookAt(0, 0, 0);
         this.controls.update();
         this.updateCameraInfo();
+    }
+
+    /**
+     * Get formatted camera position info
+     * @returns {string} Formatted camera position string
+     */
+    getCameraPositionInfo() {
+        return `X: ${this.camera.position.x.toFixed(2)}, Y: ${this.camera.position.y.toFixed(2)}, Z: ${this.camera.position.z.toFixed(2)}`;
     }
 }
 

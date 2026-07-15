@@ -276,6 +276,21 @@ hr.sep {
     width: 100%;
 }
 
+/* ── Floating camera panel layout ──────────────────────────── */
+#floating-camera-panel .panel-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+}
+
+#floating-camera-panel .button-row {
+    display: flex;
+    justify-content: space-around;
+}
+
+#floating-camera-panel .input-row { display: flex; align-items: center; gap: 5px; }
+
 /* ── Textures panel: sticky canvas ──────────────────────────── */
 #textures-panel > .panel-content {
     overflow-y: auto;

@@ -5,6 +5,8 @@ class TextureManager {
     constructor() {
         this.textures = new Map();
         this.materials = new Map();
+        this.userTextures = new Map();
+        this.builtInTextures = new Map();
         this.canvasSize = 64;
         this.initialized = false;
     }
@@ -26,9 +28,62 @@ class TextureManager {
 
             this.textures.set(type, texture);
             this.materials.set(type, material);
+
+            // Generate preview thumbnail
+            const thumbCanvas = document.createElement('canvas');
+            thumbCanvas.width = this.canvasSize;
+            thumbCanvas.height = this.canvasSize;
+            const thumbCtx = thumbCanvas.getContext('2d');
+            thumbCtx.drawImage(texture.image, 0, 0);
+            this.builtInTextures.set(type, {
+                name: type.charAt(0).toUpperCase() + type.slice(1),
+                imageData: thumbCanvas.toDataURL('image/png'),
+                type
+            });
         });
 
         this.initialized = true;
+    }
+
+    getBuiltInTextureTypes() {
+        return Array.from(this.builtInTextures.keys());
+    }
+
+    getBuiltInTextureNames() {
+        return Array.from(this.builtInTextures.values()).map(t => t.name);
+    }
+
+    getBuiltInTexturePreview(type) {
+        return this.builtInTextures.get(type);
+    }
+
+    addUserTexture(name, imageData) {
+        const canvas = document.createElement('canvas');
+        canvas.width = this.canvasSize;
+        canvas.height = this.canvasSize;
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        img.onload = () => {
+            ctx.drawImage(img, 0, 0, this.canvasSize, this.canvasSize);
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.magFilter = THREE.NearestFilter;
+            texture.minFilter = THREE.NearestFilter;
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.colorSpace = THREE.SRGBColorSpace;
+            this.textures.set('user-' + name, texture);
+            this.materials.set('user-' + name, new THREE.MeshStandardMaterial({ map: texture }));
+            this.userTextures.set('user-' + name, { name, imageData, texture });
+        };
+        img.src = imageData;
+    }
+
+    getUserTextureTypes() {
+        return Array.from(this.userTextures.keys());
+    }
+
+    getUserTextureNames() {
+        return Array.from(this.userTextures.values()).map(t => t.name);
     }
 
     createProceduralTexture(type, size) {

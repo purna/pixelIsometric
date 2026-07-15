@@ -23,17 +23,17 @@ function initDOM() {
     UI.settingShowAxes = document.getElementById('setting-show-axes');
     UI.settingAutoSave = document.getElementById('setting-auto-save');
     UI.settingClearState = document.getElementById('setting-clear-state');
-    UI.settingBgColor = document.getElementById('setting-bg-color');
-    UI.settingTheme = document.getElementById('setting-theme');
-    UI.settingBrightness = document.getElementById('setting-brightness');
-    UI.settingTerrainHeight = document.getElementById('setting-terrain-height');
+    UI.settingBgColor = document.getElementById('setting-bg-color'); // in modal
+    UI.settingTheme = document.getElementById('setting-theme'); // in modal
+    UI.settingBrightness = document.getElementById('setting-brightness'); // in modal
+    UI.settingTerrainHeight = document.getElementById('setting-terrain-height'); // in modal
     UI.settingMaterialDownloadSize = document.getElementById('setting-material-download-size');
     UI.settingShowOutlines = document.getElementById('setting-show-outlines');
     UI.settingIncludeColliders = document.getElementById('setting-include-colliders');
     UI.settingColliderType = document.getElementById('setting-collider-type');
 
     // Scene elements
-    UI.cameraPositionDisplay = document.getElementById('camera-position');
+    UI.cameraPositionDisplay = document.getElementById('floating-camera-position');
     UI.backgroundColorPicker = document.getElementById('background-color');
     UI.gradientColor1Picker = document.getElementById('gradient-color1');
     UI.gradientColor2Picker = document.getElementById('gradient-color2');
@@ -41,7 +41,7 @@ function initDOM() {
     UI.brightnessAdjustSlider = document.getElementById('brightness-adjust');
     UI.brightnessValueDisplay = document.getElementById('brightness-value');
     UI.backgroundImageUrlInput = document.getElementById('background-image-url');
-    UI.applyImageBackgroundBtn = document.getElementById('apply-image-background');
+    UI.applyImageBackgroundBtn = document.getElementById('setting-apply-bg-image');
     UI.fogColorPicker = document.getElementById('fog-color');
     UI.fogNearSlider = document.getElementById('fog-near');
     UI.fogFarSlider = document.getElementById('fog-far');
@@ -50,8 +50,6 @@ function initDOM() {
 
      // Object creation buttons
      UI.addCubeBtn = document.getElementById('add-cube');
-     UI.addSphereBtn = document.getElementById('add-sphere');
-     UI.addCylinderBtn = document.getElementById('add-cylinder');
      UI.addRampBtn = document.getElementById('add-ramp');
      UI.addTerrainBtn = document.getElementById('add-terrain');
      UI.addWallBtn = document.getElementById('add-wall');
@@ -75,7 +73,7 @@ function initDOM() {
     UI.exportObjBtn = document.getElementById('export-obj');
     UI.exportStlBtn = document.getElementById('export-stl');
     UI.exportUnityBtn = document.getElementById('export-unity');
-    UI.includeCollidersCheckbox = document.getElementById('include-colliders');
+    UI.includeCollidersCheckbox = document.getElementById('setting-include-colliders');
     UI.colliderTypeSelect = document.getElementById('collider-type');
 
     // Movement
@@ -87,21 +85,21 @@ function initDOM() {
     UI.moveRightUpBtn = document.getElementById('move-right-up');
 
     // Camera
-    UI.resetCameraBtn = document.getElementById('reset-camera');
-    UI.rotateCwBtn = document.getElementById('rotate-cw');
-    UI.rotateCcwBtn = document.getElementById('rotate-ccw');
+    UI.resetCameraBtn = document.getElementById('floating-reset-camera');
+    UI.rotateCwBtn = document.getElementById('floating-rotate-cw');
+    UI.rotateCcwBtn = document.getElementById('floating-rotate-ccw');
 
     // Scene controls
     UI.applyGradientVerticalBtn = document.getElementById('apply-gradient-vertical');
     UI.applyGradientHorizontalBtn = document.getElementById('apply-gradient-horizontal');
-    UI.applyThemeBtn = document.getElementById('apply-theme');
+    UI.applyThemeBtn = document.getElementById('setting-apply-theme');
     UI.cycleThemesBtn = document.getElementById('cycle-themes');
     UI.adjustBrightnessBtn = document.getElementById('adjust-brightness');
     UI.toggleGridBtn = document.getElementById('toggle-grid');
     UI.toggleAxesBtn = document.getElementById('toggle-axes');
     UI.applyFogBtn = document.getElementById('apply-fog');
-    UI.removeFogBtn = document.getElementById('remove-fog');
-    UI.resetBackgroundBtn = document.getElementById('reset-background');
+    UI.removeFogBtn = document.getElementById('setting-remove-fog');
+    UI.resetBackgroundBtn = document.getElementById('reset-background'); // This one is correct
 
     // Terrain height
     UI.terrainHeightSlider = document.getElementById('terrain-height');
@@ -117,35 +115,51 @@ function initDOM() {
 
     // Material Builder
     UI.materialBuilderCanvas = document.getElementById('material-builder-canvas');
-    UI.builderColA = document.getElementById('builder-colA');
-    UI.builderColB = document.getElementById('builder-colB');
-    UI.builderSwA = document.getElementById('builder-swA');
-    UI.builderSwB = document.getElementById('builder-swB');
-    UI.builderSplit = document.getElementById('builder-split');
-    UI.builderSplitV = document.getElementById('builder-splitV');
-    UI.builderRot = document.getElementById('builder-rot');
-    UI.builderRotV = document.getElementById('builder-rotV');
-    UI.builderOutlineSeg = document.getElementById('builder-outlineSeg');
-    UI.builderTDitherMode    = document.getElementById('builder-tDitherMode');
-    UI.builderTDitherSpace   = document.getElementById('builder-tDitherSpace');
-    UI.builderTDitherThick   = document.getElementById('builder-tDitherThick');
-    UI.builderTDitherBright  = document.getElementById('builder-tDitherBright');
-    UI.builderTDitherAlpha   = document.getElementById('builder-tDitherAlpha');
-    UI.builderTDitherSpaceV  = document.getElementById('builder-tDitherSpaceV');
-    UI.builderTDitherThickV  = document.getElementById('builder-tDitherThickV');
-    UI.builderTDitherBrightV = document.getElementById('builder-tDitherBrightV');
-    UI.builderTDitherAlphaV  = document.getElementById('builder-tDitherAlphaV');
-    UI.builderBDitherMode    = document.getElementById('builder-bDitherMode');
-    UI.builderBDitherSpace   = document.getElementById('builder-bDitherSpace');
-    UI.builderBDitherThick   = document.getElementById('builder-bDitherThick');
-    UI.builderBDitherBright  = document.getElementById('builder-bDitherBright');
-    UI.builderBDitherAlpha   = document.getElementById('builder-bDitherAlpha');
-    UI.builderBDitherSpaceV  = document.getElementById('builder-bDitherSpaceV');
-    UI.builderBDitherThickV  = document.getElementById('builder-bDitherThickV');
-    UI.builderBDitherBrightV = document.getElementById('builder-bDitherBrightV');
-    UI.builderBDitherAlphaV  = document.getElementById('builder-bDitherAlphaV');
-    UI.builderSave = document.getElementById('builder-save');
+    UI.builderColA = document.getElementById('colA');
+    UI.builderColB = document.getElementById('colB');
+    UI.builderSwA = document.getElementById('topColRow');
+    UI.builderSwB = document.getElementById('botColRow');
+    UI.builderSplit = document.getElementById('split');
+    UI.builderSplitV = document.querySelector('#splitRow .value-display');
+    UI.builderRot = document.getElementById('rot');
+    UI.builderRotV = document.getElementById('rotV');
+    UI.builderOutlineSeg = document.getElementById('outlineSeg');
+    UI.builderTDitherMode    = document.getElementById('tMode');
+    UI.builderTDitherInkMode = document.getElementById('tInkMode');
+    UI.builderTDitherBright  = document.getElementById('tBright');
+    UI.builderTDitherBrightRow = document.getElementById('tBrightRow');
+    UI.builderTDitherInkCol  = document.getElementById('tInkCol');
+    UI.builderTDitherInkColRow = document.getElementById('tColorRow');
+    UI.builderTDitherSpace   = document.getElementById('tSpace');
+    UI.builderTDitherThick   = document.getElementById('tThick');
+    UI.builderTDitherAlpha   = document.getElementById('tAlpha');
+    UI.builderTDitherSpaceV  = document.querySelector('#tSpace ~ .value-display');
+    UI.builderTDitherThickV  = document.querySelector('#tThick ~ .value-display');
+    UI.builderTDitherBrightV = document.querySelector('#tBright ~ .value-display');
+    UI.builderTDitherAlphaV  = document.querySelector('#tAlpha ~ .value-display');
+    UI.builderBDitherMode    = document.getElementById('bMode');
+    UI.builderBDitherInkMode = document.getElementById('bInkMode');
+    UI.builderBDitherBright  = document.getElementById('bBright');
+    UI.builderBDitherBrightRow = document.getElementById('bBrightRow');
+    UI.builderBDitherInkCol  = document.getElementById('bInkCol');
+    UI.builderBDitherInkColRow = document.getElementById('bColorRow');
+    UI.builderBDitherSpace   = document.getElementById('bSpace');
+    UI.builderBDitherThick   = document.getElementById('bThick');
+    UI.builderBDitherAlpha   = document.getElementById('bAlpha');
+    UI.builderBDitherSpaceV  = document.querySelector('#bSpace ~ .value-display');
+    UI.builderBDitherThickV  = document.querySelector('#bThick ~ .value-display');
+    UI.builderBDitherBrightV = document.querySelector('#bBright ~ .value-display');
+    UI.builderBDitherAlphaV  = document.querySelector('#bAlpha ~ .value-display');
+    UI.builderSave = document.getElementById('builder-save-texture');
     UI.builderDownload = document.getElementById('builder-download');
+    UI.builderTextureName = document.getElementById('texture-name-input');
+    UI.builderMaterialMode = document.getElementById('adv-materialMode');
+    UI.builderGlobalOpacityRow = document.getElementById('adv-globalOpacityRow');
+    UI.builderBaseColRow = document.getElementById('adv-baseColRow');
+    UI.builderTopColRow = document.getElementById('adv-topColRow');
+    UI.builderBotColRow = document.getElementById('adv-botColRow');
+    UI.builderSplitRow = document.getElementById('adv-splitRow');
+    UI.builderBottomDitherSection = document.getElementById('adv-bottomDitherSection');
 
     // Properties
     UI.propertiesPanel = document.getElementById('properties-panel');

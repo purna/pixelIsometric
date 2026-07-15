@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,574 +15,739 @@
     <link rel="stylesheet" href="css/tutorials.css">
     <link rel="stylesheet" href="css/tabbed-panel.css">
     <link rel="stylesheet" href="css/inline.css">
-    
-    
-    
-    
+
+    <style>
+        /* Layout overrides to match v17 prototype */
+        body {
+            overflow: hidden;
+        }
+
+        #app-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            background: #111116;
+            overflow: hidden;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+            background-color: #333;
+            /* from original #container */
+        }
+
+        #scene-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: #222;
+            /* A dark bg for the viewport */
+        }
+
+        /* Adjust existing floating panels */
+        #floating-camera-panel {
+            top: 20px;
+            right: 300px;
+        }
+
+        #floating-movement-panel {
+            height: 220px;
+            min-height: 220px;
+            top: 200px;
+            right: 300px;
+        }
+
+        /* Style for floating panels (only for camera/movement now) */
+        .floating-panel {
+            position: absolute;
+            z-index: 11;
+            background-color: rgba(40, 40, 40, 0.8);
+            border: 1px solid #555;
+            border-radius: 8px;
+            color: #eee;
+            min-width: 220px;
+            backdrop-filter: blur(5px);
+        }
+
+        /* Style for the movement button grid */
+        .movement-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+        }
+
+        /* Style for dragging panels */
+        .floating-panel .panel-header {
+            cursor: move;
+            user-select: none;
+        }
+
+        /* New Sidebar Layout */
+        #left-sidebar,
+        #mat-dock {
+            background: #0d0d12;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        #left-sidebar {
+            width: 340px;
+            /* 60px for rail + 280px for panel */
+            border-right: 1px solid #1e1e1e;
+        }
+
+        #mat-dock {
+            width: 280px;
+            border-left: 1px solid #1e1e1e;
+            color: #eee;
+        }
+
+        /* Hide panels by default, show active one */
+        .panel-section {
+            display: none;
+        }
+
+        .panel-section.active {
+            display: block;
+        }
+
+        /* Material Dock Styles (from v17) */
+        #mat-groups-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .mat-section details {
+            margin-bottom: 15px;
+        }
+
+        .mat-section summary {
+            font-weight: bold;
+            cursor: pointer;
+            padding: 5px 8px;
+            background: #1a1a22;
+            border-radius: 4px;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.05em;
+            list-style: none;
+            /* Remove default marker */
+        }
+
+        .mat-section summary::-webkit-details-marker {
+            display: none;
+            /* For Chrome */
+        }
+
+        .mat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            padding: 10px 5px;
+        }
+
+        .mat-thumb {
+            aspect-ratio: 1 / 1;
+            background: #1c1c24;
+            border: 2px solid #333;
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: border-color 0.2s;
+        }
+
+        .mat-thumb:hover {
+            border-color: #555;
+        }
+
+        .mat-thumb.active {
+            border-color: #3ecfb2;
+            box-shadow: 0 0 8px rgba(62, 207, 178, 0.5);
+        }
+
+        .mat-thumb canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        #mat-properties-editor {
+            flex-shrink: 0;
+            border-top: 1px solid #1e1e1e;
+            background: #08080b;
+            display: none;
+            /* Hidden by default */
+            max-height: 60%;
+            overflow-y: auto;
+        }
+
+        /* Main Toolbar & Layer Bar */
+        #main-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 4px 10px;
+            background: #111116;
+            border-bottom: 1px solid #1e1e1e;
+            flex-shrink: 0;
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0 10px;
+            border-right: 1px solid #2a2a33;
+        }
+
+        .toolbar-group:last-child {
+            border-right: none;
+        }
+
+        #main-toolbar .icon-button {
+            background: #222228;
+            border: 1px solid #333339;
+        }
+
+        #main-toolbar .icon-button:hover {
+            background: #333339;
+            border-color: #444;
+        }
+
+        #main-toolbar .icon-button.active {
+            background: #3ecfb2;
+            color: #111;
+            border-color: #3ecfb2;
+        }
+
+        #collider-tools.disabled .icon-button {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+        #collider-tools .icon-button.active {
+            background: #4eff91;
+            border-color: #4eff91;
+        }
+
+        #layer-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 15px;
+            background: #1a1a22;
+            border-bottom: 1px solid #1e1e1e;
+            flex-shrink: 0;
+        }
+
+        .layer-tab {
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 12px;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .layer-tab:before { content: '○ '; font-weight: normal; }
+        .layer-tab.active { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
+        .layer-tab.active:before { content: '● '; }
+        #layer-tab-cube.active { color: #3ecfb2; }
+        #layer-tab-collider.active { color: #4eff91; }
+        #layer-hint { font-size: 11px; color: #777; margin-left: auto; }
+    </style>
+
+
+
+
 </head>
+
 <body>
     <svg xmlns="http://www.w3.org/2000/svg" class="hidden-defs"></svg>
-    <div id="container">
-         <div id="scene-container">
-          <div id="floating-camera-panel" class="floating-panel">
-              <div class="panel-header">
-                  <div class="panel-title"><h3>Camera</h3></div>
-              </div>
-              <div class="panel-content button-group">
-                  <button id="floating-reset-camera" class="icon-button" title="Reset"><i class="fas fa-sync-alt"></i></button>
-                  <button id="floating-rotate-cw" class="icon-button" title="Rotate CW"><i class="fas fa-undo"></i></button>
-                  <button id="floating-rotate-ccw" class="icon-button" title="Rotate CCW"><i class="fas fa-redo"></i></button>
-                  <div>
-                      <label for="floating-camera-position">Position:</label>
-                      <input type="text" id="floating-camera-position" readonly>
-                  </div>
-              </div>
-          </div>
-          <div id="viewport-top-bar">
-              <div id="obj-tile-bar"></div>
-              <div id="mat-chip-bar"></div>
-              <div id="height-bar">
-                  <button id="btn-height-down" title="Lower layer">&#9660;</button>
-                  <span id="height-label">0</span>
-                  <button id="btn-height-up" title="Raise layer">&#9650;</button>
-              </div>
-          </div>
-          <div id="viewport-bottom-drawer">
-              <div id="drawer-inner"></div>
-          </div>
-          <!-- Floating Movement Panel -->
-          <div id="floating-movement-panel" class="floating-panel">
-              <div class="panel-header">
-                  <div class="panel-title"><h3>Movement</h3></div>
-              </div>
-              <div class="panel-content">
-                  <div>
-                      <label for="object-select">Select:</label>
-                      <select id="object-select"><option value="">None</option></select>
-                  </div>
-                  <div>
-                      <label>Move:</label>
-                      <div class="button-group">
-                          <button id="move-left">↖</button>
-                          <button id="move-up">↑</button>
-                          <button id="move-right-up">↗</button>
-                      </div>
-                      <div class="button-group">
-                          <button id="move-left-down">↙</button>
-                          <button id="move-down">↓</button>
-                          <button id="move-right">↘</button>
-                      </div>
-                  </div>
-              </div>
-          </div>
-      </div>
-        <div id="sidebar">
+    <div id="app-container">
+        <div id="left-sidebar">
             <div class="sidebar-header">
-                <h2>Isometric Builder</h2>
-<div class="global-actions">
-                     <button id="mode-2d-3d" class="icon-button mode-toggle-btn" title="3D Mode Active"><i class="fas fa-cubes-stacked"></i> 3D Mode</button>
-                     <button id="settings-btn" class="icon-button" title="Settings"><i class="fas fa-cog"></i></button>
-                     <button id="save-btn" class="icon-button" title="Save"><i class="fas fa-save"></i></button>
-                     <button id="load-btn" class="icon-button" title="Load"><i class="fas fa-folder-open"></i></button>
-                 </div>
+                <h2>Tools</h2>
             </div>
             <div class="panel-container">
-                <!-- Group 1: Build Tools -->
                 <div class="tab-rail">
                     <div class="tab-group">
                         <div class="tab-group-label">BUILD</div>
                         <button class="tab-button active" data-panel="objects-panel">
                             <i class="fas fa-cube" title="Objects"></i>
                         </button>
-                        <button class="tab-button" data-panel="movement-panel">
-                            <i class="fas fa-arrows-alt" title="Movement"></i>
-                        </button>
                     </div>
-
-                     <!-- Group 2: Scene & View -->
-                     <div class="tab-group-divider"></div>
-                     <div class="tab-group">
-                         <div class="tab-group-label">SCENE</div>
-                         <button class="tab-button" data-panel="camera-panel">
-                             <i class="fas fa-camera" title="Camera"></i>
-                         </button>
-                         <button class="tab-button" data-panel="scene-panel">
-                             <i class="fas fa-image" title="Scene"></i>
-                         </button>
-                         <button class="tab-button" data-panel="export-panel">
-                             <i class="fas fa-file-export" title="Export"></i>
-                         </button>
-                     </div>
-
-                    <!-- Group 3: Materials -->
                     <div class="tab-group-divider"></div>
                     <div class="tab-group">
-                        <div class="tab-group-label">MATERIALS</div>
-                        <button class="tab-button" data-panel="materials-panel">
-                            <i class="fas fa-palette" title="Materials"></i>
-                        </button>
-                    </div>
-
-                    <!-- Group 4: Object Properties -->
-                    <div class="tab-group-divider"></div>
-                    <div class="tab-group">
-                        <div class="tab-group-label">OBJECT</div>
+                        <div class="tab-group-label">EDIT</div>
                         <button class="tab-button" data-panel="properties-panel">
                             <i class="fas fa-sliders-h" title="Properties"></i>
                         </button>
+                        <button class="tab-button" data-panel="textures-panel"><i class="fas fa-brush"
+                                title="Textures"></i></button>
                     </div>
-
-                    <!-- Group 4: Organization -->
                     <div class="tab-group-divider"></div>
                     <div class="tab-group">
-                        <div class="tab-group-label">ORG</div>
+                        <div class="tab-group-label">ORGANIZE</div>
                         <button class="tab-button" data-panel="layers-panel">
                             <i class="fas fa-layer-group" title="Layers"></i>
                         </button>
                     </div>
                 </div>
                 <div class="panel-content-wrapper">
-                    <div id="objects-panel" class="control-group panel-section">
-                        <div class="panel-header">
-                            <div class="panel-title"><h3>Objects</h3></div>
-                            <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button></div>
-                        </div>
-                        <div class="panel-content button-group">
-                            <div class="object-group">
-                                <div class="group-label">Basic Shapes</div>
-                                <div class="button-row">
-                                    <button id="add-cube" class="icon-button" title="Add Cube"><i class="fas fa-cube"></i></button>
-                                    <button id="add-sphere" class="icon-button" title="Add Sphere"><i class="fas fa-circle"></i></button>
-                                    <button id="add-cylinder" class="icon-button" title="Add Cylinder"><i class="fas fa-database"></i></button>
-                                    <button id="add-ramp" class="icon-button" title="Add Ramp"><i class="fas fa-shapes"></i></button>
-                                </div>
-                            </div>
-                            <div class="object-group">
-                                <div class="group-label">Terrain & Buildings</div>
-                                <div class="button-row">
-                                    <button id="add-terrain" class="icon-button" title="Add Terrain Tile"><i class="fas fa-mountain"></i></button>
-                                    <button id="add-wall" class="icon-button" title="Add Wall"><i class="fas fa-vector-square"></i></button>
-                                    <button id="add-building" class="icon-button" title="Add Building"><i class="fas fa-building"></i></button>
-                                </div>
-                            </div>
-                            
-                            <button id="clear-scene" class="icon-button" title="Clear Scene"><i class="fas fa-trash"></i></button>
-                        </div>
-
-                         <div class="panel-content button-group">
-
-                             <div class="object-group">
-                                 <div class="group-label">Collider Shapes</div>
-                                  <div class="button-row">
-                                      <button id="add-top" class="icon-button"
-                                              data-tooltip="**Top Collider**\nAdd a flat top surface to the selected object's upper face"><img src="gfx/top_icon.svg" alt="Top" width="16" height="16"></button>
-                                      <button id="add-left" class="icon-button"
-                                              data-tooltip="**Left Collider**\nAdd a left-side collider face (90° rotated)"><img src="gfx/left_side_icon.svg" alt="Left" width="16" height="16"></button>
-                                      <button id="add-right" class="icon-button"
-                                              data-tooltip="**Right Collider**\nAdd a right-side collider face (90° rotated)"><img src="gfx/right_side_icon.svg" alt="Right" width="16" height="16"></button>
-                                      <button id="add-line" class="icon-button"
-                                              data-tooltip="**Line Collider**\nAdd a line / edge element to the scene"><img src="gfx/top_icon.svg" alt="Line" width="16" height="16"></button>
-                                  </div>
-                             </div>
-                         </div>
-                   
-                   
-                   
-                    </div>
-
-                    <div id="movement-panel" class="control-group panel-section">
-                        <div class="panel-header">
-                            <div class="panel-title"><h3>Movement</h3></div>
-                            <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button></div>
-                        </div>
-                        <div class="panel-content">
-                            <div>
-                                <label for="object-select">Select:</label>
-                                <select id="object-select"><option value="">None</option></select>
-                            </div>
-                            <div>
-                                <label>Move:</label>
-                                <div class="button-group">
-                                    <button id="move-left">↖</button>
-                                    <button id="move-up">↑</button>
-                                    <button id="move-right-up">↗</button>
-                                </div>
-                                <div class="button-group">
-                                    <button id="move-left-down">↙</button>
-                                    <button id="move-down">↓</button>
-                                    <button id="move-right">↘</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="camera-panel" class="control-group panel-section">
-                        <div class="panel-header">
-                            <div class="panel-title"><h3>Camera</h3></div>
-                            <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button></div>
-                        </div>
-                        <div class="panel-content button-group">
-                            <button id="reset-camera" class="icon-button" title="Reset"><i class="fas fa-sync-alt"></i></button>
-                            <button id="rotate-cw" class="icon-button" title="Rotate CW"><i class="fas fa-undo"></i></button>
-                            <button id="rotate-ccw" class="icon-button" title="Rotate CCW"><i class="fas fa-redo"></i></button>
-                            <div>
-                                <label for="camera-position">Position:</label>
-                                <input type="text" id="camera-position" readonly>
-                            </div>
-                        </div>
-                    </div>
-
-                     <div id="scene-panel" class="control-group panel-section">
-                         <div class="panel-header">
-                             <div class="panel-title"><h3>Scene</h3></div>
-                             <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button></div>
-                         </div>
-                         <div class="panel-content">
-                             <div class="property-group">
-                                 <div class="group-label">Background</div>
-                                 <div>
-                                     <label for="background-color">Color:</label>
-                                     <input type="color" id="background-color" value="#808080">
-                                 </div>
-                                 <div>
-                                     <label>Theme:</label>
-                                     <select id="theme-selector">
-                                         <option value="default">Default</option>
-                                         <option value="sunset">Sunset</option>
-                                         <option value="night">Night</option>
-                                         <option value="dawn">Dawn</option>
-                                         <option value="overcast">Overcast</option>
-                                     </select>
-                                     <div class="button-group theme-button-group">
-                                         <button id="apply-theme">Apply</button>
-                                         <button id="cycle-themes">Cycle</button>
-                                     </div>
-                                 </div>
-                                 <div>
-                                     <label for="brightness-adjust">Brightness:</label>
-                                     <input type="range" id="brightness-adjust" min="0.1" max="3" step="0.1" value="1.0">
-                                     <span id="brightness-value">1.0</span>
-                                     <button id="adjust-brightness">Apply Brightness</button>
-                                 </div>
-                                 <div>
-                                     <label for="background-image-url">Image URL:</label>
-                                     <input type="text" id="background-image-url" placeholder="https://...">
-                                     <button id="apply-image-background">Set Image BG</button>
-                                 </div>
-                             </div>
-                             <div class="property-group">
-                                 <div class="group-label">Terrain</div>
-                                 <div>
-                                     <label for="terrain-height">Height:</label>
-                                     <input type="range" id="terrain-height" min="0.1" max="2" step="0.1" value="0.25" data-tooltip="**Terrain Height**\nAdjust the height of the terrain">
-                                     <span id="terrain-height-value">0.25</span>
-                                 </div>
-                             </div>
-                             <div class="property-group">
-                                 <div class="group-label">Texture Paint (Shift+Click)</div>
-                                 <div class="button-group">
-                                     <button id="paint-grass" class="paint-button icon-button" data-type="grass" data-tooltip="**Grass Paint**\nPaint grass texture on terrain"> <i class="fas fa-leaf"></i></button>
-                                     <button id="paint-dirt" class="paint-button icon-button" data-type="dirt" data-tooltip="**Dirt Paint**\nPaint dirt texture on terrain"> <i class="fas fa-square"></i></button>
-                                     <button id="paint-stone" class="paint-button icon-button" data-type="stone" data-tooltip="**Stone Paint**\nPaint stone texture on terrain"> <i class="fas fa-square"></i></button>
-                                     <button id="paint-water" class="paint-button icon-button" data-type="water" data-tooltip="**Water Paint**\nPaint water texture on terrain"> <i class="fas fa-square"></i></button>
-                                     <button id="paint-sand" class="paint-button icon-button" data-type="sand" data-tooltip="**Sand Paint**\nPaint sand texture on terrain"> <i class="fas fa-square"></i></button>
-                                 </div>
-                             </div>
-                             <div class="property-group">
-                                 <div class="group-label">Gradients</div>
-                                 <div class="button-group">
-                                     <input type="color" id="gradient-color1" value="#ff7e5f" data-tooltip="**Gradient Color 1**\nFirst color for the background gradient">
-                                     <input type="color" id="gradient-color2" value="#feb47b" data-tooltip="**Gradient Color 2**\nSecond color for the background gradient">
-                                 </div>
-                                 <div class="button-group">
-                                     <button id="apply-gradient-vertical" data-tooltip="**Vertical Gradient**\nApply vertical color gradient to background">Vertical</button>
-                                     <button id="apply-gradient-horizontal" data-tooltip="**Horizontal Gradient**\nApply horizontal color gradient to background">Horizontal</button>
-                                 </div>
-                             </div>
-                             <div class="property-group">
-                                 <div class="group-label">Fog</div>
-                                 <div>
-                                     <label for="fog-color">Color:</label>
-                                     <input type="color" id="fog-color" value="#cccccc" data-tooltip="**Fog Color**\nColor of the fog effect">
-                                     <div>
-                                         <label for="fog-near">Near:</label>
-                                         <input type="range" id="fog-near" min="1" max="50" value="10" data-tooltip="**Fog Near**\nDistance where fog starts to appear">
-                                         <span id="fog-near-value">10</span>
-                                     </div>
-                                     <div>
-                                         <label for="fog-far">Far:</label>
-                                         <input type="range" id="fog-far" min="50" max="200" value="100" data-tooltip="**Fog Far**\nDistance where fog becomes fully opaque">
-                                         <span id="fog-far-value">100</span>
-                                     </div>
-                                     <div class="button-group">
-                                         <button id="apply-fog" data-tooltip="**Apply Fog**\nAdd atmospheric fog effect to scene">Apply</button>
-                                         <button id="remove-fog" data-tooltip="**Remove Fog**\nRemove fog effect from the scene">Remove</button>
-                                     </div>
-                                 </div>
-                             </div>
-                             <div class="property-group">
-                                 <div class="group-label">View Options</div>
-                                 <button id="toggle-grid" data-tooltip="**Toggle Grid**\nShow/hide the grid helper\nfor object placement">Toggle Grid</button>
-                                 <button id="toggle-axes" data-tooltip="**Toggle Axes**\nShow/hide XYZ axes helper\nfor orientation reference">Toggle Axes</button>
-                                 <button id="reset-background" data-tooltip="**Reset Background**\nReset to solid color\nbackground">Reset BG</button>
-                             </div>
-                         </div>
-                     </div>
-                     <div id="export-panel" class="control-group panel-section">
-                         <div class="panel-header">
-                             <div class="panel-title"><h3>Export</h3></div>
-                             <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button></div>
-                         </div>
-                         <div class="panel-content">
-                             <div class="property-group">
-                                 <div class="button-group">
-                                     <button id="export-obj" class="icon-button" title="Export OBJ"><i class="fas fa-file-export"></i> OBJ</button>
-                                     <button id="export-stl" class="icon-button" title="Export STL"><i class="fas fa-file-export"></i> STL</button>
-                                     <button id="export-unity" class="icon-button" title="Export Unity"><i class="fab fa-unity"></i> Unity</button>
-                                 </div>
-                                 <div class="collider-checkbox-row">
-                                     <input type="checkbox" id="include-colliders" checked data-tooltip="**Include Colliders**\nInclude collision meshes when exporting">
-                                     <label for="include-colliders">Include Colliders</label>
-                                 </div>
-                                 <div>
-                                     <label for="collider-type">Type:</label>
-                                     <select id="collider-type" data-tooltip="**Collider Type**\nChoose between box or mesh colliders for export">
-                                         <option value="box">Box</option>
-                                         <option value="mesh">Mesh</option>
-                                     </select>
-                                 </div>
-                             </div>
-                         </div>
-                     </div>
-
-
-<div id="materials-panel" class="control-group panel-section">
-    <div class="panel-header">
-        <div class="panel-title"><h3>Materials</h3></div>
-        <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button></div>
-    </div>
-    <div class="panel-content">
-        <!-- Two-Tone Material Builder -->
-        <div class="material-builder">
-            <canvas id="material-builder-canvas" width="320" height="260"></canvas>
-            
-            <div class="property-group">
-                <div class="row mb-8">
-                    <label class="w-70">Top Colour</label>
-                    <div class="sw" id="builder-swA" style="background:#3ecfb2;">
-                        <input type="color" id="builder-colA" value="#3ecfb2">
-                    </div>
-                    <label class="w-70">Bot Colour</label>
-                    <div class="sw" id="builder-swB" style="background:#c94b6e;">
-                        <input type="color" id="builder-colB" value="#c94b6e">
-                    </div>
-                </div>
-                <div class="row mb-8">
-                    <label class="w-70">Split</label>
-                    <input type="range" id="builder-split" min="0" max="100" value="50">
-                    <span id="builder-splitV" class="w-34">50%</span>
-                </div>
-                <div class="row mb-8">
-                    <label class="w-70">Rotate</label>
-                    <input type="range" id="builder-rot" min="0" max="3" value="0" step="1">
-                    <span id="builder-rotV" class="w-34">0°</span>
-                </div>
-                <div class="row mb-8">
-                    <label class="w-70">Outline</label>
-                    <div class="seg" id="builder-outlineSeg">
-                        <button class="active" data-v="on">On</button>
-                        <button data-v="off">Off</button>
-                    </div>
-                </div>
-                <div class="title">Top Dither</div>
-                <div class="row mb-6">
-                    <label class="w-72">Mode</label>
-                    <select id="builder-tDitherMode">
-                        <option value="none">Off</option>
-                        <option value="random">Random</option>
-                        <option value="h">H-Lines</option>
-                        <option value="v">V-Lines</option>
-                        <option value="hv" selected>HV</option>
-                    </select>
-                </div>
-                <div class="row mb-6">
-                    <label class="w-72">Space</label>
-                    <input type="range" id="builder-tDitherSpace" min="2" max="16" value="6" step="1">
-                    <span id="builder-tDitherSpaceV" class="w-28">6</span>
-                </div>
-                <div class="row mb-6">
-                    <label class="w-72">Thick</label>
-                    <input type="range" id="builder-tDitherThick" min="1" max="8" value="1" step="1">
-                    <span id="builder-tDitherThickV" class="w-28">1</span>
-                </div>
-                <div class="row mb-6">
-                    <label class="w-72">Bright</label>
-                    <input type="range" id="builder-tDitherBright" min="-100" max="100" value="100" step="5">
-                    <span id="builder-tDitherBrightV" class="w-28">100</span>
-                </div>
-                <div class="row mb-12">
-                    <label class="w-72">Blend</label>
-                    <input type="range" id="builder-tDitherAlpha" min="0" max="100" value="50" step="5">
-                    <span id="builder-tDitherAlphaV" class="w-28">50</span>
-                </div>
-
-                <div class="title">Bottom Dither</div>
-                <div class="row mb-6">
-                    <label class="w-72">Mode</label>
-                    <select id="builder-bDitherMode">
-                        <option value="none" selected>Off</option>
-                        <option value="random">Random</option>
-                        <option value="h">H-Lines</option>
-                        <option value="v">V-Lines</option>
-                        <option value="hv">HV</option>
-                    </select>
-                </div>
-                <div class="row mb-6">
-                    <label class="w-72">Space</label>
-                    <input type="range" id="builder-bDitherSpace" min="2" max="16" value="4" step="1">
-                    <span id="builder-bDitherSpaceV" class="w-28">4</span>
-                </div>
-                <div class="row mb-6">
-                    <label class="w-72">Thick</label>
-                    <input type="range" id="builder-bDitherThick" min="1" max="8" value="1" step="1">
-                    <span id="builder-bDitherThickV" class="w-28">1</span>
-                </div>
-                <div class="row mb-6">
-                    <label class="w-72">Bright</label>
-                    <input type="range" id="builder-bDitherBright" min="-100" max="100" value="-100" step="5">
-                    <span id="builder-bDitherBrightV" class="w-28">-100</span>
-                </div>
-                <div class="row mb-12">
-                    <label class="w-72">Blend</label>
-                    <input type="range" id="builder-bDitherAlpha" min="0" max="100" value="70" step="5">
-                    <span id="builder-bDitherAlphaV" class="w-28">70</span>
-                </div>
-                <div class="row">
-                    <button id="builder-save" class="btn"><i class="fas fa-save"></i> Save Material</button>
-                    <button id="builder-download" class="btn"><i class="fas fa-download"></i> PNG</button>
+                    <!-- Tool panels will be moved here from #app -->
                 </div>
             </div>
         </div>
-        
-        <hr class="sep">
-        
-        <div class="property-group">
-            <button id="create-material-btn" class="btn primary">
-                <i class="fas fa-plus"></i> Create Standard Material
-            </button>
-        </div>
-        <div id="materials-content"></div>
-        <div class="property-group">
-            <label>Pixel Effects:</label>
-            <div class="pixel-effect-toggle">
-                <input type="checkbox" id="pixel-effect-enabled">
-                <label for="pixel-effect-enabled">Enable Pixel Effects</label>
-            </div>
-            <div class="pixel-effect-controls" id="pixel-effects-controls">
-                <div class="pixel-slider-group">
-                    <label>Pixel Size:</label>
-                    <input type="range" id="pixel-size" min="1" max="32" value="4">
-                    <span class="value-display" id="pixel-size-value">4</span>
+        <div id="app">
+            <div id="main-toolbar">
+                <div id="collider-tools" class="toolbar-group">
+                    <button id="add-top" class="icon-button" data-tooltip="**Top Collider**\nAdd a flat top surface to the selected object's upper face"><img src="gfx/top_icon.svg" alt="Top" width="16" height="16"></button>
+                    <button id="add-left" class="icon-button" data-tooltip="**Left Collider**\nAdd a left-side collider face (90° rotated)"><img src="gfx/left_side_icon.svg" alt="Left" width="16" height="16"></button>
+                    <button id="add-right" class="icon-button" data-tooltip="**Right Collider**\nAdd a right-side collider face (90° rotated)"><img src="gfx/right_side_icon.svg" alt="Right" width="16" height="16"></button>
+                    <button id="add-line" class="icon-button" data-tooltip="**Line Collider**\nAdd a line / edge element to the scene"><img src="gfx/top_icon.svg" alt="Line" width="16" height="16"></button>
                 </div>
-                <div class="pixel-effect-toggle">
-                    <input type="checkbox" id="pixel-crt-effect">
-                    <label for="pixel-crt-effect">CRT Effect</label>
+                <div class="toolbar-group">
+                    <button id="tool-eraser" class="icon-button" title="Eraser"><i class="fas fa-eraser"></i></button>
                 </div>
-                <div class="pixel-effect-toggle">
-                    <input type="checkbox" id="pixel-scanlines-effect">
-                    <label for="pixel-scanlines-effect">Scanlines</label>
+                <div class="toolbar-group">
+                    <button id="rotate-cw" class="icon-button" title="Rotate CW"><i class="fas fa-undo"></i></button>
+                    <button id="rotate-ccw" class="icon-button" title="Rotate CCW"><i class="fas fa-redo"></i></button>
                 </div>
-                <div class="pixel-effect-toggle">
-                    <input type="checkbox" id="pixel-noise-effect">
-                    <label for="pixel-noise-effect">Noise</label>
+                <div class="toolbar-group" id="height-bar">
+                    <button id="btn-height-down" title="Lower layer">&#9660;</button>
+                    <span id="height-label">0</span>
+                    <button id="btn-height-up" title="Raise layer">&#9650;</button>
+                </div>
+                <div class="toolbar-group" style="margin-left: auto;">
+                    <button id="clear-scene" class="icon-button" title="Clear Scene"><i class="fas fa-trash"></i></button>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
-                    <div id="properties-panel" class="control-group panel-section">
-                        <div class="panel-header">
-                            <div class="panel-title"><h3>Properties</h3></div>
-                            <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button></div>
+            <div id="layer-bar">
+                <div id="layer-tab-cube" class="layer-tab active">Cube Layer</div>
+                <div id="layer-tab-collider" class="layer-tab">Collider Layer</div>
+                <span id="layer-hint">Painting tiles with selected material.</span>
+            </div>
+            <div id="scene-container">
+                <div id="viewport-bottom-drawer"
+                    style="position: absolute; bottom: 0; left: 0; right: 0; height: 100px; background: rgba(0,0,0,0.5); z-index: 5; display: none;">
+                    <div id="drawer-inner"></div>
+                </div>
+            </div>
+
+            <div id="floating-camera-panel" class="floating-panel" style="left: 20px; top: 830px;">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <h3>Camera</h3>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div class="button-row">
+                        <button id="floating-reset-camera" class="icon-button" title="Reset"><i
+                                class="fas fa-sync-alt"></i></button>
+                    </div>
+                    <div class="input-row">
+                        <label for="floating-camera-position">Position:</label>
+                        <input type="text" id="floating-camera-position" readonly>
+                    </div>
+                </div>
+            </div>
+            <!-- Floating Movement Panel -->
+            <div id="floating-movement-panel" class="floating-panel" style="left: 260px; top: 830px;">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <h3>Movement</h3>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div>
+                        <label for="object-select">Select:</label>
+                        <select id="object-select">
+                            <option value="">None</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Move:</label>
+                        <div class="movement-grid">
+                            <button id="move-left">↖</button>
+                            <button id="move-up">↑</button>
+                            <button id="move-right-up">↗</button>
+                            <button id="move-left-down">↙</button>
+                            <button id="move-down">↓</button>
+                            <button id="move-right">↘</button>
                         </div>
-                        <div class="panel-content">
-                            <div class="property-group">
-                                <label>Material:</label>
-                                <div class="material-dropdown-wrapper" id="prop-material-selector">
-                                    <div class="material-selector" id="prop-material-btn">
-                                        <span class="selected-material-text" id="prop-material-text">Select Material</span>
-                                        <span class="dropdown-arrow"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MOVED PANELS START -->
+            <div id="objects-panel" class="control-group panel-section">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <h3>Objects</h3>
+                    </div>
+                    <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button>
+                    </div>
+                </div>
+                <div class="panel-content button-group">
+                    <!-- SOT shapes: Cube, Ramp, Arch, Wall, Corner Wall, Curved Outer Corner, Curved Inner Corner, Pillar -->
+                    <div class="object-group">
+                        <div class="group-label">Shapes</div>
+                        <div class="button-row">
+                            <button id="add-cube" class="icon-button" title="Add Cube"><i
+                                    class="fas fa-cube"></i></button>
+                            <button id="add-ramp" class="icon-button" title="Add Ramp"><i class="fas fa-chart-line"
+                                    style="transform: scaleX(-1);"></i></button>
+                            <button id="add-arch" class="icon-button" title="Add Arch"><i
+                                    class="fas fa-archway"></i></button>
+                            <button id="add-pillar" class="icon-button" title="Add Pillar"><i
+                                    class="fas fa-monument"></i></button>
+                        </div>
+                    </div>
+                    <div class="object-group">
+                        <div class="group-label">Walls</div>
+                        <div class="button-row">
+                            <button id="add-wall" class="icon-button" title="Add Wall"><i
+                                    class="fas fa-vector-square"></i></button>
+                            <button id="add-corner-wall" class="icon-button" title="Add Corner Wall"><i
+                                    class="fas fa-share-square" style="transform: rotate(90deg);"></i></button>
+                            <button id="add-curved-outer-corner" class="icon-button" title="Add Curved Outer Corner"><i
+                                    class="fas fa-external-link-square-alt"
+                                    style="transform: rotate(45deg);"></i></button>
+                            <button id="add-curved-inner-corner" class="icon-button" title="Add Curved Inner Corner"><i
+                                    class="fas fa-compress-arrows-alt" style="transform: rotate(45deg);"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="materials-panel" class="control-group panel-section">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <h3>Materials</h3>
+                    </div>
+                    <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div class="property-group">
+                        <button id="create-material-btn" class="btn primary">
+                            <i class="fas fa-plus"></i> Create Standard Material
+                        </button>
+                    </div>
+                    <hr class="sep">
+                    <div class="property-group">
+                        <label>Create Material from Texture:</label>
+                        <div id="user-texture-selector-container">
+                            <div class="empty-state">No custom textures available.</div>
+                        </div>
+                        <input type="text" id="material-from-texture-name" placeholder="New Material Name" class="mt-8">
+                        <button id="create-material-from-texture-btn" class="btn primary mt-8" disabled><i
+                                class="fas fa-plus"></i> Create from Selected Texture</button>
+                    </div>
+                    <div id="materials-content">
+                        <!-- Materials will be rendered here by JS -->
+                    </div>
+                    <hr class="sep">
+                    <!-- This panel is now for creating textures for a selected material -->
+                    <div id="texture-builder-container" style="display: none;">
+                        <h4 id="texture-builder-header">Add Texture to...</h4>
+                        <div id="texture-builder-panel" class="control-group panel-section">
+                            <div class="panel-content" id="texture-builder-content">
+                                <!-- The procedural texture builder -->
+                                <div class="material-builder" id="procedural-texture-builder">
+                                    <canvas id="material-builder-canvas" width="260" height="120"></canvas>
+                                    <div class="property-group">
+                                        <div class="title">Texture Mode</div>
+                                        <div class="row"><label>Type</label><select id="materialMode">
+                                                <option value="0" selected>Split Color</option>
+                                                <option value="1">Solid Color</option>
+                                                <option value="2">Water Mode</option>
+                                            </select></div>
+                                        <div class="row" id="globalOpacityRow" style="display:none;"><label>Water
+                                                Alpha</label><input type="range" id="globalOpacity" min="10" max="100"
+                                                value="60"><span class="value-display">60</span></div>
+                                        <div class="title">Geometry</div>
+                                        <div id="baseColRow" class="row"><label>Base Col</label><input type="color"
+                                                id="baseColor" value="#8a7a60"></div>
+                                        <div id="topColRow" class="row"><label>Top Overlay</label><input type="color"
+                                                id="colA" value="#3ecfb2"></div>
+                                        <div id="botColRow" class="row"><label>Bot Overlay</label><input type="color"
+                                                id="colB" value="#c94b6e"></div>
+                                        <div id="splitRow" class="row"><label>Split</label><input type="range"
+                                                id="split" min="-50" max="50" value="0"><span
+                                                class="value-display">0</span></div>
+                                        <div class="title" style="color:#3ecfb2">Top / Global Dither</div>
+                                        <div class="row"><label>Mode</label><select id="tMode">
+                                                <option value="0">Off</option>
+                                                <option value="1">Noise</option>
+                                                <option value="2">H-Lines</option>
+                                                <option value="3">V-Lines</option>
+                                                <option value="4" selected>Crosshatch</option>
+                                            </select></div>
+                                        <div class="row"><label>Ink Type</label><select id="tInkMode">
+                                                <option value="0" selected>Bright</option>
+                                                <option value="1">Color</option>
+                                            </select></div>
+                                        <div class="row" id="tBrightRow"><label>Bright</label><input type="range"
+                                                id="tBright" min="-100" max="100" value="100"><span
+                                                class="value-display">100</span></div>
+                                        <div class="row hidden" id="tColorRow"><label>Ink Color</label><input
+                                                type="color" id="tInkCol" value="#ffffff"></div>
+                                        <div class="row"><label>Space</label><input type="range" id="tSpace" min="2"
+                                                max="16" value="6"><span class="value-display">6</span></div>
+                                        <div class="row"><label>Thick</label><input type="range" id="tThick" min="1"
+                                                max="6" value="1" step="0.5"><span class="value-display">1</span></div>
+                                        <div class="row"><label>Blend</label><input type="range" id="tAlpha" min="5"
+                                                max="100" value="50"><span class="value-display">50</span></div>
+                                        <div id="bottomDitherSection">
+                                            <div class="title" style="color:#c94b6e">Bottom Dither</div>
+                                            <div class="row"><label>Mode</label><select id="bMode">
+                                                    <option value="0">Off</option>
+                                                    <option value="1" selected>Noise</option>
+                                                    <option value="2">H-Lines</option>
+                                                    <option value="3">V-Lines</option>
+                                                    <option value="4">Crosshatch</option>
+                                                </select></div>
+                                            <div class="row"><label>Ink Type</label><select id="bInkMode">
+                                                    <option value="0" selected>Bright</option>
+                                                    <option value="1">Color</option>
+                                                </select></div>
+                                            <div class="row" id="bBrightRow"><label>Bright</label><input type="range"
+                                                    id="bBright" min="-100" max="100" value="-100"><span
+                                                    class="value-display">-100</span></div>
+                                            <div class="row hidden" id="bColorRow"><label>Ink Color</label><input
+                                                    type="color" id="bInkCol" value="#000000"></div>
+                                            <div class="row"><label>Space</label><input type="range" id="bSpace" min="2"
+                                                    max="16" value="4"><span class="value-display">4</span></div>
+                                            <div class="row"><label>Thick</label><input type="range" id="bThick" min="1"
+                                                    max="6" value="1" step="0.5"><span class="value-display">1</span>
+                                            </div>
+                                            <div class="row"><label>Blend</label><input type="range" id="bAlpha" min="5"
+                                                    max="100" value="70"><span class="value-display">70</span></div>
+                                        </div>
                                     </div>
-                                    <div class="material-dropdown-list" id="prop-material-dropdown"></div>
-                                 </div>
-                              </div>
-                              <div>
-                                  <label>Current Material:</label>
-                                  <span id="current-material-name" title="Material applied to the selected object">—</span>
-                              </div>
-                              <div>
-                                  <label for="object-scale-x">Scale X:</label>
-                                <input type="range" id="object-scale-x" min="1" max="5" value="1">
-                                <span id="object-scale-x-value">1</span>
-                            </div>
-                            <div>
-                                <label for="object-scale-y">Scale Y:</label>
-                                <input type="range" id="object-scale-y" min="1" max="5" value="1">
-                                <span id="object-scale-y-value">1</span>
-                            </div>
-                            <div>
-                                <label for="object-scale-z">Scale Z:</label>
-                                <input type="range" id="object-scale-z" min="1" max="5" value="1">
-                                <span id="object-scale-z-value">1</span>
-                            </div>
-                            <div>
-                                <label for="object-rotation-y">Rot Y:</label>
-                                <input type="range" id="object-rotation-y" min="0" max="360" step="90" value="0">
-                                <span id="object-rotation-y-value">0°</span>
-                            </div>
-                            <div>
-                                <label for="object-zindex">Z-Index:</label>
-                                <input type="range" id="object-zindex" min="0" max="100" value="0">
-                                <span id="object-zindex-value">0</span>
+                                    <div class="row" style="margin-top: 15px;">
+                                        <input type="text" id="texture-name-input" placeholder="Texture name..."
+                                            style="flex:1; background:#1a1a1a; border:1px solid #333; color:#eee; padding:4px 8px; border-radius:4px; font-size:12px;">
+                                        <button id="builder-save-texture" class="btn primary"><i
+                                                class="fas fa-plus"></i> Add
+                                            Texture</button>
+                                        <button id="builder-cancel" class="btn cancel-btn" style="margin-left: auto;"><i
+                                                class="fas fa-times"></i></button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-
-                    <div id="layers-panel" class="control-group panel-section">
-                        <div class="panel-header">
-                            <div class="panel-title"><h3>Layers</h3></div>
-                            <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button></div>
+                    <div class="property-group">
+                        <label>Pixel Effects:</label>
+                        <div class="pixel-effect-toggle">
+                            <input type="checkbox" id="pixel-effect-enabled">
+                            <label for="pixel-effect-enabled">Enable Pixel Effects</label>
                         </div>
-<div class="panel-content">
-    <div class="property-group">
-        <label for="layer-name">Layer Name:</label>
-        <span class="layer-name-row">
-            <input type="text" id="layer-name" placeholder="New layer">
-            <button id="add-layer" class="add-layer-btn" title="Add layer"><i class="fas fa-plus"></i></button>
-        </span>
-    </div>
-    
-    <!-- Material Selector (moved from materials panel) -->
-    <div class="property-group">
-        <label>Apply Material to Selected:</label>
-        <div class="material-dropdown-wrapper" id="material-selector">
-            <div class="material-selector" id="material-selector-btn">
-                <span class="selected-material-text">Select Material</span>
-                <span class="dropdown-arrow"><i class="fas fa-chevron-down"></i></span>
+                        <div class="pixel-effect-controls" id="pixel-effects-controls">
+                            <div class="pixel-slider-group">
+                                <label>Pixel Size:</label>
+                                <input type="range" id="pixel-size" min="1" max="32" value="4">
+                                <span class="value-display" id="pixel-size-value">4</span>
+                            </div>
+                            <div class="pixel-effect-toggle">
+                                <input type="checkbox" id="pixel-crt-effect">
+                                <label for="pixel-crt-effect">CRT Effect</label>
+                            </div>
+                            <div class="pixel-effect-toggle">
+                                <input type="checkbox" id="pixel-scanlines-effect">
+                                <label for="pixel-scanlines-effect">Scanlines</label>
+                            </div>
+                            <div class="pixel-effect-toggle">
+                                <input type="checkbox" id="pixel-noise-effect">
+                                <label for="pixel-noise-effect">Noise</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="material-dropdown-list" id="material-dropdown-list"></div>
-        </div>
-    </div>
 
-                            <div id="layers-list"></div>
-                            <div class="property-group">
-                                <label for="current-layer">Current:</label>
-                                <select id="current-layer"><option value="1">Layer 1</option></select>
-                            </div>
-                        </div>
+            <div id="textures-panel" class="control-group panel-section">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <h3>Textures</h3>
                     </div>
-                
-                
+                    <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <button id="create-texture-btn" class="btn primary"><i class="fas fa-plus"></i> Create New
+                        Texture</button>
+                    <div id="texture-list-container">
+                        <!-- Texture items will be dynamically inserted here -->
+                        <div class="empty-state">No custom textures created yet.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="properties-panel" class="control-group panel-section">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <h3>Properties</h3>
+                    </div>
+                    <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div class="property-group">
+                        <label>Material:</label>
+                        <select id="prop-material-select" class="settings-select">
+                            <option value="">Select Material</option>
+                            <!-- Options will be populated by JS -->
+                        </select>
+                    </div>
+                    <div>
+                        <label>Current Material:</label>
+                        <span id="current-material-name" title="Material applied to the selected object">—</span>
+                    </div>
+                    <div>
+                        <label for="object-scale-x">Scale X:</label>
+                        <input type="range" id="object-scale-x" min="1" max="5" value="1">
+                        <span id="object-scale-x-value">1</span>
+                    </div>
+                    <div>
+                        <label for="object-scale-y">Scale Y:</label>
+                        <input type="range" id="object-scale-y" min="1" max="5" value="1">
+                        <span id="object-scale-y-value">1</span>
+                    </div>
+                    <div>
+                        <label for="object-scale-z">Scale Z:</label>
+                        <input type="range" id="object-scale-z" min="1" max="5" value="1">
+                        <span id="object-scale-z-value">1</span>
+                    </div>
+                    <div>
+                        <label for="object-rotation-y">Rot Y:</label>
+                        <input type="range" id="object-rotation-y" min="0" max="360" step="90" value="0">
+                        <span id="object-rotation-y-value">0°</span>
+                    </div>
+                    <div>
+                        <label for="object-zindex">Z-Index:</label>
+                        <input type="range" id="object-zindex" min="0" max="100" value="0">
+                        <span id="object-zindex-value">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="layers-panel" class="control-group panel-section">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <h3>Layers</h3>
+                    </div>
+                    <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div class="property-group">
+                        <label for="layer-name">Layer Name:</label>
+                        <span class="layer-name-row">
+                            <input type="text" id="layer-name" placeholder="New layer">
+                            <button id="add-layer" class="add-layer-btn" title="Add layer"><i
+                                    class="fas fa-plus"></i></button>
+                        </span>
+                    </div>
+
+                    <!-- Material Selector (moved from materials panel) -->
+                    <div class="property-group">
+                        <label>Apply Material to Layer:</label>
+                        <select id="layer-material-select" class="settings-select">
+                            <option value="">Select Material</option>
+                        </select>
+                    </div>
+
+                    <div id="layers-list"></div>
+                    <div class="property-group">
+                        <label for="current-layer">Current:</label>
+                        <select id="current-layer">
+                            <option value="1">Layer 1</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hidden scene objects panel for DOM compatibility -->
+            <div id="scene-objects-panel" class="control-group panel-section" style="display:none">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <h3>Scene Objects</h3>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div id="scene-objects-list"></div>
+                </div>
+            </div>
+            <!-- MOVED PANELS END -->
+        </div>
+        <div id="mat-dock">
+            <div class="sidebar-header">
+                <h2>Materials</h2>
+                <div class="global-actions">
+                    <button id="mode-2d-3d" class="icon-button mode-toggle-btn" title="3D Mode Active"><i
+                            class="fas fa-cubes-stacked"></i> 3D Mode</button>
+                    <button id="settings-btn" class="icon-button" title="Settings"><i class="fas fa-cog"></i></button>
+                    <button id="save-btn" class="icon-button" title="Save"><i class="fas fa-save"></i></button>
+                    <button id="load-btn" class="icon-button" title="Load"><i class="fas fa-folder-open"></i></button>
+                </div>
+            </div>
+            <div id="mat-groups-container">
+                <div class="mat-section">
+                    <details open>
+                        <summary>Split Color</summary>
+                        <div class="mat-grid" id="mat-grid-split">
+                            <!-- Thumbnails will be generated by JS -->
+                        </div>
+                    </details>
+                </div>
+                <div class="mat-section">
+                    <details>
+                        <summary>Solid Color</summary>
+                        <div class="mat-grid" id="mat-grid-solid">
+                            <!-- Thumbnails here -->
+                        </div>
+                    </details>
+                </div>
+                <div class="mat-section">
+                    <details>
+                        <summary>Water</summary>
+                        <div class="mat-grid" id="mat-grid-water">
+                            <!-- Thumbnails here -->
+                        </div>
+                    </details>
+                </div>
+            </div>
+            <div id="mat-properties-editor">
+                <div class="panel-header" style="padding: 10px 15px; background: #111116;">
+                    <div class="panel-title">
+                        <h3 id="mat-editor-header">Material Properties</h3>
+                    </div>
+                    <div class="panel-actions">
+                        <button id="mat-editor-close-btn" class="toggle-btn"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+                <div class="panel-content" style="padding: 15px;">
+                    <!-- The materials-panel content will be moved here when a material is selected -->
+                    <div id="mat-editor-content-wrapper">
+                        <div class="empty-state">Select a material to edit its properties.</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -614,22 +780,24 @@
                 <div class="settings-tab-content active" data-tab-content="general">
                     <div class="settings-content">
                         <div class="settings-group">
-                            <h3>Preferences</h3>
-                            <div class="property-group">
+                            <h3>View</h3>
+                            <div class="property-group setting-row">
                                 <label class="setting-label">
                                     <input type="checkbox" id="setting-show-grid" checked>
-                                    <span class="checkmark">Show Grid</span>
+                                    <span class="checkmark">Show Grid</span> <button id="toggle-grid"
+                                        class="inline-btn">Toggle Now</button>
                                 </label>
                                 <div class="setting-description">Display the grid helper in the scene</div>
                             </div>
-                            <div class="property-group">
+                            <div class="property-group setting-row">
                                 <label class="setting-label">
                                     <input type="checkbox" id="setting-show-axes" checked>
-                                    <span class="checkmark">Show Axes</span>
+                                    <span class="checkmark">Show Axes</span> <button id="toggle-axes"
+                                        class="inline-btn">Toggle Now</button>
                                 </label>
                                 <div class="setting-description">Display the XYZ axes helper</div>
                             </div>
-                            <div class="property-group">
+                            <div class="property-group setting-row">
                                 <label class="setting-label">
                                     <input type="checkbox" id="setting-auto-save">
                                     <span class="checkmark">Auto-Save</span>
@@ -639,12 +807,13 @@
                         </div>
                         <div class="settings-group">
                             <h3>Data</h3>
-                            <div class="property-group">
+                            <div class="property-group setting-row">
                                 <button id="setting-clear-state" class="settings-btn">Clear All Saved Data</button>
-                                <div class="setting-description">Remove all saved settings and state from browser storage</div>
+                                <div class="setting-description">Remove all saved settings and state from browser
+                                    storage</div>
                             </div>
                         </div>
-                        <div class="settings-group">
+                        <div class="settings-group" style="display:none;">
                             <h3>Tutorial</h3>
                             <div class="property-group">
                                 <label class="setting-label">
@@ -655,7 +824,8 @@
                             </div>
                             <div class="property-group">
                                 <button id="setting-start-tutorial" class="settings-btn">Start Tutorial</button>
-                                <div class="setting-description">Launch the interactive tutorial to learn the interface</div>
+                                <div class="setting-description">Launch the interactive tutorial to learn the interface
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -665,13 +835,14 @@
                 <div class="settings-tab-content" data-tab-content="scene">
                     <div class="settings-content scene-settings-content">
                         <div class="settings-group">
-                            <h3>Environment</h3>
-                            <div class="property-group">
+                            <h3>Background</h3>
+                            <div class="property-group setting-row">
                                 <label class="property-label">Background Color</label>
                                 <input type="color" id="setting-bg-color" value="#808080">
+                                <button id="reset-background" class="inline-btn">Reset</button>
                             </div>
-                            <div class="property-group">
-                                <label class="property-label">Default Theme</label>
+                            <div class="property-group setting-row">
+                                <label class="property-label">Theme</label>
                                 <select id="setting-theme" class="settings-select">
                                     <option value="default">Default</option>
                                     <option value="sunset">Sunset</option>
@@ -679,19 +850,56 @@
                                     <option value="dawn">Dawn</option>
                                     <option value="overcast">Overcast</option>
                                 </select>
+                                <button id="setting-apply-theme" class="inline-btn">Apply</button>
                             </div>
-                            <div class="property-group">
+                            <div class="property-group setting-row">
+                                <label class="property-label">Image URL</label>
+                                <input type="text" id="setting-bg-image-url" placeholder="https://..."
+                                    class="settings-input">
+                                <button id="setting-apply-bg-image" class="inline-btn">Set</button>
+                            </div>
+                        </div>
+                        <div class="settings-group">
+                            <h3>Lighting & Effects</h3>
+                            <div class="property-group setting-row">
                                 <label class="property-label">Brightness</label>
                                 <input type="range" id="setting-brightness" min="0.1" max="3" step="0.1" value="1.0">
-                                <span class="range-value">1.0</span>
+                                <span class="range-value" id="setting-brightness-value">1.0</span>
+                            </div>
+                            <div class="property-group setting-row">
+                                <label class="property-label">Fog Color</label>
+                                <input type="color" id="setting-fog-color" value="#cccccc">
+                                <button id="setting-remove-fog" class="inline-btn">Off</button>
+                            </div>
+                            <div class="property-group setting-row">
+                                <label class="property-label">Fog Near</label>
+                                <input type="range" id="setting-fog-near" min="1" max="50" value="10">
+                                <span class="range-value" id="setting-fog-near-value">10</span>
+                            </div>
+                            <div class="property-group setting-row">
+                                <label class="property-label">Fog Far</label>
+                                <input type="range" id="setting-fog-far" min="50" max="200" value="100">
+                                <span class="range-value" id="setting-fog-far-value">100</span>
                             </div>
                         </div>
                         <div class="settings-group">
                             <h3>Terrain</h3>
-                            <div class="property-group">
+                            <div class="property-group setting-row">
                                 <label class="property-label">Terrain Height</label>
-                                <input type="range" id="setting-terrain-height" min="0.1" max="2" step="0.1" value="0.25">
-                                <span class="range-value">0.25</span>
+                                <input type="range" id="setting-terrain-height" min="0.1" max="2" step="0.1"
+                                    value="0.25">
+                                <span class="range-value" id="setting-terrain-height-value">0.25</span>
+                            </div>
+                        </div>
+                        <div class="settings-group">
+                            <h3>Colliders</h3>
+                            <div class="property-group setting-row">
+                                <label class="property-label">Outline Color</label>
+                                <input type="color" id="setting-collider-outline" value="#4eff91">
+                            </div>
+                            <div class="property-group setting-row">
+                                <label class="property-label">Fill Color</label>
+                                <input type="color" id="setting-collider-fill" value="#008000">
                             </div>
                         </div>
                     </div>
@@ -701,23 +909,45 @@
                 <div class="settings-tab-content" data-tab-content="export">
                     <div class="settings-content export-settings-content">
                         <div class="settings-group">
-                            <h3>3D Export</h3>
-                            <div class="property-group">
+                            <h3>Scene Export</h3>
+                            <div class="property-group setting-row">
+                                <button id="export-obj" class="settings-btn"><i class="fas fa-file-export"></i> Export
+                                    as .OBJ</button>
+                                <div class="setting-description">Export the scene geometry and materials.</div>
+                            </div>
+                            <div class="property-group setting-row">
+                                <button id="export-stl" class="settings-btn"><i class="fas fa-file-export"></i> Export
+                                    as .STL</button>
+                                <div class="setting-description">Export the scene for 3D printing.</div>
+                            </div>
+                            <div class="property-group setting-row">
+                                <button id="export-unity" class="settings-btn"><i class="fab fa-unity"></i> Export for
+                                    Unity</button>
+                                <div class="setting-description">Create a Unity-compatible package.</div>
+                            </div>
+                        </div>
+                        <div class="settings-group">
+                            <h3>Export Options</h3>
+                            <div class="property-group setting-row">
                                 <label class="setting-label">
                                     <input type="checkbox" id="setting-include-colliders" checked>
                                     <span class="checkmark">Include Colliders</span>
                                 </label>
+                                <div class="setting-description">Include collider meshes in the exported files.</div>
                             </div>
-                            <div class="property-group">
+                            <div class="property-group setting-row">
                                 <label class="property-label">Collider Type</label>
-                                <select id="setting-collider-type" class="settings-select">
+                                <select id="collider-type" class="settings-select">
                                     <option value="box">Box</option>
                                     <option value="mesh">Mesh</option>
                                 </select>
+                                <div class="setting-description">Choose the geometry type for exported colliders.</div>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                <!-- Export Settings -->
             </div>
             <div class="modal-actions">
                 <button type="button" class="btn cancel-btn" id="close-settings-btn">Cancel</button>
@@ -725,5 +955,889 @@
             </div>
         </div>
     </div>
+    <script>
+        // Make panels draggable
+        function makeDraggable(panel) {
+            const header = panel.querySelector('.panel-header');
+            if (!header) return;
+
+            let isDragging = false;
+            let offsetX, offsetY;
+
+            // Bring panel to front on click
+            panel.addEventListener('mousedown', () => {
+                const panels = document.querySelectorAll('.floating-panel');
+                let maxZ = 9; // Start below base z-index
+                panels.forEach(p => {
+                    const z = parseInt(window.getComputedStyle(p).zIndex, 10);
+                    if (z > maxZ) maxZ = z;
+                });
+                panel.style.zIndex = maxZ + 1;
+            });
+
+            header.addEventListener('mousedown', (e) => {
+                if (e.target.closest('button, input, select')) return;
+                isDragging = true;
+                offsetX = e.clientX - panel.offsetLeft;
+                offsetY = e.clientY - panel.offsetTop;
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                panel.style.left = `${e.clientX - offsetX}px`;
+                panel.style.top = `${e.clientY - offsetY}px`;
+            });
+
+            document.addEventListener('mouseup', () => { isDragging = false; });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            makeDraggable(document.getElementById('floating-camera-panel'));
+            makeDraggable(document.getElementById('floating-movement-panel'));
+
+            // Left Sidebar Tabbed Panel Logic
+            const leftSidebar = document.getElementById('left-sidebar');
+            const panelWrapper = leftSidebar.querySelector('.panel-content-wrapper');
+            const app = document.getElementById('app');
+
+            // Move tool panels from app to left sidebar
+            ['objects-panel', 'properties-panel', 'textures-panel', 'layers-panel'].forEach(id => {
+                const panel = app.querySelector(`#${id}`);
+                if (panel) {
+                    panelWrapper.appendChild(panel);
+                }
+            });
+
+            leftSidebar.addEventListener('click', (e) => {
+                const button = e.target.closest('.tab-button');
+                if (!button) return;
+
+                leftSidebar.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+
+                const panelId = button.dataset.panel;
+                panelWrapper.querySelectorAll('.panel-section').forEach(panel => {
+                    panel.classList.toggle('active', panel.id === panelId);
+                });
+            });
+
+            // Activate the first tab by default
+            const firstButton = leftSidebar.querySelector('.tab-button');
+            if (firstButton) {
+                firstButton.click();
+            }
+
+            // Material Dock UI Logic
+            const matDock = document.getElementById('mat-dock');
+            const matPropertiesEditor = document.getElementById('mat-properties-editor');
+            const matEditorHeader = document.getElementById('mat-editor-header');
+            const matEditorCloseBtn = document.getElementById('mat-editor-close-btn');
+            const matEditorContent = document.getElementById('mat-editor-content-wrapper');
+            const materialsPanel = document.getElementById('materials-panel'); // The panel with the editor
+
+            // This is a placeholder. We will populate this with real material data later.
+            const placeholderThumbs = `<div class="mat-thumb active" data-material-id="default-split"><canvas width="80" height="80"></canvas></div>`;
+            document.getElementById('mat-grid-split').innerHTML = placeholderThumbs;
+
+            matDock.addEventListener('click', (e) => {
+                const thumb = e.target.closest('.mat-thumb');
+                if (!thumb) return;
+
+                matDock.querySelectorAll('.mat-thumb').forEach(t => t.classList.remove('active'));
+                thumb.classList.add('active');
+
+                const materialId = thumb.dataset.materialId;
+                matEditorHeader.textContent = `Editing: ${materialId}`;
+                matEditorContent.innerHTML = ''; // Clear placeholder
+                matEditorContent.appendChild(materialsPanel); // Move the whole panel content
+                materialsPanel.style.display = 'block';
+                matPropertiesEditor.style.display = 'block';
+            });
+
+            matEditorCloseBtn.addEventListener('click', () => {
+                matPropertiesEditor.style.display = 'none';
+            });
+
+            // Layer Bar and Toolbar Logic
+            const layerTabCube = document.getElementById('layer-tab-cube');
+            const layerTabCollider = document.getElementById('layer-tab-collider');
+            const layerHint = document.getElementById('layer-hint');
+            const colliderTools = document.getElementById('collider-tools');
+
+            function setActiveLayer(layer) {
+                if (layer === 'cube') {
+                    layerTabCube.classList.add('active');
+                    layerTabCollider.classList.remove('active');
+                    layerHint.textContent = 'Painting tiles with selected material.';
+                    colliderTools.classList.add('disabled');
+                } else if (layer === 'collider') {
+                    layerTabCube.classList.remove('active');
+                    layerTabCollider.classList.add('active');
+                    layerHint.textContent = 'Painting colliders with selected tool.';
+                    colliderTools.classList.remove('disabled');
+                }
+            }
+
+            layerTabCube.addEventListener('click', () => setActiveLayer('cube'));
+            layerTabCollider.addEventListener('click', () => setActiveLayer('collider'));
+
+            // Set initial state
+            setActiveLayer('cube');
+        });
+    </script>
 </body>
+
+</html>
+                        <button id="btn-height-down" title="Lower layer">&#9660;</button>
+                        <span id="height-label">0</span>
+                        <button id="btn-height-up" title="Raise layer">&#9650;</button>
+                    </div>
+                </div>
+                <div id="viewport-bottom-drawer"
+                    style="position: absolute; bottom: 0; left: 0; right: 0; height: 100px; background: rgba(0,0,0,0.5); z-index: 5; display: none;">
+                    <div id="drawer-inner"></div>
+                </div>
+            </div>
+
+            <div id="floating-camera-panel" class="floating-panel" style="left: 20px; top: 830px;">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <h3>Camera</h3>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div class="button-row">
+                        <button id="floating-reset-camera" class="icon-button" title="Reset"><i
+                                class="fas fa-sync-alt"></i></button>
+                        <button id="floating-rotate-cw" class="icon-button" title="Rotate CW"><i
+                                class="fas fa-undo"></i></button>
+                        <button id="floating-rotate-ccw" class="icon-button" title="Rotate CCW"><i
+                                class="fas fa-redo"></i></button>
+                    </div>
+                    <div class="input-row">
+                        <label for="floating-camera-position">Position:</label>
+                        <input type="text" id="floating-camera-position" readonly>
+                    </div>
+                </div>
+            </div>
+            <!-- Floating Movement Panel -->
+            <div id="floating-movement-panel" class="floating-panel" style="left: 260px; top: 830px;">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <h3>Movement</h3>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div>
+                        <label for="object-select">Select:</label>
+                        <select id="object-select">
+                            <option value="">None</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Move:</label>
+                        <div class="movement-grid">
+                            <button id="move-left">↖</button>
+                            <button id="move-up">↑</button>
+                            <button id="move-right-up">↗</button>
+                            <button id="move-left-down">↙</button>
+                            <button id="move-down">↓</button>
+                            <button id="move-right">↘</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MOVED PANELS START -->
+            <div id="objects-panel" class="control-group panel-section">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <h3>Objects</h3>
+                    </div>
+                    <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button>
+                    </div>
+                </div>
+                <div class="panel-content button-group">
+                    <!-- SOT shapes: Cube, Ramp, Arch, Wall, Corner Wall, Curved Outer Corner, Curved Inner Corner, Pillar -->
+                    <div class="object-group">
+                        <div class="group-label">Shapes</div>
+                        <div class="button-row">
+                            <button id="add-cube" class="icon-button" title="Add Cube"><i
+                                    class="fas fa-cube"></i></button>
+                            <button id="add-ramp" class="icon-button" title="Add Ramp"><i class="fas fa-chart-line"
+                                    style="transform: scaleX(-1);"></i></button>
+                            <button id="add-arch" class="icon-button" title="Add Arch"><i
+                                    class="fas fa-archway"></i></button>
+                            <button id="add-pillar" class="icon-button" title="Add Pillar"><i
+                                    class="fas fa-monument"></i></button>
+                        </div>
+                    </div>
+                    <div class="object-group">
+                        <div class="group-label">Walls</div>
+                        <div class="button-row">
+                            <button id="add-wall" class="icon-button" title="Add Wall"><i
+                                    class="fas fa-vector-square"></i></button>
+                            <button id="add-corner-wall" class="icon-button" title="Add Corner Wall"><i
+                                    class="fas fa-share-square" style="transform: rotate(90deg);"></i></button>
+                            <button id="add-curved-outer-corner" class="icon-button" title="Add Curved Outer Corner"><i
+                                    class="fas fa-external-link-square-alt"
+                                    style="transform: rotate(45deg);"></i></button>
+                            <button id="add-curved-inner-corner" class="icon-button" title="Add Curved Inner Corner"><i
+                                    class="fas fa-compress-arrows-alt" style="transform: rotate(45deg);"></i></button>
+                        </div>
+                    </div>
+
+                    <button id="clear-scene" class="icon-button" title="Clear Scene"><i
+                            class="fas fa-trash"></i></button>
+                </div>
+
+                <div class="panel-content button-group">
+
+                    <div class="object-group">
+                        <div class="group-label">Collider Shapes</div>
+                        <div class="button-row">
+                            <button id="add-top" class="icon-button"
+                                data-tooltip="**Top Collider**\nAdd a flat top surface to the selected object's upper face"><img
+                                    src="gfx/top_icon.svg" alt="Top" width="16" height="16"></button>
+                            <button id="add-left" class="icon-button"
+                                data-tooltip="**Left Collider**\nAdd a left-side collider face (90° rotated)"><img
+                                    src="gfx/left_side_icon.svg" alt="Left" width="16" height="16"></button>
+                            <button id="add-right" class="icon-button"
+                                data-tooltip="**Right Collider**\nAdd a right-side collider face (90° rotated)"><img
+                                    src="gfx/right_side_icon.svg" alt="Right" width="16" height="16"></button>
+                            <button id="add-line" class="icon-button"
+                                data-tooltip="**Line Collider**\nAdd a line / edge element to the scene"><img
+                                    src="gfx/top_icon.svg" alt="Line" width="16" height="16"></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="materials-panel" class="control-group panel-section">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <h3>Materials</h3>
+                    </div>
+                    <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div class="property-group">
+                        <button id="create-material-btn" class="btn primary">
+                            <i class="fas fa-plus"></i> Create Standard Material
+                        </button>
+                    </div>
+                    <hr class="sep">
+                    <div class="property-group">
+                        <label>Create Material from Texture:</label>
+                        <div id="user-texture-selector-container">
+                            <div class="empty-state">No custom textures available.</div>
+                        </div>
+                        <input type="text" id="material-from-texture-name" placeholder="New Material Name" class="mt-8">
+                        <button id="create-material-from-texture-btn" class="btn primary mt-8" disabled><i
+                                class="fas fa-plus"></i> Create from Selected Texture</button>
+                    </div>
+                    <div id="materials-content">
+                        <!-- Materials will be rendered here by JS -->
+                    </div>
+                    <hr class="sep">
+                    <!-- This panel is now for creating textures for a selected material -->
+                    <div id="texture-builder-container" style="display: none;">
+                        <h4 id="texture-builder-header">Add Texture to...</h4>
+                        <div id="texture-builder-panel" class="control-group panel-section">
+                            <div class="panel-content" id="texture-builder-content">
+                                <!-- The procedural texture builder -->
+                                <div class="material-builder" id="procedural-texture-builder">
+                                    <canvas id="material-builder-canvas" width="260" height="120"></canvas>
+                                    <div class="property-group">
+                                        <div class="title">Texture Mode</div>
+                                        <div class="row"><label>Type</label><select id="materialMode">
+                                                <option value="0" selected>Split Color</option>
+                                                <option value="1">Solid Color</option>
+                                                <option value="2">Water Mode</option>
+                                            </select></div>
+                                        <div class="row" id="globalOpacityRow" style="display:none;"><label>Water
+                                                Alpha</label><input type="range" id="globalOpacity" min="10" max="100"
+                                                value="60"><span class="value-display">60</span></div>
+                                        <div class="title">Geometry</div>
+                                        <div id="baseColRow" class="row"><label>Base Col</label><input type="color"
+                                                id="baseColor" value="#8a7a60"></div>
+                                        <div id="topColRow" class="row"><label>Top Overlay</label><input type="color"
+                                                id="colA" value="#3ecfb2"></div>
+                                        <div id="botColRow" class="row"><label>Bot Overlay</label><input type="color"
+                                                id="colB" value="#c94b6e"></div>
+                                        <div id="splitRow" class="row"><label>Split</label><input type="range"
+                                                id="split" min="-50" max="50" value="0"><span
+                                                class="value-display">0</span></div>
+                                        <div class="title" style="color:#3ecfb2">Top / Global Dither</div>
+                                        <div class="row"><label>Mode</label><select id="tMode">
+                                                <option value="0">Off</option>
+                                                <option value="1">Noise</option>
+                                                <option value="2">H-Lines</option>
+                                                <option value="3">V-Lines</option>
+                                                <option value="4" selected>Crosshatch</option>
+                                            </select></div>
+                                        <div class="row"><label>Ink Type</label><select id="tInkMode">
+                                                <option value="0" selected>Bright</option>
+                                                <option value="1">Color</option>
+                                            </select></div>
+                                        <div class="row" id="tBrightRow"><label>Bright</label><input type="range"
+                                                id="tBright" min="-100" max="100" value="100"><span
+                                                class="value-display">100</span></div>
+                                        <div class="row hidden" id="tColorRow"><label>Ink Color</label><input
+                                                type="color" id="tInkCol" value="#ffffff"></div>
+                                        <div class="row"><label>Space</label><input type="range" id="tSpace" min="2"
+                                                max="16" value="6"><span class="value-display">6</span></div>
+                                        <div class="row"><label>Thick</label><input type="range" id="tThick" min="1"
+                                                max="6" value="1" step="0.5"><span class="value-display">1</span></div>
+                                        <div class="row"><label>Blend</label><input type="range" id="tAlpha" min="5"
+                                                max="100" value="50"><span class="value-display">50</span></div>
+                                        <div id="bottomDitherSection">
+                                            <div class="title" style="color:#c94b6e">Bottom Dither</div>
+                                            <div class="row"><label>Mode</label><select id="bMode">
+                                                    <option value="0">Off</option>
+                                                    <option value="1" selected>Noise</option>
+                                                    <option value="2">H-Lines</option>
+                                                    <option value="3">V-Lines</option>
+                                                    <option value="4">Crosshatch</option>
+                                                </select></div>
+                                            <div class="row"><label>Ink Type</label><select id="bInkMode">
+                                                    <option value="0" selected>Bright</option>
+                                                    <option value="1">Color</option>
+                                                </select></div>
+                                            <div class="row" id="bBrightRow"><label>Bright</label><input type="range"
+                                                    id="bBright" min="-100" max="100" value="-100"><span
+                                                    class="value-display">-100</span></div>
+                                            <div class="row hidden" id="bColorRow"><label>Ink Color</label><input
+                                                    type="color" id="bInkCol" value="#000000"></div>
+                                            <div class="row"><label>Space</label><input type="range" id="bSpace" min="2"
+                                                    max="16" value="4"><span class="value-display">4</span></div>
+                                            <div class="row"><label>Thick</label><input type="range" id="bThick" min="1"
+                                                    max="6" value="1" step="0.5"><span class="value-display">1</span>
+                                            </div>
+                                            <div class="row"><label>Blend</label><input type="range" id="bAlpha" min="5"
+                                                    max="100" value="70"><span class="value-display">70</span></div>
+                                        </div>
+                                    </div>
+                                    <div class="row" style="margin-top: 15px;">
+                                        <input type="text" id="texture-name-input" placeholder="Texture name..."
+                                            style="flex:1; background:#1a1a1a; border:1px solid #333; color:#eee; padding:4px 8px; border-radius:4px; font-size:12px;">
+                                        <button id="builder-save-texture" class="btn primary"><i
+                                                class="fas fa-plus"></i> Add
+                                            Texture</button>
+                                        <button id="builder-cancel" class="btn cancel-btn" style="margin-left: auto;"><i
+                                                class="fas fa-times"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="property-group">
+                        <label>Pixel Effects:</label>
+                        <div class="pixel-effect-toggle">
+                            <input type="checkbox" id="pixel-effect-enabled">
+                            <label for="pixel-effect-enabled">Enable Pixel Effects</label>
+                        </div>
+                        <div class="pixel-effect-controls" id="pixel-effects-controls">
+                            <div class="pixel-slider-group">
+                                <label>Pixel Size:</label>
+                                <input type="range" id="pixel-size" min="1" max="32" value="4">
+                                <span class="value-display" id="pixel-size-value">4</span>
+                            </div>
+                            <div class="pixel-effect-toggle">
+                                <input type="checkbox" id="pixel-crt-effect">
+                                <label for="pixel-crt-effect">CRT Effect</label>
+                            </div>
+                            <div class="pixel-effect-toggle">
+                                <input type="checkbox" id="pixel-scanlines-effect">
+                                <label for="pixel-scanlines-effect">Scanlines</label>
+                            </div>
+                            <div class="pixel-effect-toggle">
+                                <input type="checkbox" id="pixel-noise-effect">
+                                <label for="pixel-noise-effect">Noise</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="textures-panel" class="control-group panel-section">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <h3>Textures</h3>
+                    </div>
+                    <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <button id="create-texture-btn" class="btn primary"><i class="fas fa-plus"></i> Create New
+                        Texture</button>
+                    <div id="texture-list-container">
+                        <!-- Texture items will be dynamically inserted here -->
+                        <div class="empty-state">No custom textures created yet.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="properties-panel" class="control-group panel-section">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <h3>Properties</h3>
+                    </div>
+                    <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div class="property-group">
+                        <label>Material:</label>
+                        <select id="prop-material-select" class="settings-select">
+                            <option value="">Select Material</option>
+                            <!-- Options will be populated by JS -->
+                        </select>
+                    </div>
+                    <div>
+                        <label>Current Material:</label>
+                        <span id="current-material-name" title="Material applied to the selected object">—</span>
+                    </div>
+                    <div>
+                        <label for="object-scale-x">Scale X:</label>
+                        <input type="range" id="object-scale-x" min="1" max="5" value="1">
+                        <span id="object-scale-x-value">1</span>
+                    </div>
+                    <div>
+                        <label for="object-scale-y">Scale Y:</label>
+                        <input type="range" id="object-scale-y" min="1" max="5" value="1">
+                        <span id="object-scale-y-value">1</span>
+                    </div>
+                    <div>
+                        <label for="object-scale-z">Scale Z:</label>
+                        <input type="range" id="object-scale-z" min="1" max="5" value="1">
+                        <span id="object-scale-z-value">1</span>
+                    </div>
+                    <div>
+                        <label for="object-rotation-y">Rot Y:</label>
+                        <input type="range" id="object-rotation-y" min="0" max="360" step="90" value="0">
+                        <span id="object-rotation-y-value">0°</span>
+                    </div>
+                    <div>
+                        <label for="object-zindex">Z-Index:</label>
+                        <input type="range" id="object-zindex" min="0" max="100" value="0">
+                        <span id="object-zindex-value">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="layers-panel" class="control-group panel-section">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <h3>Layers</h3>
+                    </div>
+                    <div class="panel-actions"><button class="toggle-btn"><i class="fas fa-minus"></i></button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div class="property-group">
+                        <label for="layer-name">Layer Name:</label>
+                        <span class="layer-name-row">
+                            <input type="text" id="layer-name" placeholder="New layer">
+                            <button id="add-layer" class="add-layer-btn" title="Add layer"><i
+                                    class="fas fa-plus"></i></button>
+                        </span>
+                    </div>
+
+                    <!-- Material Selector (moved from materials panel) -->
+                    <div class="property-group">
+                        <label>Apply Material to Layer:</label>
+                        <select id="layer-material-select" class="settings-select">
+                            <option value="">Select Material</option>
+                        </select>
+                    </div>
+
+                    <div id="layers-list"></div>
+                    <div class="property-group">
+                        <label for="current-layer">Current:</label>
+                        <select id="current-layer">
+                            <option value="1">Layer 1</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hidden scene objects panel for DOM compatibility -->
+            <div id="scene-objects-panel" class="control-group panel-section" style="display:none">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <h3>Scene Objects</h3>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div id="scene-objects-list"></div>
+                </div>
+            </div>
+            <!-- MOVED PANELS END -->
+        </div>
+        <div id="mat-dock">
+            <div class="sidebar-header">
+                <h2>Materials</h2>
+                <div class="global-actions">
+                    <button id="mode-2d-3d" class="icon-button mode-toggle-btn" title="3D Mode Active"><i
+                            class="fas fa-cubes-stacked"></i> 3D Mode</button>
+                    <button id="settings-btn" class="icon-button" title="Settings"><i class="fas fa-cog"></i></button>
+                    <button id="save-btn" class="icon-button" title="Save"><i class="fas fa-save"></i></button>
+                    <button id="load-btn" class="icon-button" title="Load"><i class="fas fa-folder-open"></i></button>
+                </div>
+            </div>
+            <div id="mat-groups-container">
+                <div class="mat-section">
+                    <details open>
+                        <summary>Split Color</summary>
+                        <div class="mat-grid" id="mat-grid-split">
+                            <!-- Thumbnails will be generated by JS -->
+                        </div>
+                    </details>
+                </div>
+                <div class="mat-section">
+                    <details>
+                        <summary>Solid Color</summary>
+                        <div class="mat-grid" id="mat-grid-solid">
+                            <!-- Thumbnails here -->
+                        </div>
+                    </details>
+                </div>
+                <div class="mat-section">
+                    <details>
+                        <summary>Water</summary>
+                        <div class="mat-grid" id="mat-grid-water">
+                            <!-- Thumbnails here -->
+                        </div>
+                    </details>
+                </div>
+            </div>
+            <div id="mat-properties-editor">
+                <div class="panel-header" style="padding: 10px 15px; background: #111116;">
+                    <div class="panel-title">
+                        <h3 id="mat-editor-header">Material Properties</h3>
+                    </div>
+                    <div class="panel-actions">
+                        <button id="mat-editor-close-btn" class="toggle-btn"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+                <div class="panel-content" style="padding: 15px;">
+                    <!-- The materials-panel content will be moved here when a material is selected -->
+                    <div id="mat-editor-content-wrapper">
+                        <div class="empty-state">Select a material to edit its properties.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="info">Isometric Terrain Builder v2.0</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <script src="js/tooltip.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/tutorialConfig.js"></script>
+    <script src="js/tutorialSystem.js"></script>
+    <script type="module" src="js/3d/app3d.js"></script>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-cog"></i> Settings</h2>
+                <p class="modal-subtitle">Configure your isometric terrain builder</p>
+            </div>
+            <div class="modal-content-wrapper">
+                <div class="settings-tabs">
+                    <button class="settings-tab active" data-tab="general">General</button>
+                    <button class="settings-tab" data-tab="scene">Scene</button>
+                    <button class="settings-tab" data-tab="export">Export</button>
+                </div>
+
+                <!-- General Settings -->
+                <div class="settings-tab-content active" data-tab-content="general">
+                    <div class="settings-content">
+                        <div class="settings-group">
+                            <h3>View</h3>
+                            <div class="property-group setting-row">
+                                <label class="setting-label">
+                                    <input type="checkbox" id="setting-show-grid" checked>
+                                    <span class="checkmark">Show Grid</span> <button id="toggle-grid"
+                                        class="inline-btn">Toggle Now</button>
+                                </label>
+                                <div class="setting-description">Display the grid helper in the scene</div>
+                            </div>
+                            <div class="property-group setting-row">
+                                <label class="setting-label">
+                                    <input type="checkbox" id="setting-show-axes" checked>
+                                    <span class="checkmark">Show Axes</span> <button id="toggle-axes"
+                                        class="inline-btn">Toggle Now</button>
+                                </label>
+                                <div class="setting-description">Display the XYZ axes helper</div>
+                            </div>
+                            <div class="property-group setting-row">
+                                <label class="setting-label">
+                                    <input type="checkbox" id="setting-auto-save">
+                                    <span class="checkmark">Auto-Save</span>
+                                </label>
+                                <div class="setting-description">Automatically save project every 5 minutes</div>
+                            </div>
+                        </div>
+                        <div class="settings-group">
+                            <h3>Data</h3>
+                            <div class="property-group setting-row">
+                                <button id="setting-clear-state" class="settings-btn">Clear All Saved Data</button>
+                                <div class="setting-description">Remove all saved settings and state from browser
+                                    storage</div>
+                            </div>
+                        </div>
+                        <div class="settings-group" style="display:none;">
+                            <h3>Tutorial</h3>
+                            <div class="property-group">
+                                <label class="setting-label">
+                                    <input type="checkbox" id="setting-enable-tutorial">
+                                    <span class="checkmark">Enable Tutorial</span>
+                                </label>
+                                <div class="setting-description">Show interactive tutorial on startup</div>
+                            </div>
+                            <div class="property-group">
+                                <button id="setting-start-tutorial" class="settings-btn">Start Tutorial</button>
+                                <div class="setting-description">Launch the interactive tutorial to learn the interface
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scene Settings -->
+                <div class="settings-tab-content" data-tab-content="scene">
+                    <div class="settings-content scene-settings-content">
+                        <div class="settings-group">
+                            <h3>Background</h3>
+                            <div class="property-group setting-row">
+                                <label class="property-label">Background Color</label>
+                                <input type="color" id="setting-bg-color" value="#808080">
+                                <button id="reset-background" class="inline-btn">Reset</button>
+                            </div>
+                            <div class="property-group setting-row">
+                                <label class="property-label">Theme</label>
+                                <select id="setting-theme" class="settings-select">
+                                    <option value="default">Default</option>
+                                    <option value="sunset">Sunset</option>
+                                    <option value="night">Night</option>
+                                    <option value="dawn">Dawn</option>
+                                    <option value="overcast">Overcast</option>
+                                </select>
+                                <button id="setting-apply-theme" class="inline-btn">Apply</button>
+                            </div>
+                            <div class="property-group setting-row">
+                                <label class="property-label">Image URL</label>
+                                <input type="text" id="setting-bg-image-url" placeholder="https://..."
+                                    class="settings-input">
+                                <button id="setting-apply-bg-image" class="inline-btn">Set</button>
+                            </div>
+                        </div>
+                        <div class="settings-group">
+                            <h3>Lighting & Effects</h3>
+                            <div class="property-group setting-row">
+                                <label class="property-label">Brightness</label>
+                                <input type="range" id="setting-brightness" min="0.1" max="3" step="0.1" value="1.0">
+                                <span class="range-value" id="setting-brightness-value">1.0</span>
+                            </div>
+                            <div class="property-group setting-row">
+                                <label class="property-label">Fog Color</label>
+                                <input type="color" id="setting-fog-color" value="#cccccc">
+                                <button id="setting-remove-fog" class="inline-btn">Off</button>
+                            </div>
+                            <div class="property-group setting-row">
+                                <label class="property-label">Fog Near</label>
+                                <input type="range" id="setting-fog-near" min="1" max="50" value="10">
+                                <span class="range-value" id="setting-fog-near-value">10</span>
+                            </div>
+                            <div class="property-group setting-row">
+                                <label class="property-label">Fog Far</label>
+                                <input type="range" id="setting-fog-far" min="50" max="200" value="100">
+                                <span class="range-value" id="setting-fog-far-value">100</span>
+                            </div>
+                        </div>
+                        <div class="settings-group">
+                            <h3>Terrain</h3>
+                            <div class="property-group setting-row">
+                                <label class="property-label">Terrain Height</label>
+                                <input type="range" id="setting-terrain-height" min="0.1" max="2" step="0.1"
+                                    value="0.25">
+                                <span class="range-value" id="setting-terrain-height-value">0.25</span>
+                            </div>
+                        </div>
+                        <div class="settings-group">
+                            <h3>Colliders</h3>
+                            <div class="property-group setting-row">
+                                <label class="property-label">Outline Color</label>
+                                <input type="color" id="setting-collider-outline" value="#FFA500">
+                            </div>
+                            <div class="property-group setting-row">
+                                <label class="property-label">Fill Color</label>
+                                <input type="color" id="setting-collider-fill" value="#008000">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export Settings -->
+                <div class="settings-tab-content" data-tab-content="export">
+                    <div class="settings-content export-settings-content">
+                        <div class="settings-group">
+                            <h3>Scene Export</h3>
+                            <div class="property-group setting-row">
+                                <button id="export-obj" class="settings-btn"><i class="fas fa-file-export"></i> Export
+                                    as .OBJ</button>
+                                <div class="setting-description">Export the scene geometry and materials.</div>
+                            </div>
+                            <div class="property-group setting-row">
+                                <button id="export-stl" class="settings-btn"><i class="fas fa-file-export"></i> Export
+                                    as .STL</button>
+                                <div class="setting-description">Export the scene for 3D printing.</div>
+                            </div>
+                            <div class="property-group setting-row">
+                                <button id="export-unity" class="settings-btn"><i class="fab fa-unity"></i> Export for
+                                    Unity</button>
+                                <div class="setting-description">Create a Unity-compatible package.</div>
+                            </div>
+                        </div>
+                        <div class="settings-group">
+                            <h3>Export Options</h3>
+                            <div class="property-group setting-row">
+                                <label class="setting-label">
+                                    <input type="checkbox" id="setting-include-colliders" checked>
+                                    <span class="checkmark">Include Colliders</span>
+                                </label>
+                                <div class="setting-description">Include collider meshes in the exported files.</div>
+                            </div>
+                            <div class="property-group setting-row">
+                                <label class="property-label">Collider Type</label>
+                                <select id="collider-type" class="settings-select">
+                                    <option value="box">Box</option>
+                                    <option value="mesh">Mesh</option>
+                                </select>
+                                <div class="setting-description">Choose the geometry type for exported colliders.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export Settings -->
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn cancel-btn" id="close-settings-btn">Cancel</button>
+                <button type="button" class="btn" id="save-settings-btn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Make panels draggable
+        function makeDraggable(panel) {
+            const header = panel.querySelector('.panel-header');
+            if (!header) return;
+
+            let isDragging = false;
+            let offsetX, offsetY;
+
+            // Bring panel to front on click
+            panel.addEventListener('mousedown', () => {
+                const panels = document.querySelectorAll('.floating-panel');
+                let maxZ = 9; // Start below base z-index
+                panels.forEach(p => {
+                    const z = parseInt(window.getComputedStyle(p).zIndex, 10);
+                    if (z > maxZ) maxZ = z;
+                });
+                panel.style.zIndex = maxZ + 1;
+            });
+
+            header.addEventListener('mousedown', (e) => {
+                if (e.target.closest('button, input, select')) return;
+                isDragging = true;
+                offsetX = e.clientX - panel.offsetLeft;
+                offsetY = e.clientY - panel.offsetTop;
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                panel.style.left = `${e.clientX - offsetX}px`;
+                panel.style.top = `${e.clientY - offsetY}px`;
+            });
+
+            document.addEventListener('mouseup', () => { isDragging = false; });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            makeDraggable(document.getElementById('floating-camera-panel'));
+            makeDraggable(document.getElementById('floating-movement-panel'));
+
+            // Left Sidebar Tabbed Panel Logic
+            const leftSidebar = document.getElementById('left-sidebar');
+            const panelWrapper = leftSidebar.querySelector('.panel-content-wrapper');
+            const app = document.getElementById('app');
+
+            // Move tool panels from app to left sidebar
+            ['objects-panel', 'properties-panel', 'textures-panel', 'layers-panel'].forEach(id => {
+                const panel = app.querySelector(`#${id}`);
+                if (panel) {
+                    panelWrapper.appendChild(panel);
+                }
+            });
+
+            leftSidebar.addEventListener('click', (e) => {
+                const button = e.target.closest('.tab-button');
+                if (!button) return;
+
+                leftSidebar.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+
+                const panelId = button.dataset.panel;
+                panelWrapper.querySelectorAll('.panel-section').forEach(panel => {
+                    panel.classList.toggle('active', panel.id === panelId);
+                });
+            });
+
+            // Activate the first tab by default
+            const firstButton = leftSidebar.querySelector('.tab-button');
+            if (firstButton) {
+                firstButton.click();
+            }
+
+            // Material Dock UI Logic
+            const matDock = document.getElementById('mat-dock');
+            const matPropertiesEditor = document.getElementById('mat-properties-editor');
+            const matEditorHeader = document.getElementById('mat-editor-header');
+            const matEditorCloseBtn = document.getElementById('mat-editor-close-btn');
+            const matEditorContent = document.getElementById('mat-editor-content-wrapper');
+            const materialsPanel = document.getElementById('materials-panel'); // The panel with the editor
+
+            // This is a placeholder. We will populate this with real material data later.
+            const placeholderThumbs = `<div class="mat-thumb active" data-material-id="default-split"><canvas width="80" height="80"></canvas></div>`;
+            document.getElementById('mat-grid-split').innerHTML = placeholderThumbs;
+
+            matDock.addEventListener('click', (e) => {
+                const thumb = e.target.closest('.mat-thumb');
+                if (!thumb) return;
+
+                matDock.querySelectorAll('.mat-thumb').forEach(t => t.classList.remove('active'));
+                thumb.classList.add('active');
+
+                const materialId = thumb.dataset.materialId;
+                matEditorHeader.textContent = `Editing: ${materialId}`;
+                matEditorContent.innerHTML = ''; // Clear placeholder
+                matEditorContent.appendChild(materialsPanel); // Move the whole panel content
+                materialsPanel.style.display = 'block';
+                matPropertiesEditor.style.display = 'block';
+            });
+
+            matEditorCloseBtn.addEventListener('click', () => {
+                matPropertiesEditor.style.display = 'none';
+            });
+        });
+    </script>
+</body>
+
 </html>

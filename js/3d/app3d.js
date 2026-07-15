@@ -27,6 +27,9 @@ let materialsManager;
 let textureManagerInstance;
 let pixelPostProcessor;
 let materialBuilder;
+let cursorMarker = null;
+let outlinedObjects = new Map();
+
 
 // Variables for drag-and-drop
 let isDragging = false;
@@ -152,8 +155,9 @@ function init() {
     window.addEventListener('resize', onWindowResize);
 
     // Set up UI event listeners
-    setupUI();
+    setupUI(); // This was missing
 
+    setupFloatingPanels();
     // Start animation loop
     animate();
 
@@ -206,6 +210,49 @@ function animate() {
     }
 }
 
+// Show selection outline on an object (orange border)
+function showSelectionOutline(obj) {
+    if (!obj) return;
+    if (outlinedObjects.has(obj)) return;
+
+    const geometry = obj.isMesh ? obj.geometry : (obj.children.find(c => c.isMesh)?.geometry);
+    if (!geometry) return;
+
+    const edgesGeom = new THREE.EdgesGeometry(geometry);
+    const edgesMat = new THREE.LineBasicMaterial({
+        color: 0xff7700,
+        linewidth: 2
+    });
+    const outline = new THREE.LineSegments(edgesGeom, edgesMat);
+    outline.userData.isSelectionOutline = true;
+
+    obj.add(outline);
+    outlinedObjects.set(obj, outline);
+}
+
+// Hide selection outline on an object
+function hideSelectionOutline(obj) {
+    if (!obj || !outlinedObjects.has(obj)) return;
+    const outline = outlinedObjects.get(obj);
+    if (outline) {
+        obj.remove(outline);
+        outline.geometry.dispose();
+        outline.material.dispose();
+    }
+    outlinedObjects.delete(obj);
+}
+
+// Update all selection outlines
+function updateSelectionOutlines() {
+    objects.forEach(obj => {
+        if (obj === selectedObject && !outlinedObjects.has(obj)) {
+            showSelectionOutline(obj);
+        } else if (obj !== selectedObject && outlinedObjects.has(obj)) {
+            hideSelectionOutline(obj);
+        }
+    });
+}
+
 // Raycaster for object picking
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
@@ -219,22 +266,36 @@ function setupUI() {
         stateManager.addToHistory({ action: 'add_object', type: 'cube' });
     });
 
-    UI.addSphereBtn.addEventListener('click', () => {
-        addSphere();
-        stateManager.incrementObjectCount();
-        stateManager.addToHistory({ action: 'add_object', type: 'sphere' });
-    });
-
-    UI.addCylinderBtn.addEventListener('click', () => {
-        addCylinder();
-        stateManager.incrementObjectCount();
-        stateManager.addToHistory({ action: 'add_object', type: 'cylinder' });
-    });
-
     UI.addRampBtn.addEventListener('click', () => {
         addRamp();
         stateManager.incrementObjectCount();
         stateManager.addToHistory({ action: 'add_object', type: 'ramp' });
+    });
+
+    // Wire up new SOT buttons
+    document.getElementById('add-arch')?.addEventListener('click', () => {
+        console.log('Arch button clicked - addArch() not implemented yet.');
+        // addArch();
+    });
+    document.getElementById('add-pillar')?.addEventListener('click', () => {
+        console.log('Pillar button clicked - addPillar() not implemented yet.');
+        // addPillar();
+    });
+    document.getElementById('add-wall')?.addEventListener('click', () => {
+        console.log('Wall button clicked - addWall() not implemented yet.');
+        // addWall();
+    });
+    document.getElementById('add-corner-wall')?.addEventListener('click', () => {
+        console.log('Corner Wall button clicked - addCornerWall() not implemented yet.');
+        // addCornerWall();
+    });
+    document.getElementById('add-curved-outer-corner')?.addEventListener('click', () => {
+        console.log('Curved Outer Corner button clicked - addCurvedOuterCorner() not implemented yet.');
+        // addCurvedOuterCorner();
+    });
+    document.getElementById('add-curved-inner-corner')?.addEventListener('click', () => {
+        console.log('Curved Inner Corner button clicked - addCurvedInnerCorner() not implemented yet.');
+        // addCurvedInnerCorner();
     });
 
     UI.clearSceneBtn.addEventListener('click', () => {
@@ -262,9 +323,11 @@ function setupUI() {
     });
 
     // Background color
-    UI.backgroundColorPicker.addEventListener('input', (e) => {
-        sceneManager.setBackgroundColor(e.target.value);
-    });
+    if (UI.backgroundColorPicker) {
+        UI.backgroundColorPicker.addEventListener('input', (e) => {
+            sceneManager.setBackgroundColor(e.target.value);
+        });
+    }
 
     // Object movement controls
     UI.moveUpBtn.addEventListener('click', () => {
@@ -303,6 +366,7 @@ function setupUI() {
         selectedObject = objects.find(obj => obj.userData.id === objectId) || null;
         stateManager.setSelectedObjectId(objectId);
         updatePropertiesPanel();
+        updateSelectionOutlines();
     });
 
     // Camera position updates
@@ -324,9 +388,6 @@ function setupUI() {
     // Set up properties panel event listeners
     setupPropertiesPanel();
 
-    // Set up scene panel event listeners
-    setupScenePanel();
-
     // Set up layer panel event listeners
     setupLayerPanel();
 
@@ -339,9 +400,6 @@ function setupUI() {
     // Set up vertical tab system
     setupVerticalTabs();
 
-    // Set up header action buttons
-    setupHeaderActions();
-
     // Initialize floating menu
     floatingMenu = new FloatingMenu(viewportManager, onToolChange);
     floatingMenu.create();
@@ -351,64 +409,36 @@ function setupUI() {
 
     // Initialize materials UI
     initMaterialsUI();
+
+    // Give materials manager access to the selected object
+    materialsManager.setSelectedObjectsGetter(() => selectedObject ? [selectedObject] : []);
+
+    // Set up header action buttons (must be late, modal is at end of body)
+    setupHeaderActions();
 }
+
+function setupFloatingPanels() {
+    const panelConfigs = config.floatingPanels || {};
+    for (const panelName in panelConfigs) {
+        const panelId = `floating-${panelName}-panel`;
+        const panelElement = document.getElementById(panelId);
+        const panelConfig = panelConfigs[panelName];
+
+        if (panelElement) {
+            // Set initial visibility
+            panelElement.style.display = panelConfig.initialVisible ? 'block' : 'none';
+
+            // Set initial position
+            Object.assign(panelElement.style, panelConfig.initialPosition);
+        }
+    }
+}
+
 
 // Initialize materials UI
 function initMaterialsUI() {
-    // Initialize material selector dropdown
-    if (!UI.materialSelectorBtn || !UI.materialDropdownList) return;
-
-    // Toggle dropdown
-    UI.materialSelectorBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        UI.materialDropdownList.classList.toggle('show');
-    });
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!UI.materialSelectorBtn.contains(e.target) && !UI.materialDropdownList.contains(e.target)) {
-            UI.materialDropdownList.classList.remove('show');
-        }
-    });
-
-    // Populate material list
-    function populateMaterialsList() {
-        UI.materialDropdownList.innerHTML = '';
-        if (!materialsManager) return;
-
-        materialsManager.materials.forEach(material => {
-            const item = document.createElement('div');
-            item.className = 'material-dropdown-item' + (material === materialsManager.selectedMaterial ? ' selected' : '');
-            item.innerHTML = `
-                <span class="material-color-swatch" style="background-color: #${material.color.toString(16).padStart(6, '0')}"></span>
-                <span class="material-option-text">${material.name}</span>
-            `;
-            item.addEventListener('click', (e) => {
-                e.stopPropagation();
-                // Apply material to selected object
-                if (selectedObject) {
-                    materialsManager.applyMaterialToSelected(material);
-                } else {
-                    materialsManager.applyMaterialToObject(objects[0], material);
-                }
-                UI.selectedMaterialText.textContent = material.name;
-                UI.materialDropdownList.classList.remove('show');
-                materialsManager.selectedMaterial = material;
-                populateMaterialsList();
-            });
-            UI.materialDropdownList.appendChild(item);
-        });
-    }
-
-    // Initial population
-    populateMaterialsList();
-
-    // Re-populate when materials change
-    const originalRender = materialsManager.render.bind(materialsManager);
-    materialsManager.render = function() {
-        originalRender();
-        populateMaterialsList();
-    };
+    // The materials panel is self-contained via materialsManager.render().
+    // No additional wrapper needed here.
 
     // Pixel effect controls
     const pixelEffectEnabled = document.getElementById('pixel-effect-enabled');
@@ -577,9 +607,9 @@ function _wireMaterialBuilderUI() {
     if (UI.builderSave) {
         UI.builderSave.addEventListener('click', () => {
             const material = materialBuilder.createMaterial();
-            // Add to materials manager
+            // Add to materials manager and refresh the panel
             materialsManager.addTwoToneMaterial(material);
-            populateMaterialsList();
+            materialsManager.render();
             window.notifications?.success('Material saved!');
         });
     }
@@ -721,6 +751,7 @@ function addCube() {
     cube.userData.zindex = 0;
     cube.renderOrder = 0;
     selectedObject = cube;
+    updateSelectionOutlines();
     updateObjectDropdown();
     updatePropertiesPanel();
     updateSceneObjectsList();
@@ -763,6 +794,7 @@ function addSphere() {
     sphere.userData.zindex = 0;
     sphere.renderOrder = 0;
     selectedObject = sphere;
+    updateSelectionOutlines();
     updateObjectDropdown();
     updatePropertiesPanel();
     updateSceneObjectsList();
@@ -806,6 +838,7 @@ function addCylinder() {
     cylinder.userData.zindex = 0;
     cylinder.renderOrder = 0;
     selectedObject = cylinder;
+    updateSelectionOutlines();
     updateObjectDropdown();
     updatePropertiesPanel();
     updateSceneObjectsList();
@@ -839,6 +872,7 @@ function addRamp() {
     ramp.userData.zindex = 0;
     ramp.renderOrder = 0;
     selectedObject = ramp;
+    updateSelectionOutlines();
     updateObjectDropdown();
     updatePropertiesPanel();
     updateSceneObjectsList();
@@ -891,6 +925,8 @@ function clearLayerScene() {
     
     objects = [];
     selectedObject = null;
+    outlinedObjects.forEach((_, obj) => hideSelectionOutline(obj));
+    outlinedObjects.clear();
     updateObjectDropdown();
     updatePropertiesPanel();
     updateSceneObjectsList();
@@ -972,6 +1008,7 @@ function onMouseDown(event) {
 
         // Update selected object
         selectedObject = clickedObject;
+        updateSelectionOutlines();
         updateObjectDropdown();
         updatePropertiesPanel();
 
@@ -1267,26 +1304,27 @@ function setupPropertiesPanel() {
 
 // Update properties panel with selected object's properties
 function updatePropertiesPanel() {
+    const propSelect = document.getElementById('prop-material-select');
     if (selectedObject) {
         // Show properties panel
         UI.propertiesPanel.style.display = 'block';
 
-        // Update current material name from materialsManager
-        if (UI.currentMaterialName && materialsManager) {
-            let matName = '—';
-            // Walk the object's mesh tree (some objects have leaf meshes with the real material)
-            const leafMesh = (() => {
-                if (selectedObject.isMesh) return selectedObject;
-                for (const c of selectedObject.children) { if (c.isMesh) return c; }
-                return selectedObject;
-            })();
-            if (leafMesh?.userData?.isPixelTexture && leafMesh.userData.materialType) {
-                const tmEntry = window.textureManager?.[leafMesh.userData.materialType];
-                matName = tmEntry?.name ?? leafMesh.userData.materialType;
-            } else if (materialsManager.getMaterial(selectedObject.userData.currentMaterialId)) {
-                matName = materialsManager.getMaterial(selectedObject.userData.currentMaterialId).name;
+        if (propSelect) {
+            propSelect.value = selectedObject.userData.currentMaterialId || "";
+        }
+
+        // Update current material/texture display
+        const matId = selectedObject.userData.currentMaterialId;
+        const texId = selectedObject.userData.currentTextureId;
+        const currentMatNameEl = document.getElementById('current-material-name');
+        if (currentMatNameEl) {
+            if (matId) {
+                const mat = materialsManager.getMaterial(matId);
+                const tex = texId && mat ? mat.textures.find(t => t.id === texId) : null;
+                currentMatNameEl.textContent = `${mat.name}${tex ? ` / ${tex.name}` : ''}`;
+            } else {
+                currentMatNameEl.textContent = '—';
             }
-            UI.currentMaterialName.textContent = matName;
         }
 
         // Update scale sliders (X, Y, Z)
@@ -1313,7 +1351,9 @@ function updatePropertiesPanel() {
     } else {
         // Hide properties panel if no object is selected
         UI.propertiesPanel.style.display = 'none';
-        UI.currentMaterialName.textContent = '—';
+        if (propSelect) {
+            propSelect.value = "";
+        }
     }
 }
 
@@ -1451,6 +1491,7 @@ function updateSceneObjectsList() {
             const obj = objects.find(o => o.userData.id === objectId);
             if (obj) {
                 selectedObject = obj;
+                updateSelectionOutlines();
                 updateObjectDropdown();
                 updatePropertiesPanel();
                 updateSceneObjectsList(); // Refresh to show selection
@@ -1511,7 +1552,8 @@ function setupHeaderActions() {
             document.querySelectorAll('.settings-tab-content').forEach(content => {
                 content.classList.remove('active');
             });
-            document.querySelector(`[data-tab-content="${tabId}"]`).classList.add('active');
+            const targetContent = document.querySelector(`[data-tab-content="${tabId}"]`);
+            if (targetContent) targetContent.classList.add('active');
         });
     });
 

@@ -35,7 +35,10 @@ class FloatingMenu {
             { id: 'eye-dropper', icon: 'fas fa-eye-dropper', title: 'Eye Dropper (E)', action: () => this.setTool('eye-dropper') },
             { id: 'zoom-in', icon: 'fas fa-search-plus', title: 'Zoom In (+)', action: () => this.zoomIn() },
             { id: 'zoom-out', icon: 'fas fa-search-minus', title: 'Zoom Out (-)', action: () => this.zoomOut() },
-            { id: 'zoom-fit', icon: 'fas fa-expand-arrows-alt', title: 'Zoom to Fit (F)', action: () => this.zoomFit() }
+            { id: 'zoom-fit', icon: 'fas fa-expand-arrows-alt', title: 'Zoom to Fit (F)', action: () => this.zoomFit() },
+            // Panel Toggles
+            { id: 'toggle-camera', icon: 'fas fa-video', title: 'Toggle Camera Panel', action: () => this.togglePanel('floating-camera-panel') },
+            { id: 'toggle-movement', icon: 'fas fa-arrows-alt', title: 'Toggle Movement Panel', action: () => this.togglePanel('floating-movement-panel') }
         ];
         
         tools.forEach(tool => {
@@ -191,6 +194,18 @@ class FloatingMenu {
     }
     
     /**
+     * Toggle visibility of a floating panel
+     */
+    togglePanel(panelId) {
+        const panel = document.getElementById(panelId);
+        if (panel) {
+            const isVisible = panel.style.display === 'block';
+            panel.style.display = isVisible ? 'none' : 'block';
+            if (!isVisible) this.bringToFront(panel); // Bring to front when showing
+        }
+    }
+
+    /**
      * ── 2D-mode wiring ────────────────────────────────────────────────────────
      */
 
@@ -248,6 +263,21 @@ class FloatingMenu {
             this.container.style.left = `${x}px`;
             this.container.style.top = `${y}px`;
         }
+    }
+
+    /**
+     * Bring a panel to the front by increasing its z-index
+     */
+    bringToFront(panel) {
+        // Find the highest z-index among floating panels
+        const panels = document.querySelectorAll('.floating-panel');
+        let maxZ = 9; // Start below the base z-index
+        panels.forEach(p => {
+            const z = parseInt(window.getComputedStyle(p).zIndex, 10);
+            if (z > maxZ) maxZ = z;
+        });
+        // Set the current panel's z-index to be on top
+        panel.style.zIndex = maxZ + 1;
     }
 }
 

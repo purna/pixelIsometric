@@ -168,6 +168,17 @@ const config = {
         sliderStep:       1
     },
 
+    floatingPanels: {
+        camera: {
+            initialVisible: true,
+            initialPosition: { bottom: '20px', left: '120px' }
+        },
+        movement: {
+            initialVisible: true,
+            initialPosition: { bottom: '20px', left: '10px' }
+        }
+    },
+
     rendering: {
         antialias:              true,
         pixelRatio:             window.devicePixelRatio || 1,

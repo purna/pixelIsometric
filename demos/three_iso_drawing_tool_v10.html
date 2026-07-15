@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Isometric Drawing Tool v9 (Dynamic Grid & Zoom Controls)</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #0d0d10;
+            font-family: 'Space Mono', monospace;
+            color: #4a4a60;
+            user-select: none;
+        }
+
+        #app-layout {
+            display: flex;
+            flex-direction: column;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* ── TOP TOOLBAR ───────────────────────────────── */
+        #toolbar {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #1f1f28;
+            background: #111115;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            z-index: 10;
+        }
+
+        .tb-section {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-right: 1px solid #1f1f28;
+        }
+
+        .tb-label {
+            font-size: 10px;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: #55556a;
+            white-space: nowrap;
+        }
+
+        .tool-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border: 1px solid #2a2a38;
+            border-radius: 4px;
+            cursor: pointer;
+            background: transparent;
+            color: #7a7a9a;
+            font-size: 10px;
+            font-family: 'Space Mono', monospace;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            transition: all .15s ease;
+            white-space: nowrap;
+        }
+
+        .tool-btn:hover {
+            background: #191920;
+            color: #a0a0c0;
+            border-color: #4a4a60;
+        }
+
+        .tool-btn.active {
+            background: #1c1c24;
+            color: #3ecfb2;
+            border-color: #3ecfb2;
+        }
+
+        .tool-btn.col-btn.active {
+            color: #4eff91;
+            border-color: #4eff91;
+        }
+
+        .color-dot {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: transform .1s;
+        }
+
+        .color-dot:hover {
+            transform: scale(1.15);
+        }
+
+        .color-dot.active {
+            border-color: #fff;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 60px;
+            height: 3px;
+            background: #2a2a38;
+            border-radius: 2px;
+            outline: none;
+            accent-color: #3ecfb2;
+        }
+
+        input[type="color"] {
+            background: none;
+            border: 1px solid #2a2a38;
+            cursor: pointer;
+            height: 20px;
+            width: 30px;
+            padding: 0;
+        }
+
+        .tb-mini {
+            padding: 4px 8px;
+            border: 1px solid #2a2a38;
+            border-radius: 3px;
+            font-size: 10px;
+            font-family: 'Space Mono', monospace;
+            color: #7a7a9a;
+            background: transparent;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .tb-mini:hover {
+            color: #fff;
+            border-color: #3ecfb2;
+        }
+
+        /* ── LAYER BAR ─────────────────────────────────── */
+        #layer-bar {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #14141a;
+            background: #09090c;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .layer-tab {
+            padding: 5px 16px;
+            font-size: 10px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: #4a4a60;
+            cursor: pointer;
+            border-right: 1px solid #14141a;
+            border-bottom: 2px solid transparent;
+            transition: all .15s;
+        }
+
+        .layer-tab:hover {
+            color: #7a7a9a;
+        }
+
+        .layer-tab.active-cube {
+            color: #3ecfb2;
+            border-bottom-color: #3ecfb2;
+        }
+
+        .layer-tab.active-col {
+            color: #4eff91;
+            border-bottom-color: #4eff91;
+        }
+
+        #layer-hint {
+            flex: 1;
+            padding: 5px 16px;
+            font-size: 10px;
+            color: #3a3a4a;
+            letter-spacing: .08em;
+            text-align: right;
+        }
+
+        /* ── MAIN CONTAINER ────────────────────────────── */
+        #main-container {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            width: 100%;
+        }
+
+        /* ── WORKSPACE ─────────────────────────────────── */
+        #workspace {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        #viewport-container {
+            flex: 1;
+            position: relative;
+            outline: none;
+            min-height: 0;
+        }
+
+        /* ── FLOATING ZOOM CONTROLS ───────────────────── */
+        .floating-zoom-controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 15;
+            background: rgba(17, 17, 21, 0.85);
+            border: 1px solid #1f1f28;
+            padding: 6px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .zoom-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid #2a2a38;
+            color: #7a7a9a;
+            font-size: 13px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .zoom-btn:hover {
+            background: #191920;
+            color: #3ecfb2;
+            border-color: #3ecfb2;
+        }
+
+        .zoom-btn:active {
+            background: #1c1c24;
+            transform: scale(0.95);
+        }
+
+        /* ── RIGHT HAND PANEL (Bar + Drawer Combined) ───── */
+        #right-panel {
+            width: 320px;
+            background: #0d0d10;
+            border-left: 1px solid #1a1a22;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+
+        #right-panel::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        #right-panel::-webkit-scrollbar-thumb {
+            background: #2a2a38;
+        }
+
+        /* MATERIAL BAR */
+        #mat-bar {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 16px;
+            border-bottom: 1px solid #1a1a22;
+        }
+
+        .mat-section-title {
+            font-size: 10px;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: #55556a;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mat-chips-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .mat-chip {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 8px;
+            border: 1px solid #1a1a22;
+            background: #111115;
+            transition: all .18s ease;
+            width: calc(33.33% - 6px);
+            min-width: 76px;
+        }
+
+        .mat-chip:hover {
+            background: #14141c;
+            border-color: #2a2a38;
+        }
+
+        .mat-chip.active {
+            background: #13131c;
+            border-color: var(--chip-color, #3ecfb2);
+        }
+
+        .mat-chip.active .mat-label {
+            color: var(--chip-color, #3ecfb2);
+        }
+
+        .mat-icon {
+            width: 44px;
+            height: 38px;
+            position: relative;
+        }
+
+        .mat-icon svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .mat-label {
+            font-size: 8px;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: #4a4a60;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            text-align: center;
+        }
+
+        /* MATERIAL SETTINGS DRAWER */
+        #mat-drawer {
+            background: #0e0e14;
+            flex: 1;
+        }
+
+        .drawer-inner {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 16px;
+        }
+
+        .drawer-col {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .d-title {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: .18em;
+            color: var(--dt-color, #7a7a9a);
+            border-bottom: 1px solid #1f1f28;
+            padding-bottom: 4px;
+            margin-bottom: 4px;
+            white-space: nowrap;
+        }
+
+        .d-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            font-size: 10px;
+            color: #7a7a9a;
+            min-height: 20px;
+            white-space: nowrap;
+        }
+
+        .d-row input[type="text"] {
+            background: #0f0f14;
+            color: #fff;
+            border: 1px solid #2a2a38;
+            padding: 4px 6px;
+            font-family: 'Space Mono';
+            font-size: 10px;
+            width: 100%;
+            border-radius: 3px;
+        }
+
+        .d-row input[type="text"]:focus {
+            outline: none;
+            border-color: #3ecfb2;
+        }
+
+        .d-row input[type="range"] {
+            width: 110px;
+        }
+
+        .d-row input[type="color"] {
+            height: 20px;
+            width: 28px;
+        }
+
+        .d-row select {
+            background: #0f0f14;
+            color: #7a7a9a;
+            border: 1px solid #2a2a38;
+            padding: 2px 4px;
+            font-family: 'Space Mono';
+            font-size: 9px;
+            text-transform: uppercase;
+            width: 110px;
+        }
+
+        .drawer-action-btn {
+            background: #1c1c24;
+            border: 1px solid #3ecfb2;
+            color: #3ecfb2;
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            padding: 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            margin-top: 4px;
+            text-align: center;
+        }
+
+        .drawer-action-btn:hover {
+            background: #3ecfb2;
+            color: #0d0d10;
+        }
+
+        /* ── STATUS BAR ────────────────────────────────── */
+        #statusbar {
+            padding: 5px 16px;
+            border-top: 1px solid #14141a;
+            background: #0d0d10;
+            font-size: 10px;
+            letter-spacing: .08em;
+            color: #55556a;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .hint-overlay {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #3ecfb2;
+            font-size: 11px;
+            pointer-events: none;
+            letter-spacing: .05em;
+            background: rgba(13, 13, 16, .8);
+            padding: 4px 12px;
+            border-radius: 4px;
+            border: 1px solid #1f1f28;
+            white-space: nowrap;
+        }
+
+        /* Isometric cube SVG faces */
+        .iso-top { fill-opacity: 1; }
+        .iso-left { fill-opacity: .7; }
+        .iso-right { fill-opacity: .5; }
+    </style>
+</head>
+
+<body>
+    <div id="app-layout">
+
+        <div id="toolbar">
+            <div class="tb-section">
+                <span class="tb-label">Collider</span>
+                <button class="tool-btn col-btn" id="btn-col-top">Top</button>
+                <button class="tool-btn col-btn" id="btn-col-left">Left</button>
+                <button class="tool-btn col-btn" id="btn-col-right">Right</button>
+                <button class="tool-btn col-btn" id="btn-col-line">Line</button>
+            </div>
+            <div class="tb-section">
+                <span class="tb-label">Erase</span>
+                <button class="tool-btn" id="btn-erase">Erase</button>
+            </div>
+            <div class="tb-section" style="gap:4px">
+                <span class="tb-label">Height</span>
+                <button class="tb-mini" id="btn-height-down">▼</button>
+                <span id="height-label" style="font-size:11px;color:#3ecfb2;min-width:18px;text-align:center;font-weight:bold">0</span>
+                <button class="tb-mini" id="btn-height-up">▲</button>
+            </div>
+            <div class="tb-section">
+                <span class="tb-label">Rotate</span>
+                <button class="tool-btn" id="btn-rot-cw">⟳ CW</button>
+                <button class="tool-btn" id="btn-rot-ccw">⟲ CCW</button>
+            </div>
+      
+            <div class="tb-section" style="gap:7px;flex:1;justify-content:flex-end;border-right:none">
+                <button class="tb-mini" id="btn-clear">Clear</button>
+            </div>
+        </div>
+
+        <div id="layer-bar">
+            <div class="layer-tab active-cube" id="tab-cube">● Cube layer</div>
+            <div class="layer-tab" id="tab-col">◎ Collider layer</div>
+            <div id="layer-hint">Painting Cubes</div>
+        </div>
+
+        <div id="main-container">
+            <div id="workspace">
+                <div id="viewport-container">
+                    <div class="hint-overlay">Left Click: Action&nbsp;•&nbsp;Right Click+Drag: Orbit&nbsp;•&nbsp;Scroll: Zoom</div>
+                    
+                    <div class="floating-zoom-controls">
+                        <button class="zoom-btn" id="btn-zoom-in" title="Zoom In">
+                            <i class="fa-solid fa-magnifying-glass-plus"></i>
+                        </button>
+                        <button class="zoom-btn" id="btn-zoom-out" title="Zoom Out">
+                            <i class="fa-solid fa-magnifying-glass-minus"></i>
+                        </button>
+                        <button class="zoom-btn" id="btn-zoom-reset" title="Reset View">
+                            <i class="fa-solid fa-arrows-to-dot"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="right-panel">
+                <div id="mat-bar"></div>
+                <div id="mat-drawer"></div>
+            </div>
+        </div>
+
+        <div id="statusbar"><span id="status-msg">select a material, then click a cell</span></div>
+    </div>
+
+    <script type="importmap">
+    { 
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // ── CONSTANTS ──────────────────────────────────────────
+        let currentGridSize = 14; 
+        const CELL_SIZE = 2;
+
+        let activeTool = ''; 
+        let activeLayer = 'cube';
+        let activeHeightIndex = 0;
+
+        const activeCubes = new Map();
+
+        // ── GLSL INJECTIONS FOR SHARED CUSTOM SHADERS ──────────
+        const ditherGLSL = `
+        if (dMode > 0) {
+            bool isDither = false;
+            vec2 scaledUv = myUv * (100.0 / dSpace);
+            float lineThreshold = dThick / dSpace;
+            if (dMode == 1) {
+                vec2 gridUv = floor(scaledUv);
+                float noise = fract(sin(dot(gridUv, vec2(12.9898,78.233)))*43758.5453);
+                isDither = noise > 0.5;
+            } else if (dMode == 2) {
+                isDither = fract(scaledUv.y) < lineThreshold;
+            } else if (dMode == 3) {
+                isDither = fract(scaledUv.x) < lineThreshold;
+            } else if (dMode == 4) {
+                isDither = (fract(scaledUv.y) < lineThreshold) || (fract(scaledUv.x) < lineThreshold);
+            }
+            if (isDither) {
+                vec3 targetCol;
+                if (dInkMode == 1) {
+                    float baseLum = dot(splitBase, vec3(0.299,0.587,0.114));
+                    float fragLum = dot(gl_FragColor.rgb, vec3(0.299,0.587,0.114));
+                    float lightingScale = fragLum / max(baseLum, 0.001);
+                    targetCol = dInkColor * lightingScale;
+                } else {
+                    vec3 brightShift = dBright > 0.0 ? vec3(1.0) : vec3(0.0);
+                    targetCol = mix(gl_FragColor.rgb, brightShift, abs(dBright));
+                }
+                gl_FragColor.rgb = mix(gl_FragColor.rgb, targetCol, dAlpha);
+            }
+        }
+        `;
+
+        const $ = id => document.getElementById(id);
+
+        // ── SETTINGS DRAWER & EDITING HANDLERS ───────────────────
+        function readDrawerSettings(blob) {
+            const s = blob.settings;
+            if (blob.type === 'cube-dither') {
+                return {
+                    colorA:    $('dColA')?.value ?? s.colorA,
+                    colorB:    $('dColB')?.value ?? s.colorB,
+                    splitY:    parseFloat($('dSplitY')?.value ?? s.splitY * 100) / 100,
+                    tMode:     parseInt($('dtMode')?.value ?? s.tMode),
+                    tInkMode:  parseInt($('dtInkMode')?.value ?? s.tInkMode),
+                    tInkColor: $('dtInkCol')?.value ?? s.tInkColor,
+                    tSpace:    parseFloat($('dtSpace')?.value ?? s.tSpace),
+                    tThick:    parseFloat($('dtThick')?.value ?? s.tThick),
+                    tBright:   parseFloat($('dtBright')?.value ?? s.tBright * 100) / 100,
+                    tAlpha:    parseFloat($('dtAlpha')?.value ?? s.tAlpha * 100) / 100,
+                    bMode:     parseInt($('dbMode')?.value ?? s.bMode),
+                    bInkMode:  parseInt($('dbInkMode')?.value ?? s.bInkMode),
+                    bInkColor: $('dbInkCol')?.value ?? s.bInkColor,
+                    bSpace:    parseFloat($('dbSpace')?.value ?? s.bSpace),
+                    bThick:    parseFloat($('dbThick')?.value ?? s.bThick),
+                    bBright:   parseFloat($('dbBright')?.value ?? s.bBright * 100) / 100,
+                    bAlpha:    parseFloat($('dbAlpha')?.value ?? s.bAlpha * 100) / 100,
+                };
+            }
+            if (blob.type === 'cube-solid') {
+                return { color: $('sColor')?.value ?? s.color };
+            }
+            if (blob.type === 'cube-water') {
+                return { opacity: parseFloat($('wOpacity')?.value ?? s.opacity * 100) / 100 };
+            }
+            if (blob.type === 'cube-river') {
+                return {
+                    colorA:      $('rColA')?.value ?? s.colorA,
+                    colorB:      $('rColB')?.value ?? s.colorB,
+                    colorRiver:  $('rColRiver')?.value ?? s.colorRiver,
+                    colorBank:   $('rColBank')?.value ?? s.colorBank,
+                    riverWidth:  parseFloat($('rWidth')?.value ?? s.riverWidth * 100) / 100,
+                    pStart:      [parseFloat($('rSX')?.value ?? s.pStart[0] * 100) / 100,
+                                  parseFloat($('rSZ')?.value ?? s.pStart[1] * 100) / 100],
+                    pEnd:        [parseFloat($('rEX')?.value ?? s.pEnd[0] * 100) / 100,
+                                  parseFloat($('rEZ')?.value ?? s.pEnd[1] * 100) / 100],
+                    tMode:       parseInt($('rtMode')?.value ?? s.tMode),
+                    tInkMode:    parseInt($('rtInkMode')?.value ?? s.tInkMode),
+                    tInkColor:   $('rtInkCol')?.value ?? s.tInkColor,
+                    tSpace:      parseFloat($('rtSpace')?.value ?? s.tSpace),
+                    tThick:      parseFloat($('rtThick')?.value ?? s.tThick),
+                    tBright:     parseFloat($('rtBright')?.value ?? s.tBright * 100) / 100,
+                    tAlpha:      parseFloat($('rtAlpha')?.value ?? s.tAlpha * 100) / 100,
+                    bMode:       parseInt($('rbMode')?.value ?? s.bMode),
+                    bInkMode:    parseInt($('rbInkMode')?.value ?? s.bInkMode),
+                    bInkColor:   $('rbInkCol')?.value ?? s.bInkColor,
+                    bSpace:      parseFloat($('rbSpace')?.value ?? s.bSpace),
+                    bThick:      parseFloat($('rbThick')?.value ?? s.bThick),
+                    bBright:     parseFloat($('rbBright')?.value ?? s.bBright * 100) / 100,
+                    bAlpha:      parseFloat($('rbAlpha')?.value ?? s.bAlpha * 100) / 100,
+                };
+            }
+            return { ...s };
+        }
+
+        function saveCurrentAsNewMaterial() {
+            const activeBlob = materialRegistry.get(activeTool);
+            if (!activeBlob) { alert('No active material to save'); return; }
+
+            const labelEl = $('mLabel');
+            const customName = labelEl?.value?.trim();
+            const newSettings = readDrawerSettings(activeBlob);
+
+            const newBlob = generateNewMaterialInstance(activeBlob.type, newSettings, customName || undefined);
+            if (!newBlob) return;
+
+            rebuildMaterialBarUI();
+            setTool(newBlob.id);
+        }
+
+        function syncLiveSettings() {
+            const activeBlob = materialRegistry.get(activeTool);
+            if (!activeBlob) return;
+            
+            const labelEl = $('mLabel');
+            if (labelEl) {
+                activeBlob.label = labelEl.value.trim() || "Untitled";
+                const chipLabel = document.querySelector(`.mat-chip.active .mat-label`);
+                if (chipLabel) chipLabel.textContent = activeBlob.label;
+            }
+            
+            activeBlob.settings = readDrawerSettings(activeBlob);
+        }
+
+        // ── MATERIAL STORAGE ─────────────────────────────────────
+        const materialRegistry = new Map();
+
+        const BASE_TYPES = {
+            'cube-dither': {
+                label: 'Dither', accentColor: '#e8a838', statusHint: 'Dither uniform block customizer',
+                iconSVG: (col) => `<svg viewBox="0 0 52 44" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="hatch-d" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="4" stroke="${col}" stroke-width="1.2" stroke-opacity=".55"/></pattern><clipPath id="clip-top-d"><polygon points="26,2 50,14 26,26 2,14"/></clipPath><clipPath id="clip-left-d"><polygon points="2,14 26,26 26,42 2,30"/></clipPath><clipPath id="clip-right-d"><polygon points="50,14 26,26 26,42 50,30"/></clipPath></defs><polygon class="iso-top" points="26,2 50,14 26,26 2,14" fill="${col}" fill-opacity=".9"/><rect x="0" y="0" width="52" height="44" fill="url(#hatch-d)" clip-path="url(#clip-top-d)" opacity=".7"/><polygon class="iso-left" points="2,14 26,26 26,42 2,30" fill="${col}" fill-opacity=".55"/><rect x="0" y="0" width="52" height="44" fill="url(#hatch-d)" clip-path="url(#clip-left-d)" opacity=".4"/><polygon class="iso-right" points="50,14 26,26 26,42 50,30" fill="${col}" fill-opacity=".38"/><polygon points="26,2 50,14 26,26 2,14" fill="none" stroke="#000" stroke-width="1.2"/><polygon points="2,14 26,26 26,42 2,30" fill="none" stroke="#000" stroke-width="1.2"/><polygon points="50,14 26,26 26,42 50,30" fill="none" stroke="#000" stroke-width="1.2"/></svg>`
+            },
+            'cube-solid': {
+                label: 'Solid Voxel', accentColor: '#4ea1ff', statusHint: 'Standard clean block mesh render',
+                iconSVG: (col) => `<svg viewBox="0 0 52 44" xmlns="http://www.w3.org/2000/svg"><polygon class="iso-top" points="26,2 50,14 26,26 2,14" fill="${col}"/><polygon class="iso-left" points="2,14 26,26 26,42 2,30" fill="${col}" fill-opacity=".75"/><polygon class="iso-right" points="50,14 26,26 26,42 50,30" fill="${col}" fill-opacity=".55"/><polygon points="26,2 50,14 26,26 2,14" fill="none" stroke="#000" stroke-width="1.2"/><polygon points="2,14 26,26 26,42 2,30" fill="none" stroke="#000" stroke-width="1.2"/><polygon points="50,14 26,26 26,42 50,30" fill="none" stroke="#000" stroke-width="1.2"/></svg>`
+            },
+            'cube-water': {
+                label: 'Water', accentColor: '#3ecfb2', statusHint: 'Alpha-blended water voxel structure',
+                iconSVG: (col) => `<svg viewBox="0 0 52 44" xmlns="http://www.w3.org/2000/svg"><polygon class="iso-top" points="26,2 50,14 26,26 2,14" fill="#3ecfb2" fill-opacity=".65"/><polygon class="iso-left" points="2,14 26,26 26,42 2,30" fill="#3ecfb2" fill-opacity=".45"/><polygon class="iso-right" points="50,14 26,26 26,42 50,30" fill="#3ecfb2" fill-opacity=".3"/><polygon points="26,2 50,14 26,26 2,14" fill="none" stroke="#259a82" stroke-width="1" stroke-dasharray="2,2"/><polygon points="2,14 26,26 26,42 2,30" fill="none" stroke="#259a82" stroke-width="1" stroke-dasharray="2,2"/><polygon points="50,14 26,26 26,42 50,30" fill="none" stroke="#259a82" stroke-width="1" stroke-dasharray="2,2"/></svg>`
+            },
+            'cube-river': {
+                label: 'Riverbed', accentColor: '#b058fe', statusHint: 'Procedural mathematical field splitter',
+                iconSVG: (col) => `<svg viewBox="0 0 52 44" xmlns="http://www.w3.org/2000/svg"><polygon class="iso-top" points="26,2 50,14 26,26 2,14" fill="${col}"/><path d="M 14,8 Q 26,20 38,8" fill="none" stroke="#3ecfb2" stroke-width="3.5" opacity=".85"/><polygon class="iso-left" points="2,14 26,26 26,42 2,30" fill="${col}" fill-opacity=".75"/><polygon class="iso-right" points="50,14 26,26 26,42 50,30" fill="${col}" fill-opacity=".55"/><polygon points="26,2 50,14 26,26 2,14" fill="none" stroke="#000" stroke-width="1.2"/><polygon points="2,14 26,26 26,42 2,30" fill="none" stroke="#000" stroke-width="1.2"/><polygon points="50,14 26,26 26,42 50,30" fill="none" stroke="#000" stroke-width="1.2"/></svg>`
+            }
+        };
+
+        function getDefaultSettingsForType(type) {
+            if (type === 'cube-dither') {
+                return {
+                    colorA: '#2a263a', colorB: '#8b84a4', splitY: 0.0,
+                    tMode: 1, tInkMode: 0, tInkColor: '#ffffff', tSpace: 6.0, tThick: 1.5, tBright: -0.15, tAlpha: 0.7,
+                    bMode: 4, bInkMode: 0, bInkColor: '#000000', bSpace: 5.0, bThick: 1.0, bBright: -0.3, bAlpha: 0.5
+                };
+            }
+            if (type === 'cube-solid') return { color: '#4a4a5a' };
+            if (type === 'cube-water') return { opacity: 0.6 };
+            if (type === 'cube-river') {
+                return {
+                    colorA: '#38322c', colorB: '#60584f', colorRiver: '#258da0', colorBank: '#8ca870',
+                    riverWidth: 0.35, pStart: [0.0, 0.0], pEnd: [1.0, 1.0],
+                    tMode: 0, tInkMode: 0, tInkColor: '#ffffff', tSpace: 6.0, tThick: 1.2, tBright: 0.0, tAlpha: 0.5,
+                    bMode: 0, bInkMode: 0, bInkColor: '#000000', bSpace: 6.0, bThick: 1.2, bBright: 0.0, bAlpha: 0.5
+                };
+            }
+            return {};
+        }
+
+        let instanceCounter = 0;
+        function generateNewMaterialInstance(type, configurations = null, labelOverride = undefined) {
+            if (!BASE_TYPES[type]) return null;
+            instanceCounter++;
+            const id = `mat_ins_${type}_${instanceCounter}`;
+            const settings = configurations ?? getDefaultSettingsForType(type);
+            const label = labelOverride ?? `${BASE_TYPES[type].label} Instance ${instanceCounter}`;
+            
+            const blob = { id, type, label, settings };
+            materialRegistry.set(id, blob);
+            return blob;
+        }
+
+        // ── SCENE SETUP ─────────────────────────────────────────
+        const container = $('viewport-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#0d0d10');
+
+        // Isometric Orthographic Camera Definition
+        const frustumSize = 34;
+        const aspect = container.clientWidth / container.clientHeight;
+        const camera = new THREE.OrthographicCamera(
+            -frustumSize * aspect / 2, frustumSize * aspect / 2,
+            frustumSize / 2, -frustumSize / 2,
+            -1000, 2000
+        );
+
+        // Standard 30-degree baseline angle matrix position
+        const ISO_RADIUS = Math.sqrt(150 * 150 + 150 * 150); // Bounding radius
+        const ISO_HEIGHT = ISO_RADIUS * Math.sin(Math.atan(Math.SQRT1_2)); // Exact 35.264° matching tilt height
+
+        camera.position.set(150, ISO_HEIGHT, 150);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDisconnect = false;
+        controls.mouseButtons = { LEFT: null, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
+        controls.enableZoom = true;
+        controls.enablePan = false;
+        controls.enableRotate = true;
+        controls.dampingFactor = 0.12;
+        controls.enableDamping = true;
+
+        // Force viewing elevations to remain anchored completely matching pitch constraints
+        controls.minPolarAngle = Math.atan(Math.SQRT1_2);
+        controls.maxPolarAngle = Math.atan(Math.SQRT1_2);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+        scene.add(ambientLight);
+
+        const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.45);
+        dirLight1.position.set(100, 200, 50);
+        scene.add(dirLight1);
+
+        const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.2);
+        dirLight2.position.set(-100, 80, -100);
+        scene.add(dirLight2);
+
+        const interactionPlaneGeo = new THREE.PlaneGeometry(2000, 2000);
+        interactionPlaneGeo.rotateX(-Math.PI / 2);
+        const interactionPlane = new THREE.Mesh(
+            interactionPlaneGeo,
+            new THREE.MeshBasicMaterial({ visible: false, depthWrite: false })
+        );
+        scene.add(interactionPlane);
+
+        const previewCubeContainer = new THREE.Group();
+        scene.add(previewCubeContainer);
+
+        const tileOutlineGroup = new THREE.Group();
+        scene.add(tileOutlineGroup);
+
+        const gridTicksGroup = new THREE.Group();
+        scene.add(gridTicksGroup);
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        function buildDynamicGridVisuals(size) {
+            tileOutlineGroup.clear();
+            gridTicksGroup.clear();
+
+            const halfGridSize = (size * CELL_SIZE) / 2;
+            const outlineMat = new THREE.LineBasicMaterial({ color: 0x1d1d26 });
+            const tickMat = new THREE.LineBasicMaterial({ color: 0x14141a });
+
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    const wx = (c * CELL_SIZE) + CELL_SIZE / 2 - halfGridSize;
+                    const wz = (r * CELL_SIZE) + CELL_SIZE / 2 - halfGridSize;
+                    const hx = CELL_SIZE / 2;
+                    const pts = [
+                        new THREE.Vector3(wx - hx, 0, wz - hx),
+                        new THREE.Vector3(wx + hx, 0, wz - hx),
+                        new THREE.Vector3(wx + hx, 0, wz + hx),
+                        new THREE.Vector3(wx - hx, 0, wz + hx),
+                        new THREE.Vector3(wx - hx, 0, wz - hx)
+                    ];
+                    tileOutlineGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), outlineMat));
+                }
+            }
+
+            const boundsPtsX = [new THREE.Vector3(-halfGridSize, 0, 0), new THREE.Vector3(halfGridSize, 0, 0)];
+            const boundsPtsZ = [new THREE.Vector3(0, 0, -halfGridSize), new THREE.Vector3(0, 0, halfGridSize)];
+            gridTicksGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(boundsPtsX), tickMat));
+            gridTicksGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(boundsPtsZ), tickMat));
+            
+            interactionPlane.position.y = activeHeightIndex * CELL_SIZE;
+        }
+
+        function getCameraSnappedQuadrant() {
+            const forward = new THREE.Vector3();
+            camera.getWorldDirection(forward);
+            forward.y = 0;
+            forward.normalize();
+
+            const angle = Math.atan2(forward.x, forward.z);
+            return Math.round(angle / (Math.PI / 2)) * (Math.PI / 2);
+        }
+
+        function getGridCoordinates(hitPoint) {
+            const halfGridSize = (currentGridSize * CELL_SIZE) / 2;
+            const localX = hitPoint.x + halfGridSize;
+            const localZ = hitPoint.z + halfGridSize;
+
+            const col = Math.floor(localX / CELL_SIZE);
+            const row = Math.floor(localZ / CELL_SIZE);
+
+            if (col >= 0 && col < currentGridSize && row >= 0 && row < currentGridSize) {
+                return { col, row, h: activeHeightIndex };
+            }
+            return null;
+        }
+
+        // ── LIVE ENGINE MATERIAL GENERATORS ────────────────────
+        function buildLiveMaterial(blob) {
+            const s = blob.settings;
+            if (blob.type === 'cube-solid') {
+                return new THREE.MeshStandardMaterial({ color: new THREE.Color(s.color), roughness: 0.6, metalness: 0.1 });
+            }
+            if (blob.type === 'cube-water') {
+                return new THREE.MeshStandardMaterial({ color: new THREE.Color('#3ecfb2'), roughness: 0.1, metalness: 0.1, transparent: true, opacity: s.opacity, depthWrite: false });
+            }
+
+            let customUniforms = {};
+            let vertexPre = `varying vec2 myUv;\nvarying vec3 myLocalPos;\nvarying vec3 myNormal;\n`;
+            let vertexMain = `myUv = uv;\nmyLocalPos = position;\nmyNormal = normal;\n`;
+            let fragPre = `varying vec2 myUv;\nvarying vec3 myLocalPos;\nvarying vec3 myNormal;\nuniform int isRiverType;\n`;
+            let fragColorInjection = ``;
+
+            if (blob.type === 'cube-dither') {
+                customUniforms = {
+                    colorA: { value: new THREE.Color(s.colorA) }, colorB: { value: new THREE.Color(s.colorB) }, splitY: { value: s.splitY },
+                    tMode: { value: s.tMode }, tInkMode: { value: s.tInkMode }, tInkColor: { value: new THREE.Color(s.tInkColor) }, tSpace: { value: s.tSpace }, tThick: { value: s.tThick }, tBright: { value: s.tBright }, tAlpha: { value: s.tAlpha },
+                    bMode: { value: s.bMode }, bInkMode: { value: s.bInkMode }, bInkColor: { value: new THREE.Color(s.bInkColor) }, bSpace: { value: s.bSpace }, bThick: { value: s.bThick }, bBright: { value: s.bBright }, bAlpha: { value: s.bAlpha }
+                };
+                fragPre += `uniform vec3 colorA; uniform vec3 colorB; uniform float splitY;\nuniform int tMode; uniform int tInkMode; uniform vec3 tInkColor; uniform float tSpace; uniform float tThick; uniform float tBright; uniform float tAlpha;\nuniform int bMode; uniform int bInkMode; uniform vec3 bInkColor; uniform float bSpace; uniform float bThick; uniform float bBright; uniform float bAlpha;\n`;
+                fragColorInjection = `bool isTopFace = (myNormal.y > 0.5);\nvec3 splitBase = (myLocalPos.y > splitY) ? colorA : colorB;\nvec4 diffuseColor = vec4(splitBase, 1.0);\n`;
+            } else if (blob.type === 'cube-river') {
+                customUniforms = {
+                    colorA: { value: new THREE.Color(s.colorA) }, colorB: { value: new THREE.Color(s.colorB) }, colorRiver: { value: new THREE.Color(s.colorRiver) }, colorBank: { value: new THREE.Color(s.colorBank) }, riverWidth: { value: s.riverWidth },
+                    pStart: { value: new THREE.Vector2(s.pStart[0] - 0.5, s.pStart[1] - 0.5).multiplyScalar(2) }, pEnd: { value: new THREE.Vector2(s.pEnd[0] - 0.5, s.pEnd[1] - 0.5).multiplyScalar(2) },
+                    tMode: { value: s.tMode }, tInkMode: { value: s.tInkMode }, tInkColor: { value: new THREE.Color(s.tInkColor) }, tSpace: { value: s.tSpace }, tThick: { value: s.tThick }, tBright: { value: s.tBright }, tAlpha: { value: s.tAlpha },
+                    bMode: { value: s.bMode }, bInkMode: { value: s.bInkMode }, bInkColor: { value: new THREE.Color(s.bInkColor) }, bSpace: { value: s.bSpace }, bThick: { value: s.bThick }, bBright: { value: s.bBright }, bAlpha: { value: s.bAlpha }
+                };
+                fragPre += `uniform vec3 colorA; uniform vec3 colorB; uniform vec3 colorRiver; uniform vec3 colorBank; uniform float riverWidth;\nuniform vec2 pStart; uniform vec2 pEnd;\nuniform int tMode; uniform int tInkMode; uniform vec3 tInkColor; uniform float tSpace; uniform float tThick; uniform float tBright; uniform float tAlpha;\nuniform int bMode; uniform int bInkMode; uniform vec3 bInkColor; uniform float bSpace; uniform float bThick; uniform float bBright; uniform float bAlpha;\n`;
+                fragColorInjection = `bool isTopFace = (myNormal.y > 0.5);\nvec3 splitBase = colorA;\nbool isPath = false;\nif(isTopFace){\nvec2 pa = myLocalPos.xz - pStart;\nvec2 ba = pEnd - pStart;\nfloat h = clamp(dot(pa,ba)/dot(ba,ba),0.,1.);\nfloat dist = length(pa - ba*h);\nif(dist < riverWidth){\nsplitBase = colorRiver;\nisPath = true;\n} else if(dist < riverWidth + 0.08){\nsplitBase = colorBank;\n} else {\nsplitBase = colorB;\n}\n}\nvec4 diffuseColor = vec4(splitBase, 1.0);\n`;
+            }
+
+            const baseMat = new THREE.MeshStandardMaterial({ roughness: 0.5, metalness: 0.1 });
+            baseMat.onBeforeCompile = (shader) => {
+                Object.assign(shader.uniforms, customUniforms);
+                shader.vertexShader = shader.vertexShader.replace(`#include <common>`, `#include <common>\n${vertexPre}`).replace(`#include <begin_vertex>`, `#include <begin_vertex>\n${vertexMain}`);
+                shader.fragmentShader = shader.fragmentShader.replace(`#include <common>`, `#include <common>\n${fragPre}`).replace(`#include <color_fragment>`, fragColorInjection).replace(`#include <dithering_fragment>`, `#include <dithering_fragment>\nbool useTop = (isTopFace && !isPath);\nint dMode = useTop ? tMode : bMode;\nint dInkMode = useTop ? tInkMode : bInkMode;\nvec3 dInkColor = useTop ? tInkColor : bInkColor;\nfloat dSpace = useTop ? tSpace : bSpace;\nfloat dThick = useTop ? tThick : bThick;\nfloat dBright = useTop ? tBright : bBright;\nfloat dAlpha = useTop ? tAlpha : bAlpha;\n${ditherGLSL}`);
+            };
+            return baseMat;
+        }
+
+        // ── WORKSPACE INTERACTION CONTROLS ─────────────────────
+        function updatePreviews(event) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(interactionPlane);
+
+            if (intersects.length > 0) {
+                const coords = getGridCoordinates(intersects[0].point);
+                if (coords && activeLayer === 'cube') {
+                    previewCubeContainer.clear();
+                    const activeBlob = materialRegistry.get(activeTool);
+                    if (activeTool === 'erase' || !activeBlob) return;
+
+                    const pMat = buildLiveMaterial(activeBlob);
+                    pMat.transparent = true;
+                    pMat.opacity = 0.5;
+
+                    const previewMesh = new THREE.Mesh(new THREE.BoxGeometry(CELL_SIZE, CELL_SIZE, CELL_SIZE), pMat);
+                    const halfGridSize = (currentGridSize * CELL_SIZE) / 2;
+                    previewMesh.position.set(
+                        (coords.col * CELL_SIZE) + CELL_SIZE / 2 - halfGridSize,
+                        (coords.h * CELL_SIZE) + CELL_SIZE / 2,
+                        (coords.row * CELL_SIZE) + CELL_SIZE / 2 - halfGridSize
+                    );
+                    previewCubeContainer.add(previewMesh);
+                } else { previewCubeContainer.clear(); }
+            } else { previewCubeContainer.clear(); }
+        }
+
+        function handleDrawingClick(event) {
+            if (event.button !== 0) return;
+
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(interactionPlane);
+
+            if (intersects.length > 0) {
+                const coords = getGridCoordinates(intersects[0].point);
+                if (!coords) return;
+
+                const key = `${coords.col}_${coords.row}_${coords.h}`;
+
+                if (activeTool === 'erase') {
+                    if (activeCubes.has(key)) {
+                        scene.remove(activeCubes.get(key));
+                        activeCubes.delete(key);
+                    }
+                } else {
+                    if (activeCubes.has(key)) scene.remove(activeCubes.get(key));
+
+                    const activeBlob = materialRegistry.get(activeTool);
+                    if (!activeBlob) return;
+
+                    const mesh = new THREE.Mesh(new THREE.BoxGeometry(CELL_SIZE, CELL_SIZE, CELL_SIZE), buildLiveMaterial(activeBlob));
+                    const halfGridSize = (currentGridSize * CELL_SIZE) / 2;
+                    mesh.position.set(
+                        (coords.col * CELL_SIZE) + CELL_SIZE / 2 - halfGridSize,
+                        (coords.h * CELL_SIZE) + CELL_SIZE / 2,
+                        (coords.row * CELL_SIZE) + CELL_SIZE / 2 - halfGridSize
+                    );
+                    scene.add(mesh);
+                    activeCubes.set(key, mesh);
+                }
+                updatePreviews(event);
+            }
+        }
+
+        function hidePreviews() { previewCubeContainer.clear(); }
+
+        function setTool(toolId) {
+            activeTool = toolId;
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            if (toolId === 'erase') {
+                $('btn-erase').classList.add('active');
+                $('status-msg').textContent = 'Eraser tool selected';
+                rebuildMaterialDrawerUI(null);
+                return;
+            }
+            const blob = materialRegistry.get(toolId);
+            if (blob) {
+                const chip = document.getElementById(`chip_${toolId}`);
+                document.querySelectorAll('.mat-chip').forEach(c => c.classList.remove('active'));
+                if (chip) chip.classList.add('active');
+                $('status-msg').textContent = `Active Material: ${blob.label}`;
+                rebuildMaterialDrawerUI(blob);
+            }
+        }
+
+        // ── INTERACTIVE DYNAMIC RENDER INTERFACES ────────────────
+        function rebuildMaterialBarUI() {
+            const bar = $('mat-bar');
+            bar.innerHTML = '';
+            ['cube-dither', 'cube-solid', 'cube-water', 'cube-river'].forEach(type => {
+                const bType = BASE_TYPES[type];
+                const section = document.createElement('div');
+                section.innerHTML = `
+                    <div class="mat-section-title"><span>${bType.label} Variants</span><button class="mat-add-btn" data-type="${type}">+ Add</button></div>
+                    <div class="mat-chips-grid" id="grid_${type}"></div>
+                `;
+                bar.appendChild(section);
+                section.querySelector('.mat-add-btn').onclick = (e) => {
+                    const nb = generateNewMaterialInstance(e.target.getAttribute('data-type'));
+                    rebuildMaterialBarUI();
+                    setTool(nb.id);
+                };
+            });
+
+            materialRegistry.forEach(blob => {
+                const parentGrid = $(`grid_${blob.type}`);
+                if (!parentGrid) return;
+                const chip = document.createElement('div');
+                chip.className = `mat-chip ${blob.id === activeTool ? 'active' : ''}`;
+                chip.id = `chip_${blob.id}`;
+                chip.style.setProperty('--chip-color', BASE_TYPES[blob.type].accentColor);
+                
+                let rc = '#fff';
+                if(blob.type==='cube-solid') rc = blob.settings.color;
+                if(blob.type==='cube-dither') rc = blob.settings.colorA;
+                if(blob.type==='cube-river') rc = blob.settings.colorRiver;
+
+                chip.innerHTML = `<div class="mat-icon">${BASE_TYPES[blob.type].iconSVG(rc)}</div><div class="mat-label">${blob.label}</div>`;
+                chip.onclick = () => setTool(blob.id);
+                parentGrid.appendChild(chip);
+            });
+        }
+
+        function rebuildMaterialDrawerUI(blob) {
+            const drawer = $('mat-drawer');
+            drawer.innerHTML = ''; if (!blob) return;
+            const s = blob.settings;
+            const inner = document.createElement('div');
+            inner.className = 'drawer-inner';
+            inner.style.setProperty('--dt-color', BASE_TYPES[blob.type].accentColor);
+
+            let html = `<div class="drawer-col"><div class="d-title">Global Label</div><div class="d-row"><input type="text" id="mLabel" value="${blob.label}"></div></div>`;
+
+            if (blob.type === 'cube-dither') {
+                html += `
+                    <div class="drawer-col"><div class="d-title">Dual Splitting</div><div class="d-row"><span>Color A</span><input type="color" id="dColA" value="${s.colorA}"></div><div class="d-row"><span>Color B</span><input type="color" id="dColB" value="${s.colorB}"></div><div class="d-row"><span>Height Split</span><input type="range" id="dSplitY" min="-50" max="50" value="${s.splitY * 100}"></div></div>
+                    <div class="drawer-col"><div class="d-title">Top Face Hatching</div><div class="d-row"><span>Mode</span><select id="dtMode"><option value="0" ${s.tMode==0?'selected':''}>None</option><option value="1" ${s.tMode==1?'selected':''}>Noise</option><option value="2" ${s.tMode==2?'selected':''}>Horiz Lines</option><option value="3" ${s.tMode==3?'selected':''}>Vert Lines</option><option value="4" ${s.tMode==4?'selected':''}>Crosshatch</option></select></div><div class="d-row"><span>Ink Mode</span><select id="dtInkMode"><option value="0" ${s.tInkMode==0?'selected':''}>Shade Offset</option><option value="1" ${s.tInkMode==1?'selected':''}>Solid Color</option></select></div><div class="d-row"><span>Ink Color</span><input type="color" id="dtInkCol" value="${s.tInkColor}"></div><div class="d-row"><span>Spacing</span><input type="range" id="dtSpace" min="2" max="25" step="0.5" value="${s.tSpace}"></div><div class="d-row"><span>Thickness</span><input type="range" id="dtThick" min="0.5" max="8" step="0.1" value="${s.tThick}"></div><div class="d-row"><span>Brightness</span><input type="range" id="dtBright" min="-100" max="100" value="${s.tBright * 100}"></div><div class="d-row"><span>Opacity</span><input type="range" id="dtAlpha" min="0" max="100" value="${s.tAlpha * 100}"></div></div>
+                    <div class="drawer-col"><div class="d-title">Side Faces Hatching</div><div class="d-row"><span>Mode</span><select id="dbMode"><option value="0" ${s.bMode==0?'selected':''}>None</option><option value="1" ${s.bMode==1?'selected':''}>Noise</option><option value="2" ${s.bMode==2?'selected':''}>Horiz Lines</option><option value="3" ${s.bMode==3?'selected':''}>Vert Lines</option><option value="4" ${s.bMode==4?'selected':''}>Crosshatch</option></select></div><div class="d-row"><span>Ink Mode</span><select id="dbInkMode"><option value="0" ${s.bInkMode==0?'selected':''}>Shade Offset</option><option value="1" ${s.bInkMode==1?'selected':''}>Solid Color</option></select></div><div class="d-row"><span>Ink Color</span><input type="color" id="dbInkCol" value="${s.bInkColor}"></div><div class="d-row"><span>Spacing</span><input type="range" id="dbSpace" min="2" max="25" step="0.5" value="${s.dbSpace}"></div><div class="d-row"><span>Thickness</span><input type="range" id="dbThick" min="0.5" max="8" step="0.1" value="${s.dbThick}"></div><div class="d-row"><span>Brightness</span><input type="range" id="dbBright" min="-100" max="100" value="${s.dbBright * 100}"></div><div class="d-row"><span>Opacity</span><input type="range" id="dbAlpha" min="0" max="100" value="${s.bAlpha * 100}"></div></div>
+                `;
+            } else if (blob.type === 'cube-solid') {
+                html += `<div class="drawer-col"><div class="d-title">Solid Geometry</div><div class="d-row"><span>Albedo Color</span><input type="color" id="sColor" value="${s.color}"></div></div>`;
+            } else if (blob.type === 'cube-water') {
+                html += `<div class="drawer-col"><div class="d-title">Water Volume</div><div class="d-row"><span>Transparency</span><input type="range" id="wOpacity" min="5" max="100" value="${s.opacity * 100}"></div></div>`;
+            } else if (blob.type === 'cube-river') {
+                html += `
+                    <div class="drawer-col"><div class="d-title">Field Terrains</div><div class="d-row"><span>Ground A</span><input type="color" id="rColA" value="${s.colorA}"></div><div class="d-row"><span>Ground B</span><input type="color" id="rColB" value="${s.colorB}"></div><div class="d-row"><span>River Strip</span><input type="color" id="rColRiver" value="${s.colorRiver}"></div><div class="d-row"><span>Bank Filter</span><input type="color" id="rColBank" value="${s.colorBank}"></div><div class="d-row"><span>Channel Width</span><input type="range" id="rWidth" min="5" max="95" value="${s.riverWidth * 100}"></div></div>
+                    <div class="drawer-col"><div class="d-title">Vector Flow Anchors</div><div class="d-row"><span>Start X Offset</span><input type="range" id="rSX" min="0" max="100" value="${s.pStart[0] * 100}"></div><div class="d-row"><span>Start Z Offset</span><input type="range" id="rSZ" min="0" max="100" value="${s.pStart[1] * 100}"></div><div class="d-row"><span>End X Offset</span><input type="range" id="rEX" min="0" max="100" value="${s.pEnd[0] * 100}"></div><div class="d-row"><span>End Z Offset</span><input type="range" id="rEZ" min="0" max="100" value="${s.pEnd[1] * 100}"></div></div>
+                    <div class="drawer-col"><div class="d-title">Top Surface Overlays</div><div class="d-row"><span>Mode</span><select id="rtMode"><option value="0" ${s.tMode==0?'selected':''}>None</option><option value="1" ${s.tMode==1?'selected':''}>Noise</option><option value="2" ${s.tMode==2?'selected':''}>Lines Y</option><option value="3" ${s.tMode==3?'selected':''}>Lines X</option></select></div><div class="d-row"><span>Ink Color</span><input type="color" id="rtInkCol" value="${s.tInkColor}"></div><div class="d-row"><span>Spacing</span><input type="range" id="rtSpace" min="2" max="25" step="0.5" value="${s.tSpace}"></div><div class="d-row"><span>Thickness</span><input type="range" id="rtThick" min="0.5" max="8" step="0.1" value="${s.tThick}"></div><div class="d-row"><span>Opacity</span><input type="range" id="rtAlpha" min="0" max="100" value="${s.tAlpha * 100}"></div></div>
+                    <div class="drawer-col"><div class="d-title">Side Wall Overlays</div><div class="d-row"><span>Mode</span><select id="rbMode"><option value="0" ${s.bMode==0?'selected':''}>None</option><option value="1" ${s.bMode==1?'selected':''}>Noise</option><option value="2" ${s.bMode==2?'selected':''}>Lines Y</option><option value="3" ${s.bMode==3?'selected':''}>Lines X</option></select></div><div class="d-row"><span>Ink Color</span><input type="color" id="rbInkCol" value="${s.bInkColor}"></div><div class="d-row"><span>Spacing</span><input type="range" id="rbSpace" min="2" max="25" step="0.5" value="${s.rbSpace}"></div><div class="d-row"><span>Thickness</span><input type="range" id="rbThick" min="0.5" max="8" step="0.1" value="${s.rbThick}"></div><div class="d-row"><span>Opacity</span><input type="range" id="rbAlpha" min="0" max="100" value="${s.rbAlpha * 100}"></div></div>
+                `;
+            }
+
+            html += `<button class="drawer-action-btn" id="btn-save-as-new">Duplicate as New</button>`;
+            inner.innerHTML = html; drawer.appendChild(inner);
+
+            inner.querySelectorAll('input, select').forEach(input => {
+                input.addEventListener('input', () => { syncLiveSettings(); });
+            });
+            $('btn-save-as-new').onclick = saveCurrentAsNewMaterial;
+        }
+
+        // ── LAYERS CONFIGURATION BAR ───────────────────────────
+        $('btn-height-up').onclick = () => {
+            activeHeightIndex++; $('height-label').textContent = activeHeightIndex; buildDynamicGridVisuals(currentGridSize);
+        };
+        $('btn-height-down').onclick = () => {
+            activeHeightIndex = Math.max(0, activeHeightIndex - 1); $('height-label').textContent = activeHeightIndex; buildDynamicGridVisuals(currentGridSize);
+        };
+
+        // ── FIXED COORD SYSTEM STEP ROTATION ───────────────────
+        function triggerStepRotation(clockwise) {
+            const step = clockwise ? -Math.PI / 2 : Math.PI / 2;
+            const targetAngle = getCameraSnappedQuadrant() + step;
+            
+            // Fix: Lock down exact height and horizontal layout balance at all snap phases
+            camera.position.x = Math.sin(targetAngle) * ISO_RADIUS;
+            camera.position.z = Math.cos(targetAngle) * ISO_RADIUS;
+            camera.position.y = ISO_HEIGHT; 
+            
+            camera.lookAt(0, 0, 0);
+            controls.target.set(0, 0, 0);
+            controls.update();
+        }
+
+        $('btn-rot-cw').onclick = () => triggerStepRotation(true);
+        $('btn-rot-ccw').onclick = () => triggerStepRotation(false);
+
+        $('btn-zoom-in').onclick = () => { camera.zoom *= 1.2; camera.updateProjectionMatrix(); };
+        $('btn-zoom-out').onclick = () => { camera.zoom /= 1.2; camera.updateProjectionMatrix(); };
+        $('btn-zoom-reset').onclick = () => {
+            camera.zoom = 1.0;
+            camera.position.set(150, ISO_HEIGHT, 150);
+            camera.updateProjectionMatrix();
+            controls.target.set(0, 0, 0);
+            controls.update();
+        };
+
+        $('btn-clear').onclick = () => {
+            activeCubes.forEach(m => scene.remove(m)); activeCubes.clear();
+            currentGridSize = 14; buildDynamicGridVisuals(currentGridSize);
+        };
+
+        container.addEventListener('mousemove', updatePreviews);
+        container.addEventListener('mousedown', handleDrawingClick);
+        container.addEventListener('mouseleave', hidePreviews);
+
+        window.addEventListener('resize', () => {
+            const a = container.clientWidth / container.clientHeight;
+            camera.left = -frustumSize * a / 2; camera.right = frustumSize * a / 2;
+            camera.top = frustumSize / 2; camera.bottom = -frustumSize / 2;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
+        
+        buildDynamicGridVisuals(currentGridSize);
+        animate();
+
+        const defaultDither = generateNewMaterialInstance('cube-dither', null, 'Dither Alpha');
+        generateNewMaterialInstance('cube-solid', null, 'Solid Voxel');
+        generateNewMaterialInstance('cube-water', null, 'Water Flow');
+        generateNewMaterialInstance('cube-river', null, 'River Bed');
+
+        rebuildMaterialBarUI();
+        setTool(defaultDither.id);
+    </script>
+</body>
+</html>

@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js Isometric Split Dither & Volumetric Water</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #0d0d10;
+            font-family: 'Space Mono', monospace;
+            color: #4a4a60;
+        }
+
+        #ui {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #111115;
+            border: 1px solid #1f1f28;
+            padding: 15px;
+            width: 260px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 10;
+            max-height: 95vh;
+            overflow-y: auto;
+        }
+
+        /* Scrollbar styling for the UI panel */
+        #ui::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #ui::-webkit-scrollbar-thumb {
+            background: #2a2a38;
+            border-radius: 3px;
+        }
+
+        .row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11px;
+            min-height: 24px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            margin: 0 10px;
+            accent-color: #3ecfb2;
+            background: #191920;
+        }
+
+        input[type="color"] {
+            background: none;
+            border: 1px solid #2a2a38;
+            cursor: pointer;
+            height: 24px;
+            width: 40px;
+            padding: 0;
+        }
+
+        select {
+            background: #0f0f14;
+            color: #7a7a9a;
+            border: 1px solid #2a2a38;
+            padding: 4px;
+            font-family: 'Space Mono';
+            font-size: 10px;
+            text-transform: uppercase;
+            width: 100px;
+        }
+
+        .title {
+            color: #7a7a9a;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            border-bottom: 1px solid #1f1f28;
+            padding-bottom: 6px;
+            margin-top: 10px;
+            margin-bottom: 4px;
+        }
+
+        .title:first-child {
+            margin-top: 0;
+        }
+
+        .hint {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: #3ecfb2;
+            font-size: 12px;
+            pointer-events: none;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: transform .15s ease;
+        }
+
+        .swatch:hover {
+            transform: scale(1.1);
+        }
+
+        .saved-swatch {
+            width: 24px; height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all .15s;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .saved-swatch:hover {
+            transform: scale(1.1);
+            border-color: #5a5a6a;
+        }
+        .saved-swatch.active {
+            border-color: #3ecfb2;
+            box-shadow: 0 0 6px rgba(62, 207, 178, 0.3);
+        }
+        .swatch-delete {
+            position: absolute;
+            top: -6px; right: -6px;
+            width: 14px; height: 14px;
+            background: #2a0a0a;
+            border: 1px solid #4a1a1a;
+            color: #ff5c5c;
+            border-radius: 50%;
+            font-size: 9px;
+            line-height: 12px;
+            text-align: center;
+            cursor: pointer;
+            display: none;
+            font-family: sans-serif;
+        }
+        .saved-swatch:hover .swatch-delete { display: block; }
+    </style>
+</head>
+
+<body>
+
+    <div id="ui">
+
+        <div class="title">Saved Materials</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom: 10px;">
+            <button id="btn-save-mat" style="font-family: 'Space Mono'; font-size: 10px; background: #191920; border: 1px solid #2a2a38; color: #7a7a9a; padding: 4px 8px; cursor: pointer;">Save</button>
+            <button id="btn-new-mat" style="font-family: 'Space Mono'; font-size: 10px; background: #191920; border: 1px solid #2a2a38; color: #7a7a9a; padding: 4px 8px; cursor: pointer;">New</button>
+            <div id="palette-swatches" style="display:flex; flex-wrap: wrap; gap: 6px; align-items: center;"></div>
+        </div>
+
+        <div class="title">Material Mode</div>
+        <div class="row">Type
+            <select id="materialMode">
+                <option value="0" selected>Split Color</option>
+                <option value="1">Solid Color</option>
+                <option value="2">Water Mode</option>
+            </select>
+        </div>
+        <div class="row" id="globalOpacityRow" style="display:none;">
+            Water Alpha <input type="range" id="globalOpacity" min="10" max="100" value="60">
+        </div>
+
+        <div class="title">Geometry</div>
+        <div id="baseColRow" class="row">Base Col <input type="color" id="baseColor" value="#8a7a60"></div>
+        <div id="topColRow" class="row">Top Overlay <input type="color" id="colA" value="#3ecfb2"></div>
+        <div id="botColRow" class="row">Bot Overlay <input type="color" id="colB" value="#c94b6e"></div>
+        <div id="splitRow" class="row">Split <input type="range" id="split" min="-50" max="50" value="0"></div>
+
+        <div class="title" style="color:#3ecfb2">Top / Global Dither</div>
+        <div class="row">Mode
+            <select id="tMode">
+                <option value="0">Off</option>
+                <option value="1">Noise</option>
+                <option value="2">H-Lines</option>
+                <option value="3">V-Lines</option>
+                <option value="4" selected>Crosshatch</option>
+            </select>
+        </div>
+        <div class="row">Ink Type
+            <select id="tInkMode">
+                <option value="0" selected>Bright</option>
+                <option value="1">Color</option>
+            </select>
+        </div>
+        <div class="row" id="tBrightRow">Bright <input type="range" id="tBright" min="-100" max="100" value="100"></div>
+        <div class="row hidden" id="tColorRow">Ink Color <input type="color" id="tInkCol" value="#ffffff"></div>
+        <div class="row">Space <input type="range" id="tSpace" min="2" max="16" value="6"></div>
+        <div class="row">Thick <input type="range" id="tThick" min="1" max="6" value="1" step="0.5"></div>
+        <div class="row">Blend <input type="range" id="tAlpha" min="5" max="100" value="50"></div>
+
+        <div id="bottomDitherSection">
+            <div class="title" style="color:#c94b6e">Bottom Dither</div>
+            <div class="row">Mode
+                <select id="bMode">
+                    <option value="0">Off</option>
+                    <option value="1" selected>Noise</option>
+                    <option value="2">H-Lines</option>
+                    <option value="3">V-Lines</option>
+                    <option value="4">Crosshatch</option>
+                </select>
+            </div>
+            <div class="row">Ink Type
+                <select id="bInkMode">
+                    <option value="0" selected>Bright</option>
+                    <option value="1">Color</option>
+                </select>
+            </div>
+            <div class="row" id="bBrightRow">Bright <input type="range" id="bBright" min="-100" max="100" value="-100">
+            </div>
+            <div class="row hidden" id="bColorRow">Ink Color <input type="color" id="bInkCol" value="#000000"></div>
+            <div class="row">Space <input type="range" id="bSpace" min="2" max="16" value="4"></div>
+            <div class="row">Thick <input type="range" id="bThick" min="1" max="6" value="1" step="0.5"></div>
+            <div class="row">Blend <input type="range" id="bAlpha" min="5" max="100" value="70"></div>
+        </div>
+
+    </div>
+
+    <div class="hint">Left Click + Drag to Rotate • Scroll to Zoom</div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // 1. SCENE SETUP
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2('#0d0d10', 0.05);
+
+        const aspect = window.innerWidth / window.innerHeight;
+        const frustumSize = 10;
+        const camera = new THREE.OrthographicCamera(
+            frustumSize * aspect / -2, frustumSize * aspect / 2,
+            frustumSize / 2, frustumSize / -2,
+            1, 1000
+        );
+        camera.position.set(10, 10, 10);
+        camera.lookAt(scene.position);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // 2. LIGHTING
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 10, 2);
+        scene.add(directionalLight);
+
+        const grid = new THREE.GridHelper(20, 20, 0x3ecfb2, 0x1f1f28);
+        grid.position.y = -1.0;
+        scene.add(grid);
+
+        // 3. SHADER UNIFORMS
+        const customUniforms = {
+            baseColor: { value: new THREE.Color('#8a7a60') },
+            colorA: { value: new THREE.Color('#3ecfb2') },
+            colorB: { value: new THREE.Color('#c94b6e') },
+            splitY: { value: 0.0 },
+            materialMode: { value: 0 }, // 0: Split, 1: Solid, 2: Water
+
+            // Top Dither
+            tMode: { value: 4 },
+            tInkMode: { value: 0 },
+            tInkColor: { value: new THREE.Color('#ffffff') },
+            tSpace: { value: 6.0 },
+            tThick: { value: 1.0 },
+            tBright: { value: 1.0 },
+            tAlpha: { value: 0.5 },
+
+            // Bottom Dither
+            bMode: { value: 1 },
+            bInkMode: { value: 0 },
+            bInkColor: { value: new THREE.Color('#000000') },
+            bSpace: { value: 4.0 },
+            bThick: { value: 1.0 },
+            bBright: { value: -1.0 },
+            bAlpha: { value: 0.7 }
+        };
+
+        const geometry = new THREE.BoxGeometry(2, 2, 2);
+
+        // Initial setup matching standard opaque settings
+        const material = new THREE.MeshStandardMaterial({
+            roughness: 0.6,
+            metalness: 0.1,
+            transparent: false,
+            opacity: 1.0
+        });
+
+        // 4. THE CUSTOM SHADER
+        material.onBeforeCompile = (shader) => {
+            for (const [key, uniform] of Object.entries(customUniforms)) {
+                shader.uniforms[key] = uniform;
+            }
+
+            shader.vertexShader = `
+                varying float vLocalY;
+                varying vec2 myUv;
+                ${shader.vertexShader}
+            `.replace(
+                `#include <begin_vertex>`,
+                `#include <begin_vertex>
+                 vLocalY = position.y;
+                 myUv = uv;`
+            );
+
+            shader.fragmentShader = `
+                uniform vec3 baseColor; uniform vec3 colorA; uniform vec3 colorB; uniform float splitY; uniform int materialMode;
+                
+                uniform int tMode; uniform int tInkMode; uniform vec3 tInkColor; uniform float tSpace; uniform float tThick; uniform float tBright; uniform float tAlpha;
+                uniform int bMode; uniform int bInkMode; uniform vec3 bInkColor; uniform float bSpace; uniform float bThick; uniform float bBright; uniform float bAlpha;
+
+                varying float vLocalY;
+                varying vec2 myUv;
+                ${shader.fragmentShader}
+            `;
+
+            // Step A: Base + Overlay blend
+            shader.fragmentShader = shader.fragmentShader.replace(
+                `vec4 diffuseColor = vec4( diffuse, opacity );`,
+                `
+                bool isTop = true;
+                vec3 overlayCol = colorA;
+
+                if (materialMode == 0) {
+                    isTop = vLocalY > splitY;
+                    overlayCol = isTop ? colorA : colorB;
+                } else if (materialMode == 1) {
+                    overlayCol = colorA;
+                }
+
+                vec3 finalColor = mix(baseColor, overlayCol, 0.55);
+                vec4 diffuseColor = vec4( finalColor, opacity );
+                `
+            );
+
+            // Step B: Direct Ink Mixing Logic
+            shader.fragmentShader = shader.fragmentShader.replace(
+                `#include <dithering_fragment>`,
+                `#include <dithering_fragment>
+
+                int dMode = isTop ? tMode : bMode;
+                int dInkMode = isTop ? tInkMode : bInkMode;
+                vec3 dInkColor = isTop ? tInkColor : bInkColor;
+                float dSpace = isTop ? tSpace : bSpace;
+                float dThick = isTop ? tThick : bThick;
+                float dBright = isTop ? tBright : bBright;
+                float dAlpha = isTop ? tAlpha : bAlpha;
+
+                if (dMode > 0) {
+                    bool isDither = false;
+                    
+                    vec2 scaledUv = myUv * (100.0 / dSpace);
+                    float lineThreshold = dThick / dSpace;
+
+                    if (dMode == 1) {
+                        vec2 gridUv = floor(scaledUv);
+                        float noise = fract(sin(dot(gridUv, vec2(12.9898, 78.233))) * 43758.5453);
+                        isDither = noise > 0.5;
+                    } else if (dMode == 2) { 
+                        isDither = fract(scaledUv.y) < lineThreshold;
+                    } else if (dMode == 3) { 
+                        isDither = fract(scaledUv.x) < lineThreshold;
+                    } else if (dMode == 4) { 
+                        isDither = (fract(scaledUv.y) < lineThreshold) || (fract(scaledUv.x) < lineThreshold);
+                    }
+
+                    if (isDither) {
+                        vec3 targetCol;
+                        if (dInkMode == 1) {
+                            // Calculate scalar brightness ratio using standard dot product weights to avoid zero-division color shifts
+                            float baseLum = dot(overlayCol, vec3(0.299, 0.587, 0.114));
+                            float fragLum = dot(gl_FragColor.rgb, vec3(0.299, 0.587, 0.114));
+                            float lightingScale = fragLum / max(baseLum, 0.001);
+                            
+                            targetCol = dInkColor * lightingScale;
+                        } else {
+                            vec3 brightShift = dBright > 0.0 ? vec3(1.0) : vec3(0.0);
+                            targetCol = mix(gl_FragColor.rgb, brightShift, abs(dBright));
+                        }
+                        gl_FragColor.rgb = mix(gl_FragColor.rgb, targetCol, dAlpha);
+                    }
+                }
+                `
+            );
+        };
+        const cube = new THREE.Mesh(geometry, material);
+        scene.add(cube);
+
+        // 5. EDGES OUTLINE
+        const edgesGeom = new THREE.EdgesGeometry(geometry);
+        const edgesMat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+        const cubeEdges = new THREE.LineSegments(edgesGeom, edgesMat);
+        cube.add(cubeEdges);
+
+        // 6. MATERIAL PALETTE LOGIC
+        const STORAGE_KEY = 'pixelIso_savedMaterials';
+        let savedMaterials = [];
+        let selectedSwatchIndex = null;
+
+        function loadSavedMaterials() {
+          try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) savedMaterials = JSON.parse(raw);
+          } catch { savedMaterials = []; }
+        }
+
+        function persistSavedMaterials() {
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(savedMaterials)); } catch {}
+        }
+
+        loadSavedMaterials();
+        renderPalette();
+
+        function serializeUniforms() {
+          const obj = {};
+          for (const [k, u] of Object.entries(customUniforms)) {
+            if (u.value instanceof THREE.Color) {
+              obj[k] = { value: '#' + u.value.getHexString() };
+            } else {
+              obj[k] = { value: u.value };
+            }
+          }
+          return obj;
+        }
+
+        function applyMaterial(savedUniforms) {
+          const uniformsToApply = JSON.parse(JSON.stringify(savedUniforms));
+          for (const key in uniformsToApply) {
+            if (customUniforms[key]) {
+              if (customUniforms[key].value instanceof THREE.Color) {
+                customUniforms[key].value.set(uniformsToApply[key].value);
+              } else {
+                customUniforms[key].value = uniformsToApply[key].value;
+              }
+            }
+          }
+          updateUIFromUniforms();
+          materialModeSelect.dispatchEvent(new Event('change'));
+        }
+
+        function renderPalette() {
+          const container = document.getElementById('palette-swatches');
+          if (!container) return;
+          container.innerHTML = '';
+          savedMaterials.forEach((mat, index) => {
+            const swatch = document.createElement('div');
+            swatch.className = 'saved-swatch' + (index === selectedSwatchIndex ? ' active' : '');
+            swatch.style.background = '#' + new THREE.Color(mat.baseColor?.value || '#8a7a60').getHexString();
+            swatch.style.border = `2px solid #${new THREE.Color(mat.colorB?.value || '#c94b6e').getHexString()}`;
+            swatch.title = `Material ${index + 1}`;
+
+            const del = document.createElement('span');
+            del.className = 'swatch-delete';
+            del.innerHTML = '×';
+            del.addEventListener('click', (e) => {
+              e.stopPropagation();
+              savedMaterials.splice(index, 1);
+              if (selectedSwatchIndex === index) selectedSwatchIndex = null;
+              else if (selectedSwatchIndex > index) selectedSwatchIndex--;
+              persistSavedMaterials();
+              renderPalette();
+            });
+
+            swatch.addEventListener('click', () => {
+              if (selectedSwatchIndex === index) {
+                selectedSwatchIndex = null;
+                renderPalette();
+              } else {
+                applyMaterial(mat);
+                selectedSwatchIndex = index;
+                renderPalette();
+              }
+            });
+
+            swatch.appendChild(del);
+            container.appendChild(swatch);
+          });
+        }
+
+        document.getElementById('btn-save-mat').addEventListener('click', () => {
+          const currentMaterialState = serializeUniforms();
+
+          if (selectedSwatchIndex !== null) {
+            savedMaterials[selectedSwatchIndex] = currentMaterialState;
+          } else {
+            savedMaterials.push(currentMaterialState);
+            selectedSwatchIndex = savedMaterials.length - 1;
+          }
+          persistSavedMaterials();
+          renderPalette();
+        });
+
+        document.getElementById('btn-new-mat').addEventListener('click', () => {
+          selectedSwatchIndex = null;
+          renderPalette();
+        });
+
+
+        // 6. UI EVENT LISTENERS & LOGIC
+        const materialModeSelect = document.getElementById('materialMode');
+        const globalOpacityRow = document.getElementById('globalOpacityRow');
+        const baseColRow = document.getElementById('baseColRow');
+        const botColRow = document.getElementById('botColRow');
+        const splitRow = document.getElementById('splitRow');
+        const bottomDitherSection = document.getElementById('bottomDitherSection');
+        const topColLabel = document.querySelector('#topColRow label') || document.getElementById('topColRow');
+
+        function updateColLabels(mode) {
+            const topRow = document.getElementById('topColRow');
+            if (topRow) {
+                const label = topRow.querySelector('.row')?.childNodes[0];
+                if (label) {
+                    label.textContent = mode === 1 ? 'Overlay Col  ' : 'Top Overlay ';
+                }
+            }
+        }
+
+        materialModeSelect.addEventListener('change', e => {
+            const mode = parseInt(e.target.value);
+            customUniforms.materialMode.value = mode;
+            updateColLabels(mode);
+
+            if (mode === 0) {
+                material.transparent = false;
+                material.opacity = 1.0;
+                material.roughness = 0.6;
+                globalOpacityRow.style.display = 'none';
+                baseColRow.style.display = 'flex';
+                botColRow.style.display = 'flex';
+                splitRow.style.display = 'flex';
+                bottomDitherSection.style.display = 'block';
+            } else if (mode === 1) {
+                material.transparent = false;
+                material.opacity = 1.0;
+                material.roughness = 0.6;
+                globalOpacityRow.style.display = 'none';
+                baseColRow.style.display = 'flex';
+                botColRow.style.display = 'none';
+                splitRow.style.display = 'none';
+                bottomDitherSection.style.display = 'none';
+            } else if (mode === 2) {
+                material.transparent = true;
+                material.opacity = parseFloat(document.getElementById('globalOpacity').value) / 100;
+                material.roughness = 0.1;
+                globalOpacityRow.style.display = 'flex';
+                baseColRow.style.display = 'none';
+                botColRow.style.display = 'none';
+                splitRow.style.display = 'none';
+                bottomDitherSection.style.display = 'none';
+            }
+            material.needsUpdate = true;
+        });
+
+        function updateUIFromUniforms() {
+            const get = (key) => customUniforms[key].value;
+            const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+
+            setVal('materialMode', get('materialMode'));
+            setVal('globalOpacity', material.opacity * 100);
+
+            setVal('baseColor', '#' + get('baseColor').getHexString());
+            setVal('colA', '#' + get('colorA').getHexString());
+            setVal('colB', '#' + get('colorB').getHexString());
+            setVal('split', get('splitY') * 50);
+
+            setVal('tMode', get('tMode'));
+            setVal('tInkMode', get('tInkMode'));
+            setVal('tBright', get('tBright') * 100);
+            setVal('tInkCol', '#' + get('tInkColor').getHexString());
+            setVal('tSpace', get('tSpace'));
+            setVal('tThick', get('tThick'));
+            setVal('tAlpha', get('tAlpha') * 100);
+
+            setVal('bMode', get('bMode'));
+            setVal('bInkMode', get('bInkMode'));
+            setVal('bBright', get('bBright') * 100);
+            setVal('bInkCol', '#' + get('bInkColor').getHexString());
+            setVal('bSpace', get('bSpace'));
+            setVal('bThick', get('bThick'));
+            setVal('bAlpha', get('bAlpha') * 100);
+        }
+
+        document.getElementById('globalOpacity').addEventListener('input', e => {
+            if (customUniforms.materialMode.value === 2) {
+                material.opacity = parseFloat(e.target.value) / 100;
+            }
+        });
+
+        document.getElementById('baseColor').addEventListener('input', e => customUniforms.baseColor.value.set(e.target.value));
+        document.getElementById('colA').addEventListener('input', e => customUniforms.colorA.value.set(e.target.value));
+        document.getElementById('colB').addEventListener('input', e => customUniforms.colorB.value.set(e.target.value));
+        document.getElementById('split').addEventListener('input', e => customUniforms.splitY.value = e.target.value / 50);
+
+        // Top Listeners
+        document.getElementById('tMode').addEventListener('change', e => customUniforms.tMode.value = parseInt(e.target.value));
+        document.getElementById('tInkMode').addEventListener('change', e => {
+            const val = parseInt(e.target.value);
+            customUniforms.tInkMode.value = val;
+            document.getElementById('tBrightRow').classList.toggle('hidden', val === 1);
+            document.getElementById('tColorRow').classList.toggle('hidden', val === 0);
+        });
+        document.getElementById('tInkCol').addEventListener('input', e => customUniforms.tInkColor.value.set(e.target.value));
+        document.getElementById('tSpace').addEventListener('input', e => customUniforms.tSpace.value = parseFloat(e.target.value));
+        document.getElementById('tThick').addEventListener('input', e => customUniforms.tThick.value = parseFloat(e.target.value));
+        document.getElementById('tBright').addEventListener('input', e => customUniforms.tBright.value = parseFloat(e.target.value) / 100);
+        document.getElementById('tAlpha').addEventListener('input', e => customUniforms.tAlpha.value = parseFloat(e.target.value) / 100);
+
+        // Bottom Listeners
+        document.getElementById('bMode').addEventListener('change', e => customUniforms.bMode.value = parseInt(e.target.value));
+        document.getElementById('bInkMode').addEventListener('change', e => {
+            const val = parseInt(e.target.value);
+            customUniforms.bInkMode.value = val;
+            document.getElementById('bBrightRow').classList.toggle('hidden', val === 1);
+            document.getElementById('bColorRow').classList.toggle('hidden', val === 0);
+        });
+        document.getElementById('bInkCol').addEventListener('input', e => customUniforms.bInkColor.value.set(e.target.value));
+        document.getElementById('bSpace').addEventListener('input', e => customUniforms.bSpace.value = parseFloat(e.target.value));
+        document.getElementById('bThick').addEventListener('input', e => customUniforms.bThick.value = parseFloat(e.target.value));
+        document.getElementById('bBright').addEventListener('input', e => customUniforms.bBright.value = parseFloat(e.target.value) / 100);
+        document.getElementById('bAlpha').addEventListener('input', e => customUniforms.bAlpha.value = parseFloat(e.target.value) / 100);
+
+        window.addEventListener('resize', () => {
+            const aspect = window.innerWidth / window.innerHeight;
+            camera.left = -frustumSize * aspect / 2;
+            camera.right = frustumSize * aspect / 2;
+            camera.top = frustumSize / 2;
+            camera.bottom = -frustumSize / 2;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+    </script>
+</body>
+
+</html>

@@ -24,6 +24,8 @@ class MaterialBuilder {
         this.bDitherThick = 1;
         this.bDitherBright = -1.0;
         this.bDitherAlpha = 0.7;
+        this.tInkMode = 'bright';
+        this.bInkMode = 'bright';
         this.materials = [];
         this.onMaterialCreate = null;
     }
@@ -93,6 +95,8 @@ class MaterialBuilder {
     setBDitherThick(val) { this.bDitherThick = val; this.draw(); }
     setBDitherBright(val) { this.bDitherBright = val; this.draw(); }
     setBDitherAlpha(val)   { this.bDitherAlpha   = val; this.draw(); }
+    setTDitherInkMode(mode) { this.tInkMode = mode; this.draw(); }
+    setBDitherInkMode(mode) { this.bInkMode = mode; this.draw(); }
 
     hexToRgb(h) {
         return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
@@ -242,6 +246,7 @@ class MaterialBuilder {
         const dThick       = isTopFace ? this.tDitherThick     : this.bDitherThick;
         const dBright      = isTopFace ? this.tDitherBright    : this.bDitherBright;
         const dAlpha       = isTopFace ? this.tDitherAlpha     : this.bDitherAlpha;
+        const dInkMode     = isTopFace ? this.tInkMode         : this.bInkMode;
 
         if (dMode === 'none') return;
 
@@ -254,7 +259,7 @@ class MaterialBuilder {
         this.ctx.clip();
 
         if (dMode === 'random') {
-            this.drawRandomDither(pts2d, dThick, dSpace, dAlpha, dBright);
+            this.drawRandomDither(pts2d, dThick, dSpace, dAlpha, dBright, dInkMode);
             this.ctx.restore();
             return;
         }
@@ -281,16 +286,26 @@ class MaterialBuilder {
         const drawU = dMode === 'h' || dMode === 'hv';
         const drawV = dMode === 'v' || dMode === 'hv';
 
-        this.drawHatchLines(pts3d, uDir, vDir, fi.origin, this.tileSize, this.tileSize, drawU, drawV, proj, color, hatchLight, dSpace, dThick, dAlpha, dBright);
+        this.drawHatchLines(pts3d, uDir, vDir, fi.origin, this.tileSize, this.tileSize, drawU, drawV, proj, color, hatchLight, dSpace, dThick, dAlpha, dBright, dInkMode);
         this.ctx.restore();
     }
 
-    drawHatchLines(verts3d, uAxis, vAxis, origin3d, uLen, vLen, drawU, drawV, proj, color, light, dSpace, dThick, dAlpha, dBright) {
+    drawHatchLines(verts3d, uAxis, vAxis, origin3d, uLen, vLen, drawU, drawV, proj, color, light, dSpace, dThick, dAlpha, dBright, dInkMode) {
         // Line width & phase are both expressed as fractions of the cell (1.0);
         // this mirrors the shader math in three_iso3.html (scaledUv = uv * 100/space).
         const cellW = Math.max(0.01, dSpace);
         const thickFrac = dThick / cellW; // line-band width as a cell fraction
-        this.ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+        const intensity = Math.abs(dBright);
+        let strokeR = 0, strokeG = 0, strokeB = 0;
+        if (dInkMode === 'color') {
+            strokeR = 255; strokeG = 255; strokeB = 255;
+        } else if (dBright >= 0) {
+            strokeR = 255; strokeG = 255; strokeB = 255;
+        } else {
+            strokeR = 0; strokeG = 0; strokeB = 0;
+        }
+        const strokeA = Math.min(1, dAlpha * intensity * 1.5);
+        this.ctx.strokeStyle = `rgba(${strokeR},${strokeG},${strokeB},${strokeA})`;
         this.ctx.lineWidth   = 1;
 
         if (drawV) {
@@ -339,31 +354,27 @@ class MaterialBuilder {
         }
     }
 
-    drawRandomDither(pts2d, dThick, dSpace, dAlpha, dBright) {
+    drawRandomDither(pts2d, dThick, dSpace, dAlpha, dBright, dInkMode) {
         const minX = Math.min(...pts2d.map(p=>p[0])), maxX = Math.max(...pts2d.map(p=>p[0]));
         const minY = Math.min(...pts2d.map(p=>p[1])), maxY = Math.max(...pts2d.map(p=>p[1]));
         let seed = 0xdeadbeef;
         const rand = () => { seed = (seed*1664525+1013904223)&0xffffffff; return (seed>>>0)/0xffffffff; };
 
-        // In three_iso3.html the shader blends toward white or black based on dBright sign
         const intensity = Math.abs(dBright);
-        if (dBright > 0) {
-            // blend toward white
-            for (let sy = minY; sy < maxY; sy += dThick) {
-                for (let sx = minX; sx < maxX; sx += dThick) {
-                    if (rand() > 0.5)
-                        this.ctx.fillStyle = `rgba(255,255,255,${dAlpha * intensity})`,
-                        this.ctx.fillRect(sx, sy, dThick, dThick);
-                }
-            }
+        const strokeA = dAlpha * intensity;
+        let strokeR = 0, strokeG = 0, strokeB = 0;
+        if (dInkMode === 'color') {
+            strokeR = 255; strokeG = 255; strokeB = 255;
+        } else if (dBright > 0) {
+            strokeR = 255; strokeG = 255; strokeB = 255;
         } else {
-            // blend toward black
-            for (let sy = minY; sy < maxY; sy += dThick) {
-                for (let sx = minX; sx < maxX; sx += dThick) {
-                    if (rand() > 0.5)
-                        this.ctx.fillStyle = `rgba(0,0,0,${dAlpha * intensity})`,
-                        this.ctx.fillRect(sx, sy, dThick, dThick);
-                }
+            strokeR = 0; strokeG = 0; strokeB = 0;
+        }
+        this.ctx.fillStyle = `rgba(${strokeR},${strokeG},${strokeB},${strokeA})`;
+        for (let sy = minY; sy < maxY; sy += dThick) {
+            for (let sx = minX; sx < maxX; sx += dThick) {
+                if (rand() > 0.5)
+                    this.ctx.fillRect(sx, sy, dThick, dThick);
             }
         }
     }
@@ -388,6 +399,8 @@ class MaterialBuilder {
             bDitherThick: this.bDitherThick,
             bDitherBright: this.bDitherBright,
             bDitherAlpha: this.bDitherAlpha,
+            tInkMode: this.tInkMode,
+            bInkMode: this.bInkMode,
             showOutline: this.showOutline,
             imageData: null
         };

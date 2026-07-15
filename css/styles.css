@@ -1971,6 +1971,15 @@ input[type="checkbox"] {
     background: transparent;
 }
 
+/* Hide all settings tab content panels by default; JS adds .active to show one */
+.settings-tab-content {
+    display: none;
+}
+
+.settings-tab-content.active {
+    display: block;
+}
+
 .settings-content {
     padding: 4px 0;
 }

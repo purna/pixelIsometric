@@ -1,0 +1,69 @@
+{
+    "tile_definitions": {
+        "0": { "name": "Empty", "height": -100 },
+        "1": {
+            "name": "Deep Water", "height": 0,
+            "material": { "baseColor": "#1a5276", "colorA": "#2980b9", "colorB": "#154360", "splitY": 0, "materialMode": 0, "tMode": 2, "tInkMode": 0, "tInkColor": "#ffffff", "tSpace": 8, "tThick": 1, "tBright": 1, "tAlpha": 0.4, "bMode": 1, "bInkMode": 0, "bInkColor": "#000000", "bSpace": 4, "bThick": 1, "bBright": -1, "bAlpha": 0.7 }
+        },
+        "2": {
+            "name": "Shallow Water", "height": 0.1,
+            "material": { "baseColor": "#2980b9", "colorA": "#aed6f1", "colorB": "#1a5276", "splitY": 0, "materialMode": 0, "tMode": 2, "tInkMode": 0, "tInkColor": "#ffffff", "tSpace": 6, "tThick": 1, "tBright": 1, "tAlpha": 0.5, "bMode": 0, "bInkMode": 0, "bInkColor": "#000000", "bSpace": 4, "bThick": 1, "bBright": -1, "bAlpha": 0.7 }
+        },
+        "3": {
+            "name": "Wave Crest", "height": 0.2,
+            "material": { "baseColor": "#aed6f1", "colorA": "#eaf2f8", "colorB": "#aed6f1", "splitY": 0, "materialMode": 1, "tMode": 0, "tInkMode": 0, "tInkColor": "#ffffff", "tSpace": 6, "tThick": 1, "tBright": 1, "tAlpha": 0.5, "bMode": 0, "bInkMode": 0, "bInkColor": "#000000", "bSpace": 4, "bThick": 1, "bBright": -1, "bAlpha": 0.7 }
+        },
+        "4": {
+            "name": "Wood Plank", "height": 1,
+            "material": { "baseColor": "#784d2a", "colorA": "#a06c3e", "colorB": "#5f3e21", "splitY": 0, "materialMode": 0, "tMode": 2, "tInkMode": 0, "tInkColor": "#000000", "tSpace": 12, "tThick": 1.5, "tBright": -0.5, "tAlpha": 0.3, "bMode": 1, "bInkMode": 0, "bInkColor": "#000000", "bSpace": 4, "bThick": 1, "bBright": -1, "bAlpha": 0.7 }
+        },
+        "5": {
+            "name": "Wood Railing", "height": 1.5,
+            "material": { "baseColor": "#5f3e21", "colorA": "#784d2a", "colorB": "#493119", "splitY": 0, "materialMode": 0, "tMode": 0, "tInkMode": 0, "tInkColor": "#ffffff", "tSpace": 6, "tThick": 1, "tBright": 1, "tAlpha": 0.5, "bMode": 0, "bInkMode": 0, "bInkColor": "#000000", "bSpace": 4, "bThick": 1, "bBright": -1, "bAlpha": 0.7 }
+        },
+        "6": {
+            "name": "Whale Flesh Wall", "height": 2,
+            "isOccluding": true, "material": { "baseColor": "#4a235a", "colorA": "#633974", "colorB": "#3b1b47", "splitY": 0, "materialMode": 0, "tMode": 1, "tInkMode": 0, "tInkColor": "#d2b4de", "tSpace": 5, "tThick": 1, "tBright": 0.4, "tAlpha": 0.6, "bMode": 1, "bInkMode": 0, "bInkColor": "#000000", "bSpace": 4, "bThick": 1, "bBright": -1, "bAlpha": 0.7 }
+        },
+        "7": {
+            "name": "Bioluminescent Vein", "height": 0.5,
+            "material": { "baseColor": "#d2b4de", "colorA": "#e8daef", "colorB": "#4a235a", "splitY": 0, "materialMode": 0, "tMode": 0, "tInkMode": 0, "tInkColor": "#ffffff", "tSpace": 6, "tThick": 1, "tBright": 1, "tAlpha": 0.5, "bMode": 0, "bInkMode": 0, "bInkColor": "#000000", "bSpace": 4, "bThick": 1, "bBright": -1, "bAlpha": 0.7 }
+        },
+        "8": {
+            "name": "Stomach Acid", "height": 0,
+            "material": { "baseColor": "#82e0aa", "colorA": "#abebc6", "colorB": "#27ae60", "splitY": 0, "materialMode": 0, "tMode": 1, "tInkMode": 0, "tInkColor": "#ffffff", "tSpace": 4, "tThick": 1, "tBright": 1, "tAlpha": 0.3, "bMode": 0, "bInkMode": 0, "bInkColor": "#000000", "bSpace": 4, "bThick": 1, "bBright": -1, "bAlpha": 0.7 }
+        },
+        "9": {
+            "name": "Rib Cage Bone", "height": 1,
+            "material": { "baseColor": "#fdebd0", "colorA": "#fef5e7", "colorB": "#fbeee6", "splitY": 0, "materialMode": 1, "tMode": 0, "tInkMode": 0, "tInkColor": "#ffffff", "tSpace": 6, "tThick": 1, "tBright": 1, "tAlpha": 0.5, "bMode": 0, "bInkMode": 0, "bInkColor": "#000000", "bSpace": 4, "bThick": 1, "bBright": -1, "bAlpha": 0.7 }
+        },
+        "10": {
+            "name": "Sand", "height": 0,
+            "material": { "baseColor": "#f5cba7", "colorA": "#fad7a0", "colorB": "#e59866", "splitY": 0, "materialMode": 0, "tMode": 1, "tInkMode": 0, "tInkColor": "#ffffff", "tSpace": 4, "tThick": 1, "tBright": 0.2, "tAlpha": 0.6, "bMode": 1, "bInkMode": 0, "bInkColor": "#000000", "bSpace": 4, "bThick": 1, "bBright": -1, "bAlpha": 0.7 }
+        },
+        "11": {
+            "name": "Cracked Earth", "height": 0,
+            "material": { "baseColor": "#d35400", "colorA": "#e67e22", "colorB": "#a04000", "splitY": 0, "materialMode": 0, "tMode": 4, "tInkMode": 0, "tInkColor": "#000000", "tSpace": 10, "tThick": 1, "tBright": -0.8, "tAlpha": 0.4, "bMode": 1, "bInkMode": 0, "bInkColor": "#000000", "bSpace": 4, "bThick": 1, "bBright": -1, "bAlpha": 0.7 }
+        },
+        "12": {
+            "name": "Nineveh Cobblestone", "height": 0.2,
+            "material": { "baseColor": "#aab7b8", "colorA": "#bdc3c7", "colorB": "#95a5a6", "splitY": 0, "materialMode": 0, "tMode": 4, "tInkMode": 0, "tInkColor": "#000000", "tSpace": 5, "tThick": 1, "tBright": -0.5, "tAlpha": 0.2, "bMode": 1, "bInkMode": 0, "bInkColor": "#000000", "bSpace": 4, "bThick": 1, "bBright": -1, "bAlpha": 0.7 }
+        },
+        "13": {
+            "name": "Nineveh Wall", "height": 2,
+            "isOccluding": true, "material": { "baseColor": "#99a3a4", "colorA": "#bdc3c7", "colorB": "#7f8c8d", "splitY": 0, "materialMode": 0, "tMode": 4, "tInkMode": 0, "tInkColor": "#000000", "tSpace": 8, "tThick": 2, "tBright": -0.6, "tAlpha": 0.3, "bMode": 1, "bInkMode": 0, "bInkColor": "#000000", "bSpace": 4, "bThick": 1, "bBright": -1, "bAlpha": 0.7 }
+        },
+        "14": {
+            "name": "Nineveh Gate", "height": 2.5,
+            "isOccluding": true, "material": { "baseColor": "#f8c471", "colorA": "#fadf93", "colorB": "#f39c12", "splitY": 0, "materialMode": 0, "tMode": 0, "tInkMode": 0, "tInkColor": "#ffffff", "tSpace": 6, "tThick": 1, "tBright": 1, "tAlpha": 0.5, "bMode": 0, "bInkMode": 0, "bInkColor": "#000000", "bSpace": 4, "bThick": 1, "bBright": -1, "bAlpha": 0.7 }
+        },
+        "15": {
+            "name": "Fertile Soil", "height": 0.1,
+            "material": { "baseColor": "#935116", "colorA": "#af601a", "colorB": "#784212", "splitY": 0, "materialMode": 0, "tMode": 1, "tInkMode": 0, "tInkColor": "#fdebd0", "tSpace": 3, "tThick": 1, "tBright": 0.5, "tAlpha": 0.4, "bMode": 1, "bInkMode": 0, "bInkColor": "#000000", "bSpace": 4, "bThick": 1, "bBright": -1, "bAlpha": 0.7 }
+        }
+    },
+    "tile_size": {
+        "width": 1,
+        "depth": 1
+    }
+}
