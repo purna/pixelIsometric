@@ -1901,3 +1901,22 @@ async function switchTo3d() {
 
 // Export toggle function for UI button
 window.toggle2d3d = toggle2d3d;
+
+window.PixelAIApply_pixelIsometric = (result) => {
+    if (!scene || !layerManager || (typeof currentMode !== 'undefined' && currentMode !== '3d')) throw new Error('Switch to 3D mode before applying an AI scene.');
+    const proposals = result?.objects;
+    if (!Array.isArray(proposals) || !proposals.length) throw new Error('The AI scene contains no objects.');
+    const allowed = new Set(['cube','sphere','cylinder','ramp','wall','building']);
+    const created = [];
+    for (const item of proposals.slice(0, 12)) {
+        if (!item || !allowed.has(item.type)) continue;
+        const pos = Array.isArray(item.position) ? item.position : [0,0,0];
+        const scale = Array.isArray(item.scale) ? item.scale : [1,1,1];
+        const object = objectManager.createObject(item.type, { name: String(item.name || `AI ${item.type}`).slice(0,60), position: { x: Number(pos[0])||0, y: Number(pos[1])||0, z: Number(pos[2])||0 }, scale: { x: Number(scale[0])||1, y: Number(scale[1])||1, z: Number(scale[2])||1 } });
+        if (item.color && /^#[0-9a-f]{6}$/i.test(item.color)) object.traverse?.(child => { if (child.material?.color) child.material.color.set(item.color); });
+        scene.add(object); objects.push(object); layerManager.addObjectToCurrentLayer(object); created.push(object);
+    }
+    if (!created.length) throw new Error('The AI scene had no supported object types.');
+    selectedObject = created[created.length - 1];
+    updateSelectionOutlines(); updateObjectDropdown(); updatePropertiesPanel(); updateSceneObjectsList();
+};
