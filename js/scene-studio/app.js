@@ -9,6 +9,28 @@ const designerCtx = designerPreview.getContext('2d');
 
 const LAYER_RANK = { ground: 0, structure: 1, decoration: 2, collider: 3 };
 
+const SHAPE_GROUPS = [
+  { name: 'Surfaces', shapes: [
+    { id: 'cube', label: 'Cube', icon: '<svg viewBox="0 0 24 20"><polygon points="12,2 22,7 12,12 2,7" fill="currentColor" opacity=".9"/><polygon points="2,7 12,12 12,19 2,14" fill="currentColor" opacity=".55"/><polygon points="22,7 12,12 12,19 22,14" fill="currentColor" opacity=".35"/></svg>' },
+    { id: 'plane', label: 'Plane', icon: '<svg viewBox="0 0 24 20"><polygon points="12,5 22,10 12,15 2,10" fill="currentColor" opacity=".8"/></svg>' },
+  ]},
+  { name: 'Structures', shapes: [
+    { id: 'ramp', label: 'Ramp', icon: '<svg viewBox="0 0 24 20"><polygon points="2,16 22,16 22,6 2,11" fill="currentColor" opacity=".75"/></svg>' },
+    { id: 'arch', label: 'Arch', icon: '<svg viewBox="0 0 24 20"><path d="M3 18V9a9 9 0 0 1 18 0v9h-4V9a5 5 0 0 0-10 0v9z" fill="currentColor" opacity=".8"/></svg>' },
+    { id: 'pillar', label: 'Pillar', icon: '<svg viewBox="0 0 24 20"><rect x="8" y="3" width="8" height="14" fill="currentColor" opacity=".8"/><rect x="6" y="2" width="12" height="3" fill="currentColor"/></svg>' },
+    { id: 'wall', label: 'Wall', icon: '<svg viewBox="0 0 24 20"><rect x="3" y="4" width="18" height="13" fill="currentColor" opacity=".55"/><path d="M3 8h18M3 12h18M8 4v4M15 4v4M6 12v5M17 12v5" stroke="#0008"/></svg>' },
+    { id: 'stairs', label: 'Stairs', icon: '<svg viewBox="0 0 24 20"><path d="M3 17h5v-4h5V9h5V5h3v12H3z" fill="currentColor" opacity=".75"/></svg>' },
+    { id: 'roof', label: 'Roof', icon: '<svg viewBox="0 0 24 20"><polygon points="12,2 22,17 2,17" fill="currentColor" opacity=".8"/><path d="M12 2v15" stroke="#0006"/></svg>' },
+  ]},
+  { name: 'Complex', shapes: [
+    { id: 'bridge', label: 'Bridge', icon: '<svg viewBox="0 0 24 20"><path d="M2 14h20M5 14V9m14 5V9M2 9c3-5 17-5 20 0" fill="none" stroke="currentColor" stroke-width="2"/></svg>' },
+    { id: 'tower', label: 'Tower', icon: '<svg viewBox="0 0 24 20"><path d="M7 18V6h10v12M7 6V3h3v3m4-3v3m3-3v3" fill="none" stroke="currentColor" stroke-width="2"/></svg>' },
+    { id: 'gate', label: 'Gate', icon: '<svg viewBox="0 0 24 20"><path d="M4 18V8h4v10M16 18V8h4v10M8 8h8v3H8z" fill="currentColor" opacity=".75"/></svg>' },
+    { id: 'fence', label: 'Fence', icon: '<svg viewBox="0 0 24 20"><path d="M3 17V6m6 11V6m6 11V6m6 11V6M3 10h18M3 14h18" stroke="currentColor" stroke-width="2"/></svg>' },
+  ]},
+];
+
+
 let library = loadLibrary();
 let selectedTileId = library.tiles[0]?.id || null;
 let selectedGroupId = library.tiles[0]?.groupId || library.groups[0]?.id || null;
@@ -41,6 +63,10 @@ function loadLibrary() {
     if (saved && Array.isArray(saved.tiles) && saved.tiles.length) {
       saved.groups = Array.isArray(saved.groups) && saved.groups.length ? saved.groups : clone(DEFAULT_GROUPS);
       saved.tiles = saved.tiles.map(tile => normalizeTile(tile));
+      const groupIds = new Set(saved.groups.map(g => g.id));
+      DEFAULT_GROUPS.forEach(g => { if (!groupIds.has(g.id)) saved.groups.push(clone(g)); });
+      const tileIds = new Set(saved.tiles.map(t => t.id));
+      DEFAULT_TILES.forEach(t => { if (!tileIds.has(t.id)) saved.tiles.push(normalizeTile(clone(t))); });
       return saved;
     }
   } catch (_) {}
@@ -143,16 +169,49 @@ function renderGroups() {
 function renderPalette() {
   const holder = $('palette');
   holder.innerHTML = '';
-  library.tiles.forEach(tile => {
-    normalizeTile(tile);
-    const b = document.createElement('button');
-    b.className = 'tile' + (tile.id === selectedTileId ? ' active' : '');
-    b.dataset.id = tile.id;
-    b.title = `${tile.name} · ${library.groups.find(g => g.id === tile.groupId)?.name || 'Ungrouped'}`;
-    b.style.background = `linear-gradient(135deg,${tile.top},${tile.bottom})`;
-    b.innerHTML = `<i style="background-image:url(${tilePreviewURL(tile)});background-size:cover"></i>${tile.name}`;
-    b.onclick = () => selectTile(tile.id);
-    holder.appendChild(b);
+  library.groups.forEach(group => {
+    const tiles = groupTiles(group.id);
+    if (!tiles.length) return;
+    const section = document.createElement('div');
+    section.className = 'palette-group';
+    section.innerHTML = `<h3>${group.name}</h3>`;
+    const grid = document.createElement('div');
+    grid.className = 'palette';
+    tiles.forEach(tile => {
+      normalizeTile(tile);
+      const b = document.createElement('button');
+      b.className = 'tile' + (tile.id === selectedTileId ? ' active' : '');
+      b.dataset.id = tile.id;
+      b.title = `${tile.name} · ${group.name}`;
+      b.style.background = `linear-gradient(135deg,${tile.top},${tile.bottom})`;
+      b.innerHTML = `<i style="background-image:url(${tilePreviewURL(tile)});background-size:cover"></i>${tile.name}`;
+      b.onclick = () => selectTile(tile.id);
+      grid.appendChild(b);
+    });
+    section.appendChild(grid);
+    holder.appendChild(section);
+  });
+}
+
+function renderShapes() {
+  const holder = $('shapes');
+  if (!holder) return;
+  holder.innerHTML = '';
+  SHAPE_GROUPS.forEach(group => {
+    const wrap = document.createElement('div');
+    wrap.className = 'shape-group';
+    wrap.innerHTML = `<div class="shape-group-label">${group.name}</div>`;
+    const grid = document.createElement('div');
+    grid.className = 'shape-grid';
+    group.shapes.forEach(shape => {
+      const b = document.createElement('button');
+      b.className = 'shape-btn' + (shape.id === activeShape ? ' active' : '');
+      b.dataset.shape = shape.id;
+      b.innerHTML = `<span class="shape-icon">${shape.icon}</span><span>${shape.label}</span>`;
+      grid.appendChild(b);
+    });
+    wrap.appendChild(grid);
+    holder.appendChild(wrap);
   });
 }
 
@@ -233,7 +292,7 @@ function drawDesignerPreview() {
   for (let x = -h; x < w + h; x += 18) {
     designerCtx.beginPath(); designerCtx.moveTo(x, h); designerCtx.lineTo(x + h, 0); designerCtx.stroke();
   }
-  const cx = w / 2, cy = h * 0.52, s = 38, body = s * 0.56;
+  const cx = w / 2, cy = h * 0.5, s = Math.min(58, w * 0.2), body = s * 0.56;
   const top = [[cx, cy - s * 0.5], [cx + s, cy], [cx, cy + s * 0.5], [cx - s, cy]];
   const left = [[cx - s, cy], [cx, cy + s * 0.5], [cx, cy + s * 0.5 + body], [cx - s, cy + body]];
   const right = [[cx, cy + s * 0.5], [cx + s, cy], [cx + s, cy + body], [cx, cy + s * 0.5 + body]];
@@ -383,6 +442,16 @@ function toggleCollider(kind, x, y, z) {
   else state.colliders.push({ kind, x, y, z });
 }
 
+function addEdgeCollider(cell) {
+  const c = { kind: 'edge', x: cell.x, y: cell.y, z: activeHeight, toX: cell.x, toY: cell.y, toZ: activeHeight };
+  if (colliderTool === 'edge-x') c.toX = cell.x + 1;
+  else if (colliderTool === 'edge-y') c.toY = cell.y + 1;
+  else if (colliderTool === 'edge-z') c.toZ = activeHeight + 1;
+  state.colliders.push(c);
+  commit();
+  draw();
+}
+
 function paint(cell, erase = false) {
   const radius = (Number($('brush').value) - 1) / 2;
   const minX = Math.floor(cell.x - radius), maxX = Math.ceil(cell.x + radius);
@@ -445,10 +514,66 @@ function drawTile(tile, alpha = 1) {
   const p = iso(tile.x, tile.y, tile.z);
   const s = p.scale;
   const shape = tile.shape || 'cube';
-  const h = s * (shape === 'plane' ? 0 : shape === 'pillar' ? 1.25 : 0.56);
+  const h = s * (shape === 'plane' ? 0 : shape === 'pillar' ? 1.25 : shape === 'wall' ? 1.05 : shape === 'tower' ? 1.65 : shape === 'gate' ? 0.85 : shape === 'stairs' ? 0.8 : shape === 'bridge' ? 0.28 : shape === 'fence' ? 0.38 : 0.56);
   const top = [[p.x, p.y - s * 0.5], [p.x + s, p.y], [p.x, p.y + s * 0.5], [p.x - s, p.y]];
   const left = [[p.x - s, p.y], [p.x, p.y + s * 0.5], [p.x, p.y + s * 0.5 + h], [p.x - s, p.y + h]];
   const right = [[p.x, p.y + s * 0.5], [p.x + s, p.y], [p.x + s, p.y + h], [p.x, p.y + s * 0.5 + h]];
+
+  if (shape === 'plane') {
+    drawTextureQuad(ctx, top, faceTexture(data, 'top'), alpha);
+    return;
+  }
+
+  if (shape === 'bridge') {
+    const topLift = s * 0.32;
+    const bridgeTop = top.map(([x, y]) => [x, y - topLift]);
+    ctx.strokeStyle = 'rgba(0,0,0,.45)';
+    ctx.fillStyle = 'rgba(0,0,0,.18)';
+    ctx.beginPath(); ctx.moveTo(bridgeTop[0][0], bridgeTop[0][1]); bridgeTop.slice(1).forEach(pt => ctx.lineTo(pt[0], pt[1])); ctx.closePath(); ctx.fill();
+    drawTextureQuad(ctx, bridgeTop, faceTexture(data, 'top'), alpha);
+    ctx.strokeStyle = '#6e552f';
+    ctx.lineWidth = Math.max(1, s * 0.08);
+    ctx.beginPath(); ctx.moveTo(bridgeTop[3][0], bridgeTop[3][1] - s * 0.16); ctx.lineTo(bridgeTop[2][0], bridgeTop[2][1] - s * 0.16); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bridgeTop[0][0], bridgeTop[0][1]); ctx.lineTo(bridgeTop[1][0], bridgeTop[1][1]); ctx.stroke();
+    ctx.lineWidth = 1;
+    return;
+  }
+
+  if (shape === 'fence') {
+    ctx.strokeStyle = '#5b4428';
+    ctx.lineWidth = Math.max(1, s * 0.06);
+    const posts = [top[0], top[1], top[2], top[3], [p.x, p.y]];
+    posts.forEach(pt => {
+      ctx.beginPath(); ctx.moveTo(pt[0], pt[1]); ctx.lineTo(pt[0], pt[1] + s * 0.42); ctx.stroke();
+    });
+    ctx.beginPath(); ctx.moveTo(top[0][0], top[0][1] + s * 0.18); ctx.lineTo(top[2][0], top[2][1] + s * 0.18); ctx.stroke();
+    ctx.lineWidth = 1;
+    return;
+  }
+
+  if (shape === 'ramp') {
+    const lowLeft = [p.x - s, p.y];
+    const lowRight = [p.x + s, p.y];
+    const highRight = [p.x + s, p.y - s * 0.55];
+    const highLeft = [p.x - s, p.y - s * 0.55];
+    drawTextureTri(ctx, [[p.x - s, p.y], [p.x, p.y + s * 0.5], [p.x, p.y + s * 0.5 + h]], faceTexture(data, 'left'), alpha);
+    drawTextureTri(ctx, [[p.x, p.y + s * 0.5], [p.x + s, p.y], [p.x, p.y + s * 0.5 + h]], faceTexture(data, 'right'), alpha);
+    drawTextureQuad(ctx, [lowLeft, lowRight, highRight, highLeft], faceTexture(data, 'top'), alpha);
+    return;
+  }
+
+  if (shape === 'roof') {
+    const apex = [p.x, p.y - s * 0.95];
+    const topV = [p.x, p.y - s * 0.5];
+    const rightV = [p.x + s, p.y];
+    const bottomV = [p.x, p.y + s * 0.5];
+    const leftV = [p.x - s, p.y];
+    drawTextureTri(ctx, [leftV, bottomV, apex], faceTexture(data, 'left'), alpha);
+    drawTextureTri(ctx, [bottomV, rightV, apex], faceTexture(data, 'right'), alpha);
+    drawTextureTri(ctx, [rightV, topV, apex], faceTexture(data, 'right'), alpha);
+    drawTextureTri(ctx, [topV, leftV, apex], faceTexture(data, 'left'), alpha);
+    return;
+  }
 
   if (shape !== 'plane') {
     drawTextureQuad(ctx, left, faceTexture(data, 'left'), alpha);
@@ -456,18 +581,45 @@ function drawTile(tile, alpha = 1) {
   }
   drawTextureQuad(ctx, top, faceTexture(data, 'top'), alpha);
 
-  if (shape === 'ramp') {
-    ctx.strokeStyle = 'rgba(255,255,255,.55)';
-    ctx.beginPath(); ctx.moveTo(p.x - s, p.y); ctx.lineTo(p.x, p.y - s * 0.5); ctx.lineTo(p.x + s, p.y); ctx.stroke();
-  }
-  if (shape === 'arch') {
+  if (shape === 'arch' || shape === 'gate') {
+    const ax = p.x - s * 0.16, ay = p.y + s * 0.28, aw = s * 0.36, ah = h * 0.72;
     ctx.fillStyle = '#17171c';
-    ctx.beginPath(); ctx.ellipse(p.x, p.y + s * 0.63, s * 0.23, s * 0.19, 0, Math.PI, Math.PI * 2); ctx.lineTo(p.x + s * 0.23, p.y + s * 0.63 + h * 0.55); ctx.lineTo(p.x - s * 0.23, p.y + s * 0.63 + h * 0.55); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(ax - aw / 2, ay + ah);
+    ctx.lineTo(ax - aw / 2, ay + aw / 2);
+    ctx.arc(ax, ay + aw / 2, aw / 2, Math.PI, 0);
+    ctx.lineTo(ax + aw / 2, ay + ah);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.18)';
+    ctx.stroke();
   }
-  if (shape === 'pillar') {
-    ctx.strokeStyle = 'rgba(255,255,255,.38)';
+
+  if (shape === 'stairs') {
+    ctx.strokeStyle = 'rgba(0,0,0,.38)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i <= 3; i++) {
+      const yy = p.y + s * 0.5 + (h * i) / 3;
+      ctx.beginPath(); ctx.moveTo(p.x - s, p.y + (h * i) / 3); ctx.lineTo(p.x, yy); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(p.x, yy); ctx.lineTo(p.x + s, p.y + (h * i) / 3); ctx.stroke();
+    }
+  }
+
+  if (shape === 'tower') {
+    ctx.strokeStyle = 'rgba(0,0,0,.35)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i <= 3; i++) {
+      const yy = p.y - s * 0.5 + (s * 1.65 * i) / 4;
+      ctx.beginPath(); ctx.moveTo(p.x, yy); ctx.lineTo(p.x + s, yy + s * 0.5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(p.x, yy); ctx.lineTo(p.x - s, yy + s * 0.5); ctx.stroke();
+    }
+  }
+
+  if (shape === 'pillar' || shape === 'wall' || shape === 'tower') {
+    ctx.strokeStyle = 'rgba(255,255,255,.22)';
     ctx.beginPath(); ctx.moveTo(p.x, p.y - s * 0.5); ctx.lineTo(p.x, p.y + s * 0.5 + h); ctx.stroke();
   }
+
   if (tile.id === 'water') {
     ctx.globalAlpha = alpha * 0.35;
     ctx.strokeStyle = '#e8ffff';
@@ -506,7 +658,7 @@ function draw() {
     ctx.fillStyle = 'rgba(78,255,145,.12)';
     ctx.lineWidth = 2;
     if (c.kind === 'edge') {
-      const b = iso(c.toX, c.toY, c.z || 0);
+      const b = iso(c.toX, c.toY, c.toZ ?? c.z ?? 0);
       ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
     } else {
       const z = c.z || 0;
@@ -523,13 +675,50 @@ function draw() {
   });
 
   if (pointer) {
-    const p = iso(pointer.x, pointer.y, activeHeight), s = p.scale;
-    ctx.strokeStyle = tool === 'erase' ? '#d76670' : '#4eff91';
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(p.x, p.y - s * 0.5); ctx.lineTo(p.x + s, p.y); ctx.lineTo(p.x, p.y + s * 0.5); ctx.lineTo(p.x - s, p.y); ctx.closePath(); ctx.stroke();
-    ctx.lineWidth = 1;
+    if (activeLayer === 'collider') drawColliderGhost();
+    else {
+      const p = iso(pointer.x, pointer.y, activeHeight), s = p.scale;
+      ctx.strokeStyle = tool === 'erase' ? '#d76670' : '#4eff91';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(p.x, p.y - s * 0.5); ctx.lineTo(p.x + s, p.y); ctx.lineTo(p.x, p.y + s * 0.5); ctx.lineTo(p.x - s, p.y); ctx.closePath(); ctx.stroke();
+      ctx.lineWidth = 1;
+    }
   }
   updateHud();
+}
+
+function drawColliderGhost() {
+  const z = activeHeight;
+  const p = iso(pointer.x, pointer.y, z);
+  const s = p.scale;
+  ctx.save();
+  ctx.strokeStyle = '#4eff91';
+  ctx.setLineDash([4, 3]);
+  ctx.lineWidth = 2;
+
+  const top = [[p.x, p.y - s * 0.5], [p.x + s, p.y], [p.x, p.y + s * 0.5], [p.x - s, p.y]];
+  const left = [[p.x - s, p.y], [p.x, p.y + s * 0.5], [p.x, p.y + s * 0.5 + s * 0.56], [p.x - s, p.y + s * 0.56]];
+  const right = [[p.x, p.y + s * 0.5], [p.x + s, p.y], [p.x + s, p.y + s * 0.56], [p.x, p.y + s * 0.5 + s * 0.56]];
+
+  if (colliderTool === 'left') polyPath(left);
+  else if (colliderTool === 'right') polyPath(right);
+  else if (colliderTool === 'top' || colliderTool === 'tile') {
+    ctx.beginPath(); ctx.moveTo(p.x, p.y - s * 0.5); ctx.lineTo(p.x + s, p.y); ctx.lineTo(p.x, p.y + s * 0.5); ctx.lineTo(p.x - s, p.y); ctx.closePath(); ctx.stroke();
+  } else if (colliderTool === 'edge-x') lineGhost(p, iso(pointer.x + 1, pointer.y, z));
+  else if (colliderTool === 'edge-y') lineGhost(p, iso(pointer.x, pointer.y + 1, z));
+  else if (colliderTool === 'edge-z') lineGhost(p, iso(pointer.x, pointer.y, z + 1));
+
+  ctx.restore();
+}
+
+function polyPath(points) {
+  ctx.beginPath(); ctx.moveTo(points[0].x, points[0].y);
+  points.slice(1).forEach(pt => ctx.lineTo(pt.x, pt.y));
+  ctx.closePath(); ctx.stroke();
+}
+
+function lineGhost(a, b) {
+  ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
 }
 
 function updateHud() {
@@ -567,14 +756,9 @@ canvas.addEventListener('pointerdown', e => {
   const cell = pointCellFromEvent(e);
   drawing = true;
   lastPaint = '';
-  if (activeLayer === 'collider' && colliderTool === 'edge' && e.button === 0) {
-    if (edgeStart) {
-      state.colliders.push({ kind: 'edge', x: edgeStart.x, y: edgeStart.y, toX: cell.x, toY: cell.y, z: activeHeight });
-      edgeStart = null;
-      commit();
-    } else edgeStart = { ...cell };
+  if (activeLayer === 'collider' && colliderTool.startsWith('edge-') && e.button === 0) {
+    addEdgeCollider(cell);
     drawing = false;
-    draw();
     return;
   }
   if (e.button === 2 || tool === 'erase') paint(cell, true);
@@ -616,6 +800,7 @@ $('layers').addEventListener('click', e => {
   const b = e.target.closest('[data-layer]'); if (!b) return;
   activeLayer = b.dataset.layer;
   document.querySelectorAll('[data-layer]').forEach(x => x.classList.toggle('active', x === b));
+  syncLayerOptions();
   draw();
 });
 $('colliderTools').addEventListener('click', e => {
@@ -734,6 +919,14 @@ function syncToolUI() {
   document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
   document.querySelectorAll('[data-shape]').forEach(b => b.classList.toggle('active', b.dataset.shape === activeShape));
   canvas.style.cursor = tool === 'fill' ? 'cell' : tool === 'erase' ? 'not-allowed' : 'crosshair';
+  syncLayerOptions();
+}
+
+function syncLayerOptions() {
+  const tileOptions = $('tileOptions');
+  const colliderOptions = $('colliderTools');
+  if (tileOptions) tileOptions.style.display = activeLayer === 'collider' ? 'none' : 'block';
+  if (colliderOptions) colliderOptions.style.display = activeLayer === 'collider' ? 'grid' : 'none';
 }
 
 addEventListener('keydown', e => {
@@ -749,6 +942,7 @@ addEventListener('resize', draw);
 renderInputs();
 renderGroups();
 renderPalette();
+renderShapes();
 syncToolUI();
 if (selectedTileId) loadDesignerFromTile(getTile(selectedTileId));
 drawDesignerPreview();

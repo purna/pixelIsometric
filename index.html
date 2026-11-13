@@ -25,22 +25,15 @@
     <aside class="sidebar">
       <section class="section">
         <h2>Tile Painting</h2>
+        <div id="tileOptions">
         <div class="button-grid three" id="tools">
           <button data-tool="brush" class="active">Paint</button>
           <button data-tool="erase">Erase</button>
           <button data-tool="fill">Fill</button>
         </div>
-        <div class="row"><label>Shape</label><div class="button-grid" id="shapes">
-          <button data-shape="cube" class="active">Cube</button>
-          <button data-shape="plane">Plane</button>
-          <button data-shape="ramp">Ramp</button>
-          <button data-shape="arch">Arch</button>
-          <button data-shape="pillar">Pillar</button>
-          <button data-shape="wall">Wall</button>
-          <button data-shape="stairs">Stairs</button>
-          <button data-shape="roof">Roof</button>
-        </div></div>
+        <div id="shapes"></div>
         <div class="row"><label>Brush size</label><input id="brush" type="range" min="1" max="5" step="2" value="1"><span class="value" id="brushValue">1×1</span></div>
+        </div>
         <div class="row"><label>Height</label><button id="heightDown">−</button><span class="value" id="heightValue">0</span><button id="heightUp">+</button></div>
         <p class="hint">Drag to paint. Right-click erases. Painting outside the current canvas grows it automatically.</p>
       </section>
@@ -52,7 +45,15 @@
           <button data-layer="structure">Structure</button>
           <button data-layer="ground" class="active">Ground</button>
         </div>
-        <div class="button-grid" id="colliderTools"><button data-collider="top" class="active">Top face</button><button data-collider="left">Left face</button><button data-collider="right">Right face</button><button data-collider="tile">Tile</button><button data-collider="edge">Line edge</button></div>
+        <div class="button-grid" id="colliderTools" style="display:none">
+          <button data-collider="top" class="active">▰ Top</button>
+          <button data-collider="left">◧ Left</button>
+          <button data-collider="right">◨ Right</button>
+          <button data-collider="tile">▦ Tile</button>
+          <button data-collider="edge-x">─ X edge</button>
+          <button data-collider="edge-y">│ Y edge</button>
+          <button data-collider="edge-z">↕ Z edge</button>
+        </div>
         <p class="hint">Layer order top → bottom: Collider, Decoration, Structure, Ground. Colliders export separately.</p>
       </section>
       <section class="section"><h2>Tile Library</h2><div id="palette" class="palette"></div><p class="hint">Select a tile to load it into the designer.</p></section>

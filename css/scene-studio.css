@@ -21,3 +21,13 @@
 .sidebar.right .designer .preview-wrap{position:sticky;top:0;z-index:20;background:var(--panel);padding:0 0 8px;margin-top:-4px}
 .sidebar.right .designer .preview-wrap .preview{height:190px}
 .preview-wrap .preview{image-rendering:pixelated}
+.shape-group{margin:8px 0 10px}
+.shape-group-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 5px 2px}
+.shape-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:5px}
+.shape-btn{display:flex;align-items:center;gap:6px;padding:6px;font-size:10px;text-align:left;background:#0f0f14;border:1px solid var(--line);border-radius:4px;color:var(--ink)}
+.shape-btn:hover{border-color:var(--accent);color:#fff}
+.shape-btn.active{border-color:var(--accent);background:#14342f;color:var(--accent)}
+.shape-btn .shape-icon{width:24px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.shape-btn .shape-icon svg{width:22px;height:18px;display:block}
+.palette-group{margin-bottom:12px}
+.palette-group h3{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 6px;padding-bottom:4px;border-bottom:1px solid var(--line)}
