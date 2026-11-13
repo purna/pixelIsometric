@@ -1,0 +1,944 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Scene Studio — Structures</title>
+<style>
+:root{--bg:#0d0d10;--panel:#111115;--line:#2a2a38;--ink:#a0a0c0;--muted:#616174;--accent:#3ecfb2}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:12px Inter,system-ui,-apple-system,Segoe UI,sans-serif}
+.wrap{padding:14px;display:grid;gap:12px;justify-items:start}
+.brand{font:700 12px 'Press Start 2P',ui-monospace,monospace;color:var(--accent);letter-spacing:.03em}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+button{font:inherit;background:#0f0f14;color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:7px 10px;cursor:pointer}
+button:hover,button.active{border-color:var(--accent);color:#fff}
+button.active{background:#14342f;color:var(--accent)}
+label{color:var(--muted)}
+input[type=range]{accent-color:var(--accent);vertical-align:middle}
+.value{color:var(--accent);display:inline-block;min-width:28px;text-align:right}
+.sub{color:var(--muted)}
+.hint{color:var(--muted);line-height:1.5;margin:0;max-width:720px}
+#sheet{max-width:100%;height:auto;border:1px solid var(--line);border-radius:4px;background:#0d0d10;image-rendering:pixelated}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">STRUCTURES</div>
+  <div class="bar">
+    <button id="rotCCW">&#10226; Rotate</button>
+    <button id="rotCW">Rotate &#10227;</button>
+    <button id="mirror">Mirror</button>
+    <label><input id="with90" type="checkbox" checked> Show 90&deg; versions</label>
+    <label>Scale <input id="scale" type="range" min="24" max="56" value="38"></label><span class="value" id="scaleV">38</span>
+    <span class="sub" id="state">rot 0&deg; &middot; no mirror</span>
+  </div>
+  <canvas id="sheet"></canvas>
+  <p class="hint">Every structure fits one 1&times;1 cell. Rotate and Mirror re-orient the whole sheet. Self-contained: tiles, textures and structures are all inlined, so this file works when opened directly.</p>
+</div>
+<script>
+
+/* ── config.js ── */
+const LIBRARY_STORAGE = 'pixelIsometric.sceneStudio.library.v2';
+const SCENE_STORAGE = 'pixelIsometric.sceneStudio.scene.v1';
+const TEXTURE_SIZE = 40;
+
+const dither = (mode = 'solid', ink = 'bright', bright = 60, space = 45, thick = 30, blend = 65, blendMode = 'source-over') => ({
+  mode, ink, bright, space, thick, blend, blendMode,
+});
+
+const DEFAULT_SETS = [
+  { id: 'classic', name: 'Classic' },
+  { id: 'desert', name: 'Desert' },
+  { id: 'snow', name: 'Snow' },
+  { id: 'jungle', name: 'Jungle' },
+  { id: 'town', name: 'Town' },
+];
+
+const DEFAULT_GROUPS = [
+  { id: 'terrain', name: 'Terrain', setId: 'classic' },
+  { id: 'brick', name: 'Brick & Paving', setId: 'classic' },
+  { id: 'roofs', name: 'Roof Systems', setId: 'classic' },
+  { id: 'walls', name: 'Walls & Steps', setId: 'classic' },
+  { id: 'structures', name: 'Structures', setId: 'classic' },
+  { id: 'details', name: 'Details', setId: 'classic' },
+  { id: 'desert-ground', name: 'Desert Ground', setId: 'desert' },
+  { id: 'desert-build', name: 'Desert Build', setId: 'desert' },
+  { id: 'snow-ground', name: 'Snow Ground', setId: 'snow' },
+  { id: 'snow-build', name: 'Snow Build', setId: 'snow' },
+  { id: 'jungle-ground', name: 'Jungle Ground', setId: 'jungle' },
+  { id: 'jungle-build', name: 'Jungle Build', setId: 'jungle' },
+  { id: 'town-ground', name: 'Town Ground', setId: 'town' },
+  { id: 'town-stone', name: 'Town Stonework', setId: 'town' },
+  { id: 'town-walls', name: 'Town Walls', setId: 'town' },
+  { id: 'town-roofs', name: 'Town Roofs', setId: 'town' },
+  { id: 'town-props', name: 'Town Props', setId: 'town' },
+];
+
+const tile = (id, name, groupId, top, bottom, split, topDither, bottomDither) => ({
+  id, name, groupId, top, bottom, split, topDither, bottomDither,
+});
+
+const DEFAULT_TILES = [
+  tile('grass', 'Grass', 'terrain', '#6eaa5a', '#355d3a', 58,
+    dither('noise', 'bright', 72, 42, 32, 68), dither('noise', 'dark', 58, 42, 32, 68)),
+  tile('stone', 'Stone', 'terrain', '#a7adb3', '#5b646b', 52,
+    dither('crosshatch', 'bright', 66, 38, 28, 64), dither('lines', 'dark', 54, 34, 24, 60)),
+  tile('water', 'Water', 'terrain', '#5db3d5', '#24618a', 62,
+    dither('lines', 'bright', 58, 28, 22, 55), dither('solid', 'dark', 45, 45, 30, 55)),
+  tile('sand', 'Sand', 'terrain', '#e5c77b', '#9b7339', 48,
+    dither('dots', 'bright', 62, 38, 30, 62), dither('noise', 'dark', 50, 45, 35, 60)),
+  tile('snow', 'Snow', 'terrain', '#eff6fb', '#9fb6c6', 68,
+    dither('noise', 'bright', 70, 45, 28, 58), dither('solid', 'dark', 40, 45, 30, 55)),
+  tile('lava', 'Lava', 'terrain', '#ec713f', '#7c1f1b', 60,
+    dither('crosshatch', 'bright', 78, 34, 30, 74), dither('noise', 'dark', 60, 42, 34, 72)),
+  tile('dirt', 'Dirt', 'terrain', '#8a6a46', '#4c3524', 55,
+    dither('random', 'bright', 55, 48, 36, 62), dither('noise', 'dark', 48, 45, 34, 64)),
+
+  tile('brick-red', 'Red Brick', 'brick', '#b5564a', '#5d2c2b', 50,
+    dither('brick', 'bright', 62, 38, 28, 70, 'multiply'), dither('brick', 'dark', 50, 38, 28, 70, 'multiply')),
+  tile('brick-pale', 'Pale Brick', 'brick', '#c9b48e', '#7d674a', 52,
+    dither('brick', 'bright', 58, 42, 26, 66, 'overlay'), dither('brick', 'dark', 48, 42, 26, 66, 'multiply')),
+  tile('paving', 'Paving', 'brick', '#8c8f96', '#4e5359', 55,
+    dither('paving', 'bright', 64, 34, 30, 68, 'overlay'), dither('paving', 'dark', 52, 36, 28, 66, 'multiply')),
+  tile('cobble', 'Cobblestone', 'brick', '#9aa2a8', '#596267', 48,
+    dither('checker', 'bright', 60, 26, 34, 70, 'soft-light'), dither('noise', 'dark', 50, 40, 32, 64, 'multiply')),
+
+  tile('roof', 'Roof Tiles', 'roofs', '#9f4150', '#53242f', 46,
+    dither('lines', 'bright', 62, 30, 26, 66, 'overlay'), dither('crosshatch', 'dark', 55, 34, 24, 64, 'multiply')),
+  tile('roof-slate', 'Slate Roof', 'roofs', '#596a7b', '#2a3440', 50,
+    dither('weave', 'bright', 55, 30, 26, 72, 'overlay'), dither('weave', 'dark', 48, 30, 26, 72, 'multiply')),
+  tile('roof-terracotta', 'Terracotta Roof', 'roofs', '#b85a48', '#6a2e27', 50,
+    dither('lines', 'bright', 58, 22, 30, 72, 'overlay'), dither('crosshatch', 'dark', 45, 32, 24, 68, 'multiply')),
+
+  tile('wall', 'Painted Wall', 'walls', '#d6b66a', '#7d6631', 58,
+    dither('solid', 'bright', 50, 40, 30, 55), dither('lines', 'dark', 50, 36, 24, 60)),
+  tile('wall-plaster', 'Plaster Wall', 'walls', '#d6c89f', '#7b6f4f', 66,
+    dither('noise', 'bright', 46, 50, 30, 55, 'soft-light'), dither('lines', 'dark', 42, 34, 22, 60, 'multiply')),
+  tile('wall-stone', 'Stone Wall', 'walls', '#a7b0b4', '#546066', 52,
+    dither('brick', 'bright', 62, 40, 28, 68, 'overlay'), dither('paving', 'dark', 48, 38, 30, 64, 'multiply')),
+  tile('steps', 'Stone Steps', 'walls', '#b1b6b8', '#5c6367', 48,
+    dither('lines', 'bright', 56, 28, 32, 66, 'overlay'), dither('brick', 'dark', 46, 40, 26, 64, 'multiply')),
+
+  tile('brick', 'Brick', 'structures', '#c97259', '#7c3429', 56,
+    dither('lines', 'bright', 64, 35, 30, 68), dither('crosshatch', 'dark', 52, 38, 26, 65)),
+  tile('wood', 'Wood', 'structures', '#b88955', '#63432a', 54,
+    dither('lines', 'bright', 58, 32, 24, 62), dither('lines', 'dark', 48, 32, 24, 62)),
+  tile('metal', 'Metal', 'details', '#8d99a6', '#48515a', 50,
+    dither('crosshatch', 'bright', 68, 36, 26, 62), dither('dots', 'dark', 48, 42, 30, 58)),
+
+  tile('desert-sand', 'Desert Sand', 'desert-ground', '#e0b96e', '#9a6a32', 50,
+    dither('dots', 'bright', 58, 38, 30, 60), dither('noise', 'dark', 48, 44, 32, 62)),
+  tile('sandstone', 'Sandstone', 'desert-build', '#c89b62', '#79562f', 55,
+    dither('brick', 'bright', 60, 38, 28, 66, 'overlay'), dither('brick', 'dark', 48, 36, 26, 64, 'multiply')),
+  tile('desert-roof', 'Desert Roof', 'desert-build', '#b77f4d', '#6b4327', 52,
+    dither('lines', 'bright', 56, 26, 30, 66), dither('crosshatch', 'dark', 44, 34, 24, 60)),
+
+  tile('snow-pack', 'Snow Pack', 'snow-ground', '#f4fbff', '#a8c0d2', 64,
+    dither('noise', 'bright', 68, 46, 30, 58), dither('solid', 'dark', 38, 46, 30, 52)),
+  tile('ice-brick', 'Ice Brick', 'snow-build', '#b8e2f2', '#5b8fa8', 54,
+    dither('brick', 'bright', 60, 38, 28, 66, 'screen'), dither('brick', 'dark', 45, 38, 28, 64, 'multiply')),
+  tile('snow-roof', 'Snow Roof', 'snow-build', '#d9ecf5', '#7896a8', 58,
+    dither('weave', 'bright', 55, 30, 26, 64, 'screen'), dither('crosshatch', 'dark', 42, 34, 24, 60, 'multiply')),
+
+  tile('jungle-moss', 'Jungle Moss', 'jungle-ground', '#4f8a4a', '#244724', 60,
+    dither('noise', 'bright', 60, 48, 34, 66), dither('random', 'dark', 48, 46, 34, 64)),
+  tile('jungle-stone', 'Jungle Stone', 'jungle-build', '#7d8f6b', '#3f4d36', 56,
+    dither('crosshatch', 'bright', 58, 36, 28, 64), dither('paving', 'dark', 46, 38, 28, 62, 'multiply')),
+  tile('jungle-wood', 'Jungle Wood', 'jungle-build', '#8f6b43', '#4a3320', 54,
+    dither('lines', 'bright', 56, 30, 24, 62), dither('noise', 'dark', 46, 42, 32, 60)),
+
+  // ── Town set (palette sampled from tilemap_example.png) ──────────────
+  // Ground & floors
+  tile('mossy-flagstone', 'Mossy Flagstone', 'town-ground', '#a9b195', '#647968', 55,
+    dither('stonework', 'dark', 48, 40, 20, 70, 'multiply'), dither('stonework', 'dark', 52, 40, 20, 66, 'multiply')),
+  tile('plank-floor', 'Plank Floor', 'town-ground', '#8c7063', '#64453a', 50,
+    dither('plank', 'dark', 50, 42, 20, 72, 'multiply'), dither('plank', 'dark', 55, 42, 20, 66, 'multiply')),
+  tile('plank-floor-worn', 'Worn Planks', 'town-ground', '#78564a', '#49342d', 50,
+    dither('plank', 'dark', 58, 55, 20, 72, 'multiply'), dither('plank', 'dark', 50, 50, 20, 64, 'multiply')),
+  tile('courtyard-water', 'Well Water', 'town-ground', '#4d7fbb', '#2a4346', 62,
+    dither('lines', 'bright', 52, 28, 22, 55), dither('solid', 'dark', 45, 45, 30, 55)),
+
+  // Stone blocks, steps, pillars, wells
+  tile('moss-block', 'Mossy Stone Block', 'town-stone', '#95a083', '#56675e', 52,
+    dither('stonework', 'dark', 46, 38, 20, 72, 'multiply'), dither('stonework', 'dark', 54, 38, 20, 68, 'multiply')),
+  tile('moss-block-light', 'Light Stone Block', 'town-stone', '#a9b195', '#71846e', 52,
+    dither('stonework', 'dark', 40, 38, 20, 68, 'multiply'), dither('stonework', 'dark', 48, 38, 20, 66, 'multiply')),
+  tile('stone-steps-town', 'Stone Steps', 'town-stone', '#849277', '#465d57', 48,
+    dither('lines', 'dark', 45, 30, 26, 64, 'multiply'), dither('stonework', 'dark', 50, 38, 20, 66, 'multiply')),
+  tile('stone-pillar', 'Stone Pillar', 'town-stone', '#95a083', '#385150', 55,
+    dither('stonework', 'dark', 44, 60, 20, 66, 'multiply'), dither('stonework', 'dark', 52, 60, 20, 66, 'multiply')),
+  tile('stone-well', 'Well Rim', 'town-stone', '#a9b195', '#647968', 50,
+    dither('stonework', 'dark', 42, 34, 20, 68, 'multiply'), dither('stonework', 'dark', 50, 34, 20, 66, 'multiply')),
+
+  // Walls: plaster over stone, timber frames, lattice windows, doors
+  tile('plaster-stone-wall', 'Plaster & Stone Wall', 'town-walls', '#bea55b', '#56675e', 60,
+    dither('noise', 'dark', 36, 50, 30, 50, 'soft-light'), dither('stonework', 'dark', 50, 38, 20, 70, 'multiply')),
+  tile('timber-wall', 'Timber Frame', 'town-walls', '#a27b6d', '#64453a', 55,
+    dither('lines', 'dark', 40, 34, 22, 56, 'multiply'), dither('lines', 'dark', 48, 34, 22, 60, 'multiply')),
+  tile('timber-trim', 'Timber Trim', 'town-walls', '#8c7063', '#49342d', 58,
+    dither('plank', 'dark', 44, 40, 20, 60, 'multiply'), dither('plank', 'dark', 50, 40, 20, 62, 'multiply')),
+  tile('lattice-window', 'Lattice Window', 'town-walls', '#a27b6d', '#78564a', 70,
+    dither('lattice', 'dark', 62, 40, 20, 80, 'multiply'), dither('plank', 'dark', 48, 40, 20, 62, 'multiply')),
+  tile('door-wood', 'Wooden Door', 'town-walls', '#78564a', '#49342d', 50,
+    dither('lines', 'dark', 52, 26, 24, 66, 'multiply'), dither('lines', 'dark', 52, 26, 24, 66, 'multiply')),
+  tile('doorway-dark', 'Dark Doorway', 'town-walls', '#385150', '#2a4346', 50,
+    dither('noise', 'dark', 30, 45, 30, 50), dither('noise', 'dark', 30, 45, 30, 50)),
+
+  // Roofs
+  tile('roof-shingle-red', 'Red Shingle Roof', 'town-roofs', '#893f49', '#775066', 50,
+    dither('shingle', 'dark', 56, 42, 26, 72, 'multiply'), dither('shingle', 'dark', 50, 42, 26, 68, 'multiply')),
+  tile('roof-shingle-plum', 'Plum Shingle Roof', 'town-roofs', '#775066', '#49342d', 50,
+    dither('shingle', 'dark', 56, 42, 26, 72, 'multiply'), dither('shingle', 'dark', 50, 42, 26, 68, 'multiply')),
+  tile('roof-ridge', 'Roof Ridge', 'town-roofs', '#9e7570', '#64453a', 48,
+    dither('lines', 'dark', 48, 30, 26, 60, 'multiply'), dither('lines', 'dark', 44, 30, 26, 60, 'multiply')),
+  tile('gable-plaster', 'Gable Plaster', 'town-roofs', '#bea55b', '#aa865a', 55,
+    dither('noise', 'dark', 36, 50, 30, 50, 'soft-light'), dither('lines', 'dark', 42, 34, 22, 56, 'multiply')),
+
+  // Props
+  tile('table-wood', 'Wood Table', 'town-props', '#aa865a', '#64453a', 40,
+    dither('plank', 'dark', 46, 42, 20, 62, 'multiply'), dither('lines', 'dark', 48, 32, 24, 62, 'multiply')),
+  tile('stool-wood', 'Wood Stool', 'town-props', '#8c7063', '#49342d', 45,
+    dither('plank', 'dark', 44, 40, 20, 62, 'multiply'), dither('lines', 'dark', 48, 32, 24, 62, 'multiply')),
+  tile('planter-soil', 'Planter Soil', 'town-props', '#64453a', '#49342d', 55,
+    dither('noise', 'bright', 46, 48, 30, 60), dither('noise', 'dark', 48, 45, 34, 60)),
+];
+
+/* ── textures.js ── */
+
+const textureCache = new Map();
+const previewCache = new Map();
+
+function hexToRgb(hex) {
+  const n = parseInt(String(hex).replace('#', ''), 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+function rgbToHex(r, g, b) {
+  const c = v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0');
+  return `#${c(r)}${c(g)}${c(b)}`;
+}
+
+function shade(hex, amount) {
+  const c = hexToRgb(hex);
+  const f = v => amount >= 0 ? v + (255 - v) * amount : v * (1 + amount);
+  return rgbToHex(f(c.r), f(c.g), f(c.b));
+}
+
+function normalizeTile(tile) {
+  tile.bottom ??= shade(tile.top, -0.32);
+  tile.split ??= 55;
+  tile.topDither ??= { mode: 'noise', ink: 'bright', bright: 65, space: 42, thick: 32, blend: 65, blendMode: 'source-over' };
+  tile.bottomDither ??= { mode: 'noise', ink: 'dark', bright: 55, space: 42, thick: 32, blend: 65, blendMode: 'source-over' };
+  tile.topDither.blendMode ??= 'source-over';
+  tile.bottomDither.blendMode ??= 'source-over';
+  return tile;
+}
+
+function stringSeed(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function hash2(x, y, seed) {
+  let n = (x * 374761393 + y * 668265263 + seed * 69069) | 0;
+  n = (n ^ (n >> 13)) * 1274126177;
+  return ((n ^ (n >> 16)) >>> 0) / 4294967295;
+}
+
+function inkColor(base, s) {
+  return shade(base, s.ink === 'dark' ? -(0.12 + (s.bright / 100) * 0.55) : (0.12 + (s.bright / 100) * 0.55));
+}
+
+function patternAt(x, y, s, seed) {
+  if (!s || s.mode === 'solid') return false;
+  const space = 1 + Math.round((s.space / 100) * 6);
+  const thick = 1 + Math.round((s.thick / 100) * 3);
+  const density = 0.12 + (s.bright / 100) * 0.62;
+  const sx = x + (seed % 17);
+  const sy = y + ((seed >> 4) % 19);
+  if (s.mode === 'lines') return ((sx + sy) % space) < thick;
+  if (s.mode === 'crosshatch') return ((sx + sy) % space) < thick || ((sx - sy + 1000) % space) < thick;
+  if (s.mode === 'dots') return (sx % space === 0 && sy % space === 0) || (thick > 2 && sx % space === 1 && sy % space === 0);
+  if (s.mode === 'noise') {
+    const block = 1 + Math.round((s.space / 100) * 1.5);
+    return hash2(Math.floor(x / block), Math.floor(y / block), seed) < density;
+  }
+  if (s.mode === 'random') {
+    const block = 1 + Math.round((s.space / 100) * 3);
+    return hash2(Math.floor(x / block), Math.floor(y / block), seed) < density;
+  }
+  if (s.mode === 'brick') {
+    const bh = 2 + Math.round((100 - s.space) / 22);
+    const bw = bh * 2;
+    const row = Math.floor(y / bh);
+    const offset = (row % 2) * Math.floor(bw / 2);
+    return (y % bh === 0) || ((x + offset) % bw === 0);
+  }
+  if (s.mode === 'paving') {
+    const block = 3 + Math.round((100 - s.space) / 18);
+    return (x % block === 0) || (y % block === 0);
+  }
+  if (s.mode === 'checker') {
+    const block = 1 + Math.round((100 - s.space) / 18);
+    return (Math.floor(x / block) + Math.floor(y / block)) % 2 === 0;
+  }
+  if (s.mode === 'weave') {
+    const block = 2 + Math.round((100 - s.space) / 20);
+    const cx = Math.floor(x / block), cy = Math.floor(y / block);
+    const horizontal = (cx + cy) % 2 === 0;
+    return horizontal ? (y % block < thick) : (x % block < thick);
+  }
+  if (s.mode === 'plank') {
+    const bh = 3 + Math.round((100 - s.space) / 25);
+    const bw = bh * 5;
+    const row = Math.floor(y / bh);
+    const offset = Math.floor(hash2(row, 7, seed) * bw);
+    return (y % bh === 0) || ((x + offset) % bw === 0);
+  }
+  if (s.mode === 'shingle') {
+    const bh = 4 + Math.round((100 - s.space) / 20);
+    const bw = bh + 2;
+    const row = Math.floor(y / bh);
+    const off = (row % 2) * Math.floor(bw / 2);
+    const inRow = y % bh;
+    return (inRow === bh - 1) || (inRow >= Math.floor(bh / 2) && (x + off) % bw === 0);
+  }
+  if (s.mode === 'stonework') {
+    const bh = 5 + Math.round((100 - s.space) / 25);
+    const row = Math.floor(y / bh);
+    const bw = 7 + Math.floor(hash2(row, 3, seed) * 7);
+    const off = Math.floor(hash2(row, 11, seed) * bw);
+    return (y % bh === 0) || ((x + off) % bw === 0);
+  }
+  if (s.mode === 'lattice') {
+    const gap = 5 + Math.round((100 - s.space) / 20);
+    const edge = x < 2 || y < 2 || x >= TEXTURE_SIZE - 2 || y >= TEXTURE_SIZE - 2;
+    return edge || ((x + y) % gap) < 1 || ((x - y + 1000) % gap) < 1;
+  }
+  return false;
+}
+
+function ditherKey(s) {
+  return s ? `${s.mode},${s.ink},${s.bright},${s.space},${s.thick},${s.blend},${s.blendMode || 'source-over'}` : '';
+}
+
+function textureKey(tile, face) {
+  return `${face}|${tile.id}|${tile.top}|${tile.bottom}|${tile.split}|${ditherKey(tile.topDither)}|${ditherKey(tile.bottomDither)}`;
+}
+
+function applyDither(g, tile, s, seed, y0, y1, base) {
+  if (!s || s.mode === 'solid' || y1 <= y0) return;
+  g.save();
+  g.globalAlpha = 0.12 + (s.blend / 100) * 0.88;
+  g.globalCompositeOperation = s.blendMode || 'source-over';
+  g.fillStyle = inkColor(base, s);
+  for (let y = Math.floor(y0); y < Math.ceil(y1); y++) {
+    for (let x = 0; x < TEXTURE_SIZE; x++) if (patternAt(x, y, s, seed)) g.fillRect(x, y, 1, 1);
+  }
+  g.restore();
+}
+
+function faceTexture(tile, face) {
+  normalizeTile(tile);
+  const key = textureKey(tile, face);
+  const cached = textureCache.get(key);
+  if (cached) return cached;
+
+  const size = TEXTURE_SIZE;
+  const c = document.createElement('canvas');
+  c.width = size;
+  c.height = size;
+  const g = c.getContext('2d');
+  const split = Math.max(0, Math.min(1, (Number(tile.split) || 0) / 100));
+  const seed = stringSeed(tile.id + face);
+
+  if (face === 'top') {
+    g.fillStyle = tile.top;
+    g.fillRect(0, 0, size, size);
+    applyDither(g, tile, tile.topDither, seed, 0, size, tile.top);
+  } else {
+    const left = face === 'left';
+    const topColor = left ? shade(tile.top, -0.12) : shade(tile.top, 0.02);
+    const bottomBase = tile.bottom || tile.top;
+    const bottomColor = left ? shade(bottomBase, -0.12) : shade(bottomBase, 0.02);
+    const splitY = Math.round(size * split);
+    g.fillStyle = topColor;
+    g.fillRect(0, 0, size, splitY);
+    g.fillStyle = bottomColor;
+    g.fillRect(0, splitY, size, size - splitY);
+    applyDither(g, tile, tile.topDither, seed + 37, 0, splitY, topColor);
+    applyDither(g, tile, tile.bottomDither, seed + 101, splitY, size, bottomColor);
+  }
+
+  textureCache.set(key, c);
+  return c;
+}
+
+function drawTextureTri(g, points, texture, alpha = 1) {
+  if (!texture) return;
+  const [p0, p1, p2] = points;
+  const size = texture.width;
+  const ux = (p1[0] - p0[0]) / size;
+  const uy = (p1[1] - p0[1]) / size;
+  const vx = (p2[0] - p0[0]) / size;
+  const vy = (p2[1] - p0[1]) / size;
+  g.save();
+  g.globalAlpha = alpha;
+  g.beginPath(); g.moveTo(p0[0], p0[1]); g.lineTo(p1[0], p1[1]); g.lineTo(p2[0], p2[1]); g.closePath(); g.clip();
+  g.transform(ux, uy, vx, vy, p0[0], p0[1]);
+  g.drawImage(texture, 0, 0);
+  g.restore();
+  g.save();
+  g.globalAlpha = alpha;
+  g.strokeStyle = 'rgba(0,0,0,.42)'; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(p0[0], p0[1]); g.lineTo(p1[0], p1[1]); g.lineTo(p2[0], p2[1]); g.closePath(); g.stroke();
+  g.restore();
+}
+
+function drawTextureQuad(g, points, texture, alpha = 1) {
+  if (!texture) return;
+  const [p0, p1, , p3] = points;
+  const size = texture.width;
+  const ux = (p1[0] - p0[0]) / size;
+  const uy = (p1[1] - p0[1]) / size;
+  const vx = (p3[0] - p0[0]) / size;
+  const vy = (p3[1] - p0[1]) / size;
+
+  g.save();
+  g.globalAlpha = alpha;
+  g.beginPath();
+  g.moveTo(points[0][0], points[0][1]);
+  points.slice(1).forEach(pt => g.lineTo(pt[0], pt[1]));
+  g.closePath();
+  g.clip();
+  g.transform(ux, uy, vx, vy, p0[0], p0[1]);
+  g.drawImage(texture, 0, 0);
+  g.restore();
+
+  g.save();
+  g.globalAlpha = alpha;
+  g.strokeStyle = 'rgba(0,0,0,.4)';
+  g.lineWidth = 1;
+  g.beginPath();
+  g.moveTo(points[0][0], points[0][1]);
+  points.slice(1).forEach(pt => g.lineTo(pt[0], pt[1]));
+  g.closePath();
+  g.stroke();
+  g.restore();
+}
+
+function previewKey(tile) {
+  return `${tile.top}|${tile.bottom}|${tile.split}|${ditherKey(tile.topDither)}|${ditherKey(tile.bottomDither)}`;
+}
+
+function tilePreviewURL(tile) {
+  normalizeTile(tile);
+  const key = previewKey(tile);
+  if (previewCache.has(key)) return previewCache.get(key);
+
+  const c = document.createElement('canvas');
+  c.width = 80;
+  c.height = 64;
+  const g = c.getContext('2d');
+  const top = [[40, 7], [70, 23], [40, 39], [10, 23]];
+  const left = [[10, 23], [40, 39], [40, 57], [10, 41]];
+  const right = [[40, 39], [70, 23], [70, 41], [40, 57]];
+  drawTextureQuad(g, left, faceTexture(tile, 'left'));
+  drawTextureQuad(g, right, faceTexture(tile, 'right'));
+  drawTextureQuad(g, top, faceTexture(tile, 'top'));
+
+  const url = c.toDataURL();
+  previewCache.set(key, url);
+  return url;
+}
+
+/* ── structures.js ── */
+/**
+ * structures.js
+ *
+ * Multi-face isometric structures (roofs, walls, doors, steps, wells, props…)
+ * built from the Town tile set in config.js and drawn with textures.js.
+ *
+ * Coordinate system (matches two-d-view.js / the ramp prototype):
+ *   screen x = (x - y) * S      screen y = (x + y) * 0.5 * S - z * S
+ *   Visible faces point toward +x ("right"), +y ("left") and +z ("top").
+ *   Every structure fits inside one 1×1 cell, 0 → 1 on x and y.
+ *
+ * Each structure is { id, name, group, build() } where build() returns a list
+ * of primitives (box / cyl / face / line). Use rot (0-3) and mirror (swap x/y)
+ * at draw time to get every orientation from one definition.
+ */
+
+
+/* ───────────────────────── math helpers ───────────────────────── */
+
+const VIEW = [1, 1, 1];
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+const proj = ([x, y, z], S, ox, oy) => [ox + (x - y) * S, oy + (x + y) * 0.5 * S - z * S];
+const projVec = ([x, y, z], S) => [(x - y) * S, (x + y) * 0.5 * S - z * S];
+
+function tileIndex(tiles = DEFAULT_TILES) {
+  const map = {};
+  tiles.forEach(t => { map[t.id] = t; });
+  return map;
+}
+
+/* ───────────────────────── primitive builders ───────────────────────── */
+
+// Axis-aligned box. tile = side tile id, tT = top tile id, refTop = z that the
+// side texture's first row is anchored to (keeps plaster/stone bands aligned
+// across wall pieces of different heights).
+const box = (x0, y0, z0, x1, y1, z1, tile, o = {}) => ({ k: 'box', x0, y0, z0, x1, y1, z1, tile, layer: 0, ...o });
+const cyl = (cx, cy, z0, z1, r, tile, o = {}) => ({ k: 'cyl', cx, cy, z0, z1, r, tile, layer: 0, ...o });
+// Parallelogram face: o + a*u + b*v. u runs across, v runs DOWN the texture.
+const quad = (o, u, v, tile, role, n, x = {}) => ({
+  k: 'face', o, u, v, poly: [o, add(o, u), add(add(o, u), v), add(o, v)], tile, role, n, layer: 0, ...x,
+});
+// Triangle clipped out of the parallelogram o,u,v.
+const tri = (poly, o, u, v, tile, role, n, x = {}) => ({ k: 'face', o, u, v, poly, tile, role, n, layer: 0, ...x });
+const line = (pts, n, color = '#49342d', w = 2) => ({ k: 'line', pts, n, color, w, layer: 2 });
+
+/* ───────────────────────── transforms ───────────────────────── */
+
+function tp(p, { mirror, rot }) {
+  let [x, y, z] = p;
+  if (mirror) [x, y] = [y, x];
+  for (let i = 0; i < (rot | 0); i++) [x, y] = [1 - y, x];
+  return [x, y, z];
+}
+function tv(v, { mirror, rot }) {
+  let [x, y, z] = v;
+  if (mirror) [x, y] = [y, x];
+  for (let i = 0; i < (rot | 0); i++) [x, y] = [-y, x];
+  return [x, y, z];
+}
+function transformPrim(p, o) {
+  if (!o.mirror && !o.rot) return p;
+  if (p.k === 'box') {
+    const a = tp([p.x0, p.y0, p.z0], o), b = tp([p.x1, p.y1, p.z1], o);
+    return { ...p, x0: Math.min(a[0], b[0]), x1: Math.max(a[0], b[0]), y0: Math.min(a[1], b[1]), y1: Math.max(a[1], b[1]) };
+  }
+  if (p.k === 'cyl') {
+    const c = tp([p.cx, p.cy, 0], o);
+    return { ...p, cx: c[0], cy: c[1] };
+  }
+  if (p.k === 'face') {
+    return { ...p, o: tp(p.o, o), u: tv(p.u, o), v: tv(p.v, o), poly: p.poly.map(q => tp(q, o)), n: p.n && tv(p.n, o) };
+  }
+  return { ...p, pts: p.pts.map(q => tp(q, o)), n: p.n && tv(p.n, o) };
+}
+const mirrorList = list => list.map(p => transformPrim(p, { mirror: true, rot: 0 }));
+
+function lift(list, dz) {
+  const L = p => [p[0], p[1], p[2] + dz];
+  return list.map(p => {
+    if (p.k === 'box') return { ...p, z0: p.z0 + dz, z1: p.z1 + dz, refTop: (p.refTop ?? p.z1) + dz };
+    if (p.k === 'cyl') return { ...p, z0: p.z0 + dz, z1: p.z1 + dz };
+    if (p.k === 'face') return { ...p, o: L(p.o), poly: p.poly.map(L) };
+    return { ...p, pts: p.pts.map(L) };
+  });
+}
+
+/* ───────────────────────── composite builders ───────────────────────── */
+
+// Open-topped hollow block (wells, keeps, pillars, planters).
+function hollow({ h, rim, tile, floorZ, floorTop, x0 = 0, y0 = 0, x1 = 1, y1 = 1, floorTile }) {
+  return [
+    box(x0 + rim, y0 + rim, 0, x1 - rim, y1 - rim, floorZ, floorTile || tile, { tT: floorTop }),
+    box(x0, y0, 0, x0 + rim, y1, h, tile, { tT: tile }),                         // back (low x)
+    box(x0 + rim, y0, 0, x1, y0 + rim, h, tile, { tT: tile }),                   // back (low y)
+    box(x1 - rim, y0 + rim, 0, x1, y1, h, tile, { tT: tile }),                   // front (high x)
+    box(x0 + rim, y1 - rim, 0, x1 - rim, y1, h, tile, { tT: tile }),             // front (high y)
+  ];
+}
+
+const WT = 0.2, WH = 0.9, RAIL = 0.1, DH = 0.62;
+
+// Wall running along y at the low-x edge (visible face points +x).
+// kind: plain | door | doorOpen | doorway | window
+function wallY(kind = 'plain', y0 = 0, y1 = 1) {
+  const L = y1 - y0, T = 'plaster-stone-wall', TR = 'timber-trim', top = WH - RAIL;
+  const body = (a, b, za, zb) => box(0, a, za, WT, b, zb, T, { tT: TR, refTop: WH });
+  const P = [];
+  if (kind === 'plain') {
+    P.push(body(y0, y1, 0, top));
+  } else {
+    const win = kind === 'window';
+    const ya = y0 + (win ? 0.3 : 0.32) * L, yb = y0 + (win ? 0.7 : 0.68) * L;
+    const sill = win ? 0.4 : 0, head = win ? 0.78 : DH;
+    P.push(body(y0, ya, 0, top), body(yb, y1, 0, top), body(ya, yb, head, top));
+    if (win) {
+      P.push(body(ya, yb, 0, sill));
+      P.push(quad([0.06, ya, head], [0, yb - ya, 0], [0, 0, -(head - sill)], 'lattice-window', 'right', [1, 0, 0], { layer: -1 }));
+      P.push(box(-0.02, ya - 0.035, sill - 0.03, WT + 0.02, yb + 0.035, sill, TR, { tT: TR }));
+    } else {
+      P.push(quad([0.05, ya, DH], [0, yb - ya, 0], [0, 0, -DH], 'doorway-dark', 'right', [1, 0, 0], { layer: -1 }));
+      if (kind === 'door') P.push(box(0.04, ya, 0, 0.11, yb, DH - 0.02, 'door-wood', { tT: 'door-wood' }));
+      if (kind === 'doorOpen') P.push(box(WT, ya, 0, WT + 0.34, ya + 0.05, DH - 0.02, 'door-wood', { tT: 'door-wood' }));
+    }
+    P.push(box(-0.015, ya - 0.035, sill, WT + 0.015, ya, head, TR, { tT: TR }));
+    P.push(box(-0.015, yb, sill, WT + 0.015, yb + 0.035, head, TR, { tT: TR }));
+  }
+  P.push(box(-0.02, y0, top, WT + 0.02, y1, WH, TR, { tT: TR }));               // top rail
+  return P;
+}
+
+// L-shaped corner: one wall along y, one along x (made by mirroring).
+const corner = (kind = 'plain', otherKind = 'plain') => [...wallY(kind, 0, 1), ...mirrorList(wallY(otherKind, WT, 1))];
+
+function gableRoof(tile = 'roof-shingle-red', h = 0.45) {
+  const ym = 0.5;
+  return [
+    quad([0, ym, h], [1, 0, 0], [0, -ym, -h], tile, 'top', [0, -h, ym], { shadeA: 0.14 }),   // −y slope
+    quad([0, ym, h], [1, 0, 0], [0, ym, -h], tile, 'top', [0, h, ym]),                       // +y slope
+    tri([[1, 0, 0], [1, 1, 0], [1, ym, h]], [1, 0, h], [0, 1, 0], [0, 0, -h], 'gable-plaster', 'right', [1, 0, 0]),
+    tri([[0, 0, 0], [0, 1, 0], [0, ym, h]], [0, 0, h], [0, 1, 0], [0, 0, -h], 'gable-plaster', 'right', [-1, 0, 0]),
+    line([[1, 0, 0], [1, ym, h], [1, 1, 0]], [1, 0, 0]),
+    line([[0, 0, 0], [0, ym, h], [0, 1, 0]], [-1, 0, 0]),
+  ];
+}
+
+function pyramidRoof(tile = 'roof-shingle-red', h = 0.75) {
+  const a = [0.5, 0.5, h];
+  return [
+    quad([0, 0.5, h], [1, 0, 0], [0, 0.5, -h], tile, 'top', [0, h, 0.5]),
+    quad([0.5, 0, h], [0, 1, 0], [0.5, 0, -h], tile, 'top', [h, 0, 0.5], { shadeA: 0.16 }),
+    quad([0, 0.5, h], [1, 0, 0], [0, -0.5, -h], tile, 'top', [0, -h, 0.5], { shadeA: 0.1 }),
+    quad([0.5, 0, h], [0, 1, 0], [-0.5, 0, -h], tile, 'top', [-h, 0, 0.5], { shadeA: 0.1 }),
+  ].map((f, i) => {
+    const polys = [
+      [[0, 1, 0], [1, 1, 0], a], [[1, 0, 0], [1, 1, 0], a], [[0, 0, 0], [1, 0, 0], a], [[0, 0, 0], [0, 1, 0], a],
+    ];
+    return { ...f, poly: polys[i] };
+  });
+}
+
+/* ───────────────────────── structure library ───────────────────────── */
+
+const slab = (tile, z = 0.06) => [box(0, 0, 0, 1, 1, z, tile, { tT: tile })];
+
+const STRUCTURE_GROUPS = [
+  { id: 'blocks', name: 'Blocks' },
+  { id: 'floors', name: 'Floors' },
+  { id: 'stonework', name: 'Stonework' },
+  { id: 'roofs', name: 'Roofs' },
+  { id: 'walls', name: 'Walls, Doors & Windows' },
+  { id: 'rooms', name: 'Corners & Rooms' },
+  { id: 'props', name: 'Props' },
+];
+
+const STRUCTURES = [
+  // Blocks
+  { id: 'block-moss', name: 'Mossy Stone Block', group: 'blocks', build: () => [box(0, 0, 0, 1, 1, 1, 'moss-block', { tT: 'moss-block' })] },
+  { id: 'block-light', name: 'Light Stone Block', group: 'blocks', build: () => [box(0, 0, 0, 1, 1, 1, 'moss-block-light', { tT: 'moss-block-light' })] },
+  { id: 'block-hollow', name: 'Hollow Stone Block', group: 'blocks',
+    build: () => hollow({ h: 1, rim: 0.2, tile: 'moss-block', floorZ: 0.4, floorTop: 'doorway-dark' }) },
+
+  // Floors
+  { id: 'floor-flagstone', name: 'Flagstone Floor', group: 'floors', build: () => slab('mossy-flagstone') },
+  { id: 'floor-plank', name: 'Plank Floor', group: 'floors', build: () => slab('plank-floor') },
+  { id: 'floor-plank-worn', name: 'Worn Plank Floor', group: 'floors', build: () => slab('plank-floor-worn') },
+
+  // Stonework
+  { id: 'well', name: 'Well', group: 'stonework',
+    build: () => hollow({ h: 0.55, rim: 0.2, tile: 'stone-well', floorZ: 0.36, floorTop: 'courtyard-water', floorTile: 'stone-well' }) },
+  { id: 'keep-doorway', name: 'Stone Keep (doorway)', group: 'stonework',
+    build: () => [
+      ...hollow({ h: 1, rim: 0.22, tile: 'moss-block', floorZ: 0.45, floorTop: 'doorway-dark' }),
+      quad([1.003, 0.3, 0.62], [0, 0.4, 0], [0, 0, -0.62], 'doorway-dark', 'right', [1, 0, 0], { layer: 1 }),
+      quad([1.004, 0.26, 0.68], [0, 0.48, 0], [0, 0, -0.07], 'timber-trim', 'right', [1, 0, 0], { layer: 1 }),
+      quad([1.004, 0.26, 0.62], [0, 0.04, 0], [0, 0, -0.62], 'timber-trim', 'right', [1, 0, 0], { layer: 1 }),
+      quad([1.004, 0.7, 0.62], [0, 0.04, 0], [0, 0, -0.62], 'timber-trim', 'right', [1, 0, 0], { layer: 1 }),
+    ] },
+  { id: 'keep-door', name: 'Stone Keep (wooden door)', group: 'stonework',
+    build: () => [
+      ...hollow({ h: 1, rim: 0.22, tile: 'moss-block', floorZ: 0.45, floorTop: 'doorway-dark' }),
+      quad([1.003, 0.3, 0.62], [0, 0.4, 0], [0, 0, -0.62], 'door-wood', 'right', [1, 0, 0], { layer: 1 }),
+      quad([1.004, 0.26, 0.68], [0, 0.48, 0], [0, 0, -0.07], 'timber-trim', 'right', [1, 0, 0], { layer: 1 }),
+      quad([1.004, 0.26, 0.62], [0, 0.04, 0], [0, 0, -0.62], 'timber-trim', 'right', [1, 0, 0], { layer: 1 }),
+      quad([1.004, 0.7, 0.62], [0, 0.04, 0], [0, 0, -0.62], 'timber-trim', 'right', [1, 0, 0], { layer: 1 }),
+    ] },
+  { id: 'pillar-short', name: 'Short Pillar', group: 'stonework',
+    build: () => hollow({ h: 0.45, rim: 0.09, tile: 'stone-pillar', floorZ: 0.25, floorTop: 'doorway-dark', x0: 0.3, y0: 0.3, x1: 0.7, y1: 0.7 }) },
+  { id: 'pillar-tall', name: 'Tall Pillar', group: 'stonework',
+    build: () => hollow({ h: 0.9, rim: 0.09, tile: 'stone-pillar', floorZ: 0.7, floorTop: 'doorway-dark', x0: 0.3, y0: 0.3, x1: 0.7, y1: 0.7 }) },
+  { id: 'steps', name: 'Stone Steps', group: 'stonework',
+    build: () => [0, 1, 2].map(i => box(0, 0, i / 3, (3 - i) / 3, 1, (i + 1) / 3, 'stone-steps-town', { tT: 'stone-steps-town' })) },
+
+  // Roofs
+  { id: 'roof-gable', name: 'Gable Roof (red)', group: 'roofs', build: () => gableRoof('roof-shingle-red') },
+  { id: 'roof-gable-plum', name: 'Gable Roof (plum)', group: 'roofs', build: () => gableRoof('roof-shingle-plum') },
+  { id: 'roof-pyramid', name: 'Pyramid Roof (red)', group: 'roofs', build: () => pyramidRoof('roof-shingle-red') },
+  { id: 'roof-pyramid-plum', name: 'Pyramid Roof (plum)', group: 'roofs', build: () => pyramidRoof('roof-shingle-plum') },
+  { id: 'gable-end', name: 'Gable End', group: 'roofs',
+    build: () => [
+      box(0.5, 0, 0, 0.6, 1, 0.05, 'timber-trim', { tT: 'timber-trim' }),
+      tri([[0.6, 0, 0.05], [0.6, 1, 0.05], [0.6, 0.5, 0.5]], [0.6, 0, 0.5], [0, 1, 0], [0, 0, -0.45], 'gable-plaster', 'right', [1, 0, 0], { layer: 1 }),
+      line([[0.6, 0, 0.05], [0.6, 0.5, 0.5], [0.6, 1, 0.05]], [1, 0, 0], '#64453a', 3),
+    ] },
+  { id: 'ridge', name: 'Roof Ridge', group: 'roofs', build: () => [box(0, 0.42, 0, 1, 0.58, 0.1, 'roof-ridge', { tT: 'roof-ridge' })] },
+  { id: 'ridge-corner', name: 'Roof Ridge Corner', group: 'roofs',
+    build: () => [box(0.42, 0.42, 0, 1, 0.58, 0.1, 'roof-ridge', { tT: 'roof-ridge' }), box(0.42, 0.58, 0, 0.58, 1, 0.1, 'roof-ridge', { tT: 'roof-ridge' })] },
+  { id: 'roof-cap', name: 'Roof Cap', group: 'roofs',
+    build: () => [...slab('roof-ridge'), quad([0.2, 0.2, 0.065], [0.6, 0, 0], [0, 0.6, 0], 'gable-plaster', 'top', [0, 0, 1], { layer: 1 })] },
+
+  // Walls
+  { id: 'wall-plain', name: 'Plaster Wall', group: 'walls', build: () => wallY('plain') },
+  { id: 'wall-door', name: 'Wall with Door', group: 'walls', build: () => wallY('door') },
+  { id: 'wall-door-open', name: 'Wall with Open Door', group: 'walls', build: () => wallY('doorOpen') },
+  { id: 'wall-doorway', name: 'Wall with Doorway', group: 'walls', build: () => wallY('doorway') },
+  { id: 'wall-window', name: 'Wall with Lattice Window', group: 'walls', build: () => wallY('window') },
+
+  // Corners & rooms
+  { id: 'corner-plain', name: 'Plaster Corner', group: 'rooms', build: () => corner('plain') },
+  { id: 'corner-door', name: 'Corner with Door', group: 'rooms', build: () => corner('door') },
+  { id: 'corner-door-open', name: 'Corner with Open Door', group: 'rooms', build: () => corner('doorOpen', 'window') },
+  { id: 'corner-window', name: 'Corner with Window', group: 'rooms', build: () => corner('window') },
+  { id: 'room-plank-corner', name: 'Room Corner (plank)', group: 'rooms',
+    build: () => [...slab('plank-floor'), ...lift(corner('plain'), 0.06)] },
+  { id: 'room-plank-door', name: 'Room Corner (door)', group: 'rooms',
+    build: () => [...slab('plank-floor'), ...lift(corner('doorway', 'window'), 0.06)] },
+
+  // Props
+  { id: 'table', name: 'Wood Table', group: 'props',
+    build: () => [
+      box(0.1, 0.2, 0.5, 0.9, 0.8, 0.57, 'table-wood', { tT: 'table-wood' }),
+      ...[[0.14, 0.24], [0.8, 0.24], [0.14, 0.7], [0.8, 0.7]].map(([x, y]) => box(x, y, 0, x + 0.06, y + 0.06, 0.5, 'table-wood', { tT: 'table-wood' })),
+    ] },
+  { id: 'stool', name: 'Wood Stool', group: 'props',
+    build: () => [
+      cyl(0.5, 0.5, 0.26, 0.32, 0.2, 'stool-wood', { tT: 'stool-wood' }),
+      ...[[0.36, 0.42], [0.6, 0.34], [0.52, 0.62]].map(([x, y]) => box(x, y, 0, x + 0.06, y + 0.06, 0.26, 'stool-wood', { tT: 'stool-wood' })),
+    ] },
+  { id: 'planter', name: 'Planter', group: 'props',
+    build: () => hollow({ h: 0.45, rim: 0.12, tile: 'stone-well', floorZ: 0.34, floorTop: 'planter-soil', floorTile: 'stone-well' }) },
+];
+
+const getStructure = id => STRUCTURES.find(s => s.id === id);
+
+/* ───────────────────────── 90° variants ───────────────────────── */
+
+// Pieces that look identical when turned a quarter-turn get no separate variant.
+const ROT_SYMMETRIC = new Set([
+  'block-moss', 'block-light', 'block-hollow', 'floor-flagstone', 'floor-plank', 'floor-plank-worn',
+  'well', 'pillar-short', 'pillar-tall', 'roof-pyramid', 'roof-pyramid-plum', 'roof-cap', 'stool', 'planter',
+]);
+
+/** A copy of a structure turned `turns` × 90° (new id "<id>-r90", name "<name> (90°)"). */
+function rotatedVariant(structure, turns = 1) {
+  const t = ((turns % 4) + 4) % 4;
+  return {
+    ...structure,
+    id: `${structure.id}-r${t * 90}`,
+    name: `${structure.name} (${t * 90}°)`,
+    build: () => structure.build().map(p => transformPrim(p, { rot: t, mirror: false })),
+  };
+}
+
+/** The 90° versions only. */
+const STRUCTURES_ROT90 = STRUCTURES.filter(s => !ROT_SYMMETRIC.has(s.id)).map(s => rotatedVariant(s, 1));
+
+/** Library with each structure followed by its 90° version (symmetric pieces appear once). */
+const STRUCTURES_WITH_90 = STRUCTURES.flatMap(s => (ROT_SYMMETRIC.has(s.id) ? [s] : [s, rotatedVariant(s, 1)]));
+
+
+/* ───────────────────────── rendering ───────────────────────── */
+
+function spans(len, off) {
+  const out = [];
+  let a = 0;
+  while (a < len - 1e-6) {
+    const ph = (((a + off) % 1) + 1) % 1;
+    const seg = Math.min(1 - ph, len - a);
+    if (seg > 1e-4) out.push([a, ph, seg]);
+    a += Math.max(seg, 1e-4);
+  }
+  return out;
+}
+
+const keyOf = p => {
+  if (p.k === 'box') return (p.x0 + p.x1 + p.y0 + p.y1 + p.z0 + p.z1) / 2;
+  if (p.k === 'cyl') return p.cx + p.cy + (p.z0 + p.z1) / 2;
+  const pts = p.poly || p.pts;
+  let s = 0;
+  pts.forEach(q => { s += q[0] + q[1] + q[2]; });
+  return s / pts.length;
+};
+
+function* boxFaces(b) {
+  const refTop = b.refTop ?? b.z1;
+  const h = b.z1 - b.z0;
+  yield { k: 'face', role: 'top', tile: b.tT || b.tile, o: [b.x0, b.y0, b.z1], u: [b.x1 - b.x0, 0, 0], v: [0, b.y1 - b.y0, 0],
+    poly: [[b.x0, b.y0, b.z1], [b.x1, b.y0, b.z1], [b.x1, b.y1, b.z1], [b.x0, b.y1, b.z1]] };
+  yield { k: 'face', role: 'right', tile: b.tile, o: [b.x1, b.y0, b.z1], u: [0, b.y1 - b.y0, 0], v: [0, 0, -h], v0: refTop - b.z1,
+    poly: [[b.x1, b.y0, b.z1], [b.x1, b.y1, b.z1], [b.x1, b.y1, b.z0], [b.x1, b.y0, b.z0]] };
+  yield { k: 'face', role: 'left', tile: b.tile, o: [b.x0, b.y1, b.z1], u: [b.x1 - b.x0, 0, 0], v: [0, 0, -h], v0: refTop - b.z1,
+    poly: [[b.x0, b.y1, b.z1], [b.x1, b.y1, b.z1], [b.x1, b.y1, b.z0], [b.x0, b.y1, b.z0]] };
+}
+
+function drawFace(g, f, T, S, ox, oy) {
+  const tile = T(f.tile);
+  const tex = faceTexture(tile, f.role);
+  const size = tex.width;
+  const lu = Math.hypot(...f.u), lv = Math.hypot(...f.v);
+  if (lu < 1e-6 || lv < 1e-6) return;
+  const uh = f.u.map(c => c / lu), vh = f.v.map(c => c / lv);
+  const pu = projVec(uh, S), pv = projVec(vh, S);
+  const pts = f.poly.map(p => proj(p, S, ox, oy));
+  const path = () => { g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]))); g.closePath(); };
+
+  g.save();
+  path(); g.clip();
+  g.imageSmoothingEnabled = false;
+  for (const [a, fu, su] of spans(lu, 0)) {
+    for (const [b, fv, sv] of spans(lv, f.v0 || 0)) {
+      const w = [f.o[0] + uh[0] * a + vh[0] * b, f.o[1] + uh[1] * a + vh[1] * b, f.o[2] + uh[2] * a + vh[2] * b];
+      const p = proj(w, S, ox, oy);
+      g.save();
+      g.transform(pu[0] / size, pu[1] / size, pv[0] / size, pv[1] / size, p[0], p[1]);
+      g.drawImage(tex, fu * size, fv * size, su * size, sv * size, 0, 0, su * size + 0.6, sv * size + 0.6);
+      g.restore();
+    }
+  }
+  if (f.shadeA) { path(); g.fillStyle = `rgba(0,0,0,${f.shadeA})`; g.fill(); }
+  g.restore();
+
+  g.save();
+  path();
+  g.strokeStyle = 'rgba(0,0,0,.38)';
+  g.lineWidth = 1;
+  g.stroke();
+  g.restore();
+}
+
+function drawCyl(g, p, T, S, ox, oy) {
+  const [cx, cy] = proj([p.cx, p.cy, 0], S, ox, oy);
+  const rx = p.r * Math.SQRT2 * S, ry = (p.r * S) / Math.SQRT2;
+  const yTop = cy - p.z1 * S, yBot = cy - p.z0 * S;
+  const side = g.createPattern(faceTexture(T(p.tile), 'left'), 'repeat');
+  const top = g.createPattern(faceTexture(T(p.tT || p.tile), 'top'), 'repeat');
+  g.save();
+  g.imageSmoothingEnabled = false;
+  g.beginPath();
+  g.moveTo(cx + rx, yTop); g.lineTo(cx + rx, yBot);
+  g.ellipse(cx, yBot, rx, ry, 0, 0, Math.PI, false);
+  g.lineTo(cx - rx, yTop); g.closePath();
+  g.fillStyle = side; g.fill();
+  g.strokeStyle = 'rgba(0,0,0,.38)'; g.lineWidth = 1; g.stroke();
+  g.beginPath(); g.ellipse(cx, yTop, rx, ry, 0, 0, Math.PI * 2);
+  g.fillStyle = top; g.fill(); g.stroke();
+  g.restore();
+}
+
+function resolvePrims(structure, { rot = 0, mirror = false } = {}) {
+  return structure.build().map(p => transformPrim(p, { rot, mirror }));
+}
+
+function primPoints(p) {
+  if (p.k === 'box') return [[p.x0, p.y0, p.z0], [p.x1, p.y1, p.z1], [p.x1, p.y0, p.z0], [p.x0, p.y1, p.z1]];
+  if (p.k === 'cyl') return [[p.cx - p.r, p.cy - p.r, p.z0], [p.cx + p.r, p.cy + p.r, p.z1]];
+  return p.poly || p.pts;
+}
+
+function structureBounds(prims, S) {
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  prims.forEach(p => primPoints(p).forEach(q => {
+    const [x, y] = proj(q, S, 0, 0);
+    minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+  }));
+  return { minX, maxX, minY, maxY };
+}
+
+/**
+ * Draw one structure. (x, y) is where the centre of its 1×1 footprint lands
+ * on screen, so a row of structures shares one ground line.
+ */
+function drawStructure(g, structure, tiles, { x = 0, y = 0, S = 40, rot = 0, mirror = false, alpha = 1 } = {}) {
+  const idx = tiles instanceof Array ? tileIndex(tiles) : tiles;
+  const fallback = { id: '_missing', top: '#ff00ff', bottom: '#aa00aa', split: 50 };
+  const T = id => idx[id] || fallback;
+  const ox = x, oy = y - 0.5 * S;
+  const prims = resolvePrims(structure, { rot, mirror });
+  const items = [];
+  prims.forEach(p => {
+    if (p.k === 'box') for (const f of boxFaces(p)) items.push({ ...f, layer: p.layer, key: keyOf(p), _box: true });
+    else items.push({ ...p, key: keyOf(p) });
+  });
+  // box faces keep their box's sort key so a box's three faces stay together
+  items.sort((a, b) => (a.layer - b.layer) || (a.key - b.key));
+
+  g.save();
+  g.globalAlpha = alpha;
+  items.forEach(it => {
+    if (it.n && dot(it.n, VIEW) <= 1e-9) return;
+    if (it.k === 'face') drawFace(g, it, T, S, ox, oy);
+    else if (it.k === 'cyl') drawCyl(g, it, T, S, ox, oy);
+    else if (it.k === 'line') {
+      g.beginPath();
+      it.pts.map(p => proj(p, S, ox, oy)).forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])));
+      g.strokeStyle = it.color; g.lineWidth = it.w; g.lineJoin = 'round'; g.stroke();
+    }
+  });
+  g.restore();
+}
+
+/** Contact sheet of structures (used by the demo page and for palette art). */
+function drawStructureSheet(g, structures, tiles, { S = 36, cols = 6, cellW = 130, cellH = 128, rot = 0, mirror = false, labels = true, bg = '#0d0d10' } = {}) {
+  const rows = Math.ceil(structures.length / cols);
+  g.fillStyle = bg;
+  g.fillRect(0, 0, cols * cellW, rows * cellH);
+  structures.forEach((s, i) => {
+    const cx = (i % cols) * cellW + cellW / 2;
+    const cy = Math.floor(i / cols) * cellH + cellH * 0.64;
+    drawStructure(g, s, tiles, { x: cx, y: cy, S, rot, mirror });
+    if (labels) {
+      g.fillStyle = '#a0a0c0';
+      g.font = '9px Inter, system-ui, sans-serif';
+      g.textAlign = 'center';
+      g.fillText(s.name, cx, Math.floor(i / cols) * cellH + cellH - 6);
+    }
+  });
+  return { width: cols * cellW, height: rows * cellH };
+}
+
+const structurePreviewCache = new Map();
+/** Small data-URL thumbnail for a structure palette button. */
+function structurePreviewURL(structure, tiles = DEFAULT_TILES, { rot = 0, mirror = false, w = 88, h = 72, S = 24 } = {}) {
+  const key = `${structure.id}|${rot}|${mirror}|${w}x${h}|${S}`;
+  if (structurePreviewCache.has(key)) return structurePreviewCache.get(key);
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  drawStructure(c.getContext('2d'), structure, tiles, { x: w / 2, y: h * 0.7, S, rot, mirror });
+  const url = c.toDataURL();
+  structurePreviewCache.set(key, url);
+  return url;
+}
+
+/* ── demo ── */
+const canvas = document.getElementById('sheet');
+const cols = 6, cellW = 150, cellH = 140;
+let rot = 0, mirror = false, S = 38, with90 = true;
+function draw() {
+  const list = with90 ? STRUCTURES_WITH_90 : STRUCTURES;
+  const rows = Math.ceil(list.length / cols);
+  canvas.width = cols * cellW;
+  canvas.height = rows * cellH;
+  drawStructureSheet(canvas.getContext('2d'), list, DEFAULT_TILES, { S, cols, cellW, cellH, rot, mirror });
+  document.getElementById('state').textContent = list.length + ' pieces \u00b7 rot ' + (rot * 90) + '\u00b0 \u00b7 ' + (mirror ? 'mirrored' : 'no mirror');
+}
+document.getElementById('rotCW').onclick = () => { rot = (rot + 1) % 4; draw(); };
+document.getElementById('rotCCW').onclick = () => { rot = (rot + 3) % 4; draw(); };
+document.getElementById('mirror').onclick = e => { mirror = !mirror; e.currentTarget.classList.toggle('active', mirror); draw(); };
+document.getElementById('with90').onchange = e => { with90 = e.target.checked; draw(); };
+document.getElementById('scale').oninput = e => { S = +e.target.value; document.getElementById('scaleV').textContent = S; draw(); };
+draw();
+
+</script>
+</body>
+</html>

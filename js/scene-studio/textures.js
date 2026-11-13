@@ -87,6 +87,33 @@ function patternAt(x, y, s, seed) {
     const horizontal = (cx + cy) % 2 === 0;
     return horizontal ? (y % block < thick) : (x % block < thick);
   }
+  if (s.mode === 'plank') {
+    const bh = 3 + Math.round((100 - s.space) / 25);
+    const bw = bh * 5;
+    const row = Math.floor(y / bh);
+    const offset = Math.floor(hash2(row, 7, seed) * bw);
+    return (y % bh === 0) || ((x + offset) % bw === 0);
+  }
+  if (s.mode === 'shingle') {
+    const bh = 4 + Math.round((100 - s.space) / 20);
+    const bw = bh + 2;
+    const row = Math.floor(y / bh);
+    const off = (row % 2) * Math.floor(bw / 2);
+    const inRow = y % bh;
+    return (inRow === bh - 1) || (inRow >= Math.floor(bh / 2) && (x + off) % bw === 0);
+  }
+  if (s.mode === 'stonework') {
+    const bh = 5 + Math.round((100 - s.space) / 25);
+    const row = Math.floor(y / bh);
+    const bw = 7 + Math.floor(hash2(row, 3, seed) * 7);
+    const off = Math.floor(hash2(row, 11, seed) * bw);
+    return (y % bh === 0) || ((x + off) % bw === 0);
+  }
+  if (s.mode === 'lattice') {
+    const gap = 5 + Math.round((100 - s.space) / 20);
+    const edge = x < 2 || y < 2 || x >= TEXTURE_SIZE - 2 || y >= TEXTURE_SIZE - 2;
+    return edge || ((x + y) % gap) < 1 || ((x - y + 1000) % gap) < 1;
+  }
   return false;
 }
 

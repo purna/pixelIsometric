@@ -5,135 +5,1702 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Pixel Isometric — Scene Studio</title>
   <style>
+
     @font-face{font-family:PressStart;src:url('../../fonts/press-start-2p-400.woff2')}@font-face{font-family:Inter;src:url('../../fonts/inter-normal.woff2')}
     :root{--bg:#0d0d10;--panel:#111115;--panel-2:#191920;--line:#2a2a38;--ink:#a0a0c0;--muted:#616174;--accent:#3ecfb2;--warm:#e0b23e;--danger:#d76670}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:12px Inter,system-ui,sans-serif;overflow:hidden}button,input,select{font:inherit}button,select,input[type=number],input[type=text]{background:#0f0f14;color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:7px}button{cursor:pointer}button:hover,button.active{border-color:var(--accent);color:#fff}button.active{background:#14342f;color:var(--accent)}button.danger:hover{border-color:var(--danger);color:#fff}.app{height:100vh;display:grid;grid-template-rows:auto 1fr auto}.topbar{display:flex;align-items:center;gap:12px;padding:9px 14px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}.brand{font:700 11px PressStart,monospace;color:var(--accent);letter-spacing:.03em}.sub{color:var(--muted);font-size:11px}.spacer{flex:1}.topbar button{font-size:11px;padding:6px 9px}.body{display:grid;grid-template-columns:270px minmax(320px,1fr) 280px;min-height:0}.sidebar{background:var(--panel);padding:14px;overflow:auto;border-right:1px solid var(--line)}.sidebar.right{border-right:0;border-left:1px solid var(--line)}.section{border-bottom:1px solid var(--line);padding-bottom:13px;margin-bottom:14px}.section:last-child{border:0}.section h2{font:700 10px PressStart,monospace;letter-spacing:.04em;color:var(--muted);margin:0 0 10px}.row{display:flex;align-items:center;gap:7px;margin:7px 0}.row label{color:var(--muted);min-width:73px}.row input[type=range]{flex:1;accent-color:var(--accent);padding:0}.row input[type=number]{width:64px;padding:5px}.row input[type=color]{width:36px;height:25px;padding:2px}.row input[type=text],.row select{min-width:0;flex:1;padding:5px}.value{width:35px;color:var(--accent);text-align:right;font-size:11px}.button-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}.button-grid.three{grid-template-columns:repeat(3,1fr)}.button-grid button{padding:7px 4px;font-size:10px}.canvas-wrap{position:relative;min-width:0;background:radial-gradient(circle at 50% 30%,#1c1c25,#0a0a0d);overflow:hidden}#scene{display:block;width:100%;height:100%;cursor:crosshair;touch-action:none}.hud{position:absolute;left:12px;bottom:12px;background:#101014d9;border:1px solid var(--line);border-radius:4px;padding:7px 9px;color:var(--muted);font-size:10px;pointer-events:none}.hud b{color:var(--accent)}.palette{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.tile{height:57px;padding:5px;color:#fff;font-size:10px;text-shadow:0 1px 2px #000}.tile i{display:block;height:24px;border:1px solid #0005;border-radius:2px;margin-bottom:3px}.tile.active{outline:2px solid var(--accent);outline-offset:1px}.hint{color:var(--muted);font-size:11px;line-height:1.5;margin:8px 0 0}.preview{width:100%;height:128px;background:#09090c;border:1px solid var(--line);border-radius:4px;display:block}.status{padding:7px 14px;border-top:1px solid var(--line);background:#09090c;color:var(--muted);font-size:11px}.status b{color:var(--accent)}.file{display:none}@media(max-width:900px){.body{grid-template-columns:220px minmax(260px,1fr)}.right{display:none}}@media(max-width:620px){.body{grid-template-columns:1fr}.sidebar{display:none}.canvas-wrap{min-height:0}.topbar .sub{display:none}}
   .subhead{font:700 9px PressStart,monospace;letter-spacing:.04em;color:var(--accent);margin:12px 0 6px;text-transform:uppercase}.tile i{image-rendering:pixelated}.designer .row label{min-width:66px}
-  </style>
+  
+.group-row{display:flex;align-items:center;gap:6px;padding:6px;border:1px solid var(--line);border-radius:4px;margin:5px 0;background:var(--panel-2);cursor:pointer}
+.group-row.active{border-color:var(--accent);background:#14342f}
+.group-row .group-name{flex:1;font-size:11px;color:var(--ink)}
+.group-row .group-count{color:var(--muted);font-size:10px}
+.group-row button{padding:4px 6px;font-size:10px}
+.tile.selected{outline:2px solid var(--warm);outline-offset:1px}
+
+.preview-wrap{position:relative;margin:0 0 10px}
+.preview-wrap .preview{height:160px}
+.preview-label{position:absolute;left:8px;top:7px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);background:#0b0b0fcc;border:1px solid var(--line);border-radius:3px;padding:2px 6px;pointer-events:none}
+.floating-menu{position:fixed;left:50%;bottom:48px;transform:translateX(-50%);display:flex;gap:6px;align-items:center;background:#111115e8;border:1px solid var(--line);border-radius:8px;padding:7px 9px;z-index:50;box-shadow:0 8px 24px #0007;backdrop-filter:blur(8px)}
+.floating-menu button{padding:6px 9px;font-size:10px;letter-spacing:.06em}
+.floating-menu button.active{border-color:var(--accent);color:var(--accent);background:#14342f}
+#btn-pan{cursor:grab}
+#btn-pan.active{cursor:grabbing}
+.sidebar.right .designer .preview-wrap{position:sticky;top:0;z-index:20;background:var(--panel);padding:0 0 8px;margin-top:-4px}
+.sidebar.right .designer .preview-wrap .preview{height:190px}
+.preview-wrap .preview{image-rendering:pixelated}
+.shape-group{margin:8px 0 10px}
+.shape-group-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 5px 2px}
+.shape-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:5px}
+.shape-btn{display:flex;align-items:center;gap:6px;padding:6px;font-size:10px;text-align:left;background:#0f0f14;border:1px solid var(--line);border-radius:4px;color:var(--ink)}
+.shape-btn:hover{border-color:var(--accent);color:#fff}
+.shape-btn.active{border-color:var(--accent);background:#14342f;color:var(--accent)}
+.shape-btn .shape-icon{width:24px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.shape-btn .shape-icon svg{width:22px;height:18px;display:block}
+.shape-btn img.shape-icon{object-fit:contain;image-rendering:pixelated;background:#09090c;border-radius:2px}
+.palette-group{margin-bottom:12px}
+.palette-group h3{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 6px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+.group-set-select{width:76px;padding:3px 4px;font-size:9px;background:#0f0f14;color:var(--muted);border:1px solid var(--line);border-radius:3px}
+.group-set-select:hover{border-color:var(--accent);color:var(--accent)}
+#setSelect{min-width:0;flex:1}
+
+</style>
 </head>
 <body>
 <div class="app">
-  <header class="topbar"><div class="brand">PIXEL ISOMETRIC</div><div class="sub">Scene Studio · title design + isometric tile painting</div><div class="spacer"></div><button id="undo" title="Undo (Ctrl/Cmd+Z)">Undo</button><button id="redo" title="Redo (Ctrl/Cmd+Shift+Z)">Redo</button><button id="save">Save</button><button id="load">Load</button><button id="export">Export JSON</button><button id="png">Export PNG</button><input class="file" id="file" type="file" accept="application/json,.json"></header>
+  <header class="topbar">
+    <div class="brand">PIXEL ISOMETRIC</div>
+    <div class="sub">Scene Studio · tile designer + isometric painting</div>
+    <div class="spacer"></div>
+    <button id="undo" title="Undo (Ctrl/Cmd+Z)">Undo</button>
+    <button id="redo" title="Redo (Ctrl/Cmd+Shift+Z)">Redo</button>
+    <button id="save">Save</button>
+    <button id="load">Load</button>
+    <button id="export">Export JSON</button>
+    <button id="png">Export PNG</button>
+    <input class="file" id="file" type="file" accept="application/json,.json">
+  </header>
+
   <main class="body">
     <aside class="sidebar">
-      <section class="section"><h2>Tile Painting</h2><div class="button-grid three" id="tools"><button data-tool="brush" class="active">Paint</button><button data-tool="erase">Erase</button><button data-tool="fill">Fill</button></div><div class="row"><label>Shape</label><div class="button-grid" id="shapes"><button data-shape="cube" class="active">Cube</button><button data-shape="plane">Plane</button><button data-shape="ramp">Ramp</button><button data-shape="arch">Arch</button><button data-shape="pillar">Pillar</button></div></div><div class="row"><label>Brush size</label><input id="brush" type="range" min="1" max="5" step="2" value="1"><span class="value" id="brushValue">1×1</span></div><div class="row"><label>Height</label><button id="heightDown">−</button><span class="value" id="heightValue">0</span><button id="heightUp">+</button></div><p class="hint">Drag to paint. Right-click erases. Press <b>B</b>, <b>E</b>, or <b>F</b> to change tools.</p></section>
-      <section class="section"><h2>Tile Palette</h2><div id="palette" class="palette"></div></section>
-      <section class="section"><h2>Scene</h2><div class="row"><label>Width</label><input id="width" type="number" min="4" max="80" value="20"></div><div class="row"><label>Height</label><input id="height" type="number" min="4" max="80" value="16"></div><div class="button-grid"><button id="resize">Resize canvas</button><button class="danger" id="clear">Clear tiles</button></div><p class="hint">Changing size retains tiles that still fit.</p></section>
+      <section class="section">
+        <h2>Tile Painting</h2>
+        <div id="tileOptions">
+        <div class="button-grid three" id="tools">
+          <button data-tool="brush" class="active">Paint</button>
+          <button data-tool="erase">Erase</button>
+          <button data-tool="fill">Fill</button>
+        </div>
+        <div id="shapes"></div>
+        <div class="row"><label>Facing</label><button id="rotateBtn" title="Rotate (R)">Rotate ↻ <span id="rotVal">0°</span></button><button id="mirrorBtn" title="Mirror (M)">Mirror</button></div>
+        <div class="row"><label>Brush size</label><input id="brush" type="range" min="1" max="5" step="2" value="1"><span class="value" id="brushValue">1×1</span></div>
+        </div>
+        <div class="row"><label>Height</label><button id="heightDown">−</button><span class="value" id="heightValue">0</span><button id="heightUp">+</button></div>
+        <p class="hint">Drag to paint. Right-click erases. Painting outside the current canvas grows it automatically.</p>
+      </section>
+      <section class="section">
+        <h2>Layers</h2>
+        <div class="button-grid" id="layers">
+          <button data-layer="collider">Collider</button>
+          <button data-layer="decoration">Decoration</button>
+          <button data-layer="structure">Structure</button>
+          <button data-layer="ground" class="active">Ground</button>
+        </div>
+        <div class="button-grid" id="colliderTools" style="display:none">
+          <button data-collider="top" class="active">▰ Top</button>
+          <button data-collider="left">◧ Left</button>
+          <button data-collider="right">◨ Right</button>
+          <button data-collider="tile">▦ Tile</button>
+          <button data-collider="edge-x">─ X edge</button>
+          <button data-collider="edge-y">│ Y edge</button>
+          <button data-collider="edge-z">↕ Z edge</button>
+        </div>
+        <p class="hint">Layer order top → bottom: Collider, Decoration, Structure, Ground. Colliders export separately.</p>
+      </section>
+      <section class="section">
+        <h2>Tile Library</h2>
+        <div class="row"><label>Set</label><select id="setSelect"></select></div>
+        <div class="button-grid three"><button id="newSet">New set</button><button id="duplicateSet">Duplicate set</button><button id="deleteSet">Delete set</button></div>
+        <div id="palette" class="palette"></div>
+        <p class="hint">Sets contain groups; groups contain tiles. Select a tile to load it into the designer.</p>
+      </section>
+      <section class="section">
+        <h2>Scene</h2>
+        <div class="row"><label>Width</label><input id="width" type="number" min="4" max="120" value="20"></div>
+        <div class="row"><label>Height</label><input id="height" type="number" min="4" max="120" value="16"></div>
+        <div class="button-grid"><button id="resize">Resize canvas</button><button class="danger" id="clear">Clear tiles</button></div>
+        <p class="hint">Canvas grows when painting past its edges.</p>
+      </section>
     </aside>
+
     <section class="canvas-wrap"><canvas id="scene"></canvas><div class="hud"><b id="coords">x 0 · y 0</b><br><span id="hudText">Paint · Grass · z 0</span></div></section>
+
     <aside class="sidebar right">
-      <section class="section designer"><h2>Tile Designer</h2><div class="row"><label>Name</label><input id="tileName" type="text" value="Custom tile"></div><h3 class="subhead">Geometry</h3><div class="row"><label>Top Col</label><input id="tileTop" type="color" value="#6eaa5a"></div><div class="row"><label>Bot Col</label><input id="tileBottom" type="color" value="#c97259"></div><div class="row"><label>Split</label><input id="tileSplit" type="range" min="0" max="100" step="1" value="55"><span class="value" id="tileSplitValue">55</span></div><h3 class="subhead">Top Dither</h3><div class="row"><label>Mode</label><select id="topMode"><option value="solid">Solid</option><option value="noise" selected>Noise</option><option value="lines">Lines</option><option value="crosshatch">Crosshatch</option><option value="dots">Dots</option><option value="random">Random</option></select></div><div class="row"><label>Ink Type</label><select id="topInk"><option value="bright" selected>Bright</option><option value="dark">Dark</option></select></div><div class="row"><label>Bright</label><input id="topBright" type="range" min="0" max="100" value="72"><span class="value" id="topBrightValue">72</span></div><div class="row"><label>Space</label><input id="topSpace" type="range" min="0" max="100" value="42"><span class="value" id="topSpaceValue">42</span></div><div class="row"><label>Thick</label><input id="topThick" type="range" min="0" max="100" value="32"><span class="value" id="topThickValue">32</span></div><div class="row"><label>Blend</label><input id="topBlend" type="range" min="0" max="100" value="68"><span class="value" id="topBlendValue">68</span></div><h3 class="subhead">Bottom Dither</h3><div class="row"><label>Mode</label><select id="bottomMode"><option value="solid">Solid</option><option value="noise" selected>Noise</option><option value="lines">Lines</option><option value="crosshatch">Crosshatch</option><option value="dots">Dots</option><option value="random">Random</option></select></div><div class="row"><label>Ink Type</label><select id="bottomInk"><option value="bright">Bright</option><option value="dark" selected>Dark</option></select></div><div class="row"><label>Bright</label><input id="bottomBright" type="range" min="0" max="100" value="58"><span class="value" id="bottomBrightValue">58</span></div><div class="row"><label>Space</label><input id="bottomSpace" type="range" min="0" max="100" value="42"><span class="value" id="bottomSpaceValue">42</span></div><div class="row"><label>Thick</label><input id="bottomThick" type="range" min="0" max="100" value="32"><span class="value" id="bottomThickValue">32</span></div><div class="row"><label>Blend</label><input id="bottomBlend" type="range" min="0" max="100" value="68"><span class="value" id="bottomBlendValue">68</span></div><div class="button-grid"><button id="saveTile">Save as tile</button><button id="updateTile">Update selected</button></div><p class="hint">Create reusable tile surfaces with split top/bottom side colours and dither patterns, then apply them to cubes, planes, ramps, arches, or pillars.</p></section><section class="section"><h2>Layers</h2><div class="button-grid" id="layers"><button data-layer="ground" class="active">Ground</button><button data-layer="detail">Detail</button><button data-layer="structure">Structure</button><button data-layer="collider">Collider</button></div><div class="button-grid" id="colliderTools"><button data-collider="tile" class="active">Collider tile</button><button data-collider="edge">Line edge</button></div><p class="hint">Collider tiles and line edges are exported separately from visual tiles.</p></section>
-      <section class="section"><h2>Import</h2><button id="chooseFile">Open JSON…</button><p class="hint">Loads Scene Studio exports and project `town-tilemap` JSON files.</p></section>
+      <section class="section designer">
+        <h2>Tile Designer</h2>
+        <div class="preview-wrap"><canvas id="tilePreview" class="preview" width="260" height="160"></canvas><span class="preview-label">Live tile preview</span></div>
+        <div class="row"><label>Name</label><input id="tileName" type="text" value="Custom tile"></div>
+        <h3 class="subhead">Geometry</h3>
+        <div class="row"><label>Top Col</label><input id="tileTop" type="color" value="#6eaa5a"></div>
+        <div class="row"><label>Bot Col</label><input id="tileBottom" type="color" value="#c97259"></div>
+        <div class="row"><label>Split</label><input id="tileSplit" type="range" min="0" max="100" step="1" value="55"><span class="value" id="tileSplitValue">55</span></div>
+        <h3 class="subhead">Top Dither</h3>
+        <div class="row"><label>Mode</label><select id="topMode">
+          <option value="solid">Solid</option><option value="noise" selected>Noise</option><option value="lines">Lines</option>
+          <option value="crosshatch">Crosshatch</option><option value="dots">Dots</option><option value="random">Random</option>
+        </select></div>
+        <div class="row"><label>Ink Type</label><select id="topInk"><option value="bright" selected>Bright</option><option value="dark">Dark</option></select></div>
+        <div class="row"><label>Blend mode</label><select id="topBlendMode">
+          <option value="source-over" selected>Normal</option><option value="multiply">Multiply</option><option value="screen">Screen</option>
+          <option value="overlay">Overlay</option><option value="soft-light">Soft light</option><option value="hard-light">Hard light</option>
+        </select></div>
+        <div class="row"><label>Bright</label><input id="topBright" type="range" min="0" max="100" value="72"><span class="value" id="topBrightValue">72</span></div>
+        <div class="row"><label>Space</label><input id="topSpace" type="range" min="0" max="100" value="42"><span class="value" id="topSpaceValue">42</span></div>
+        <div class="row"><label>Thick</label><input id="topThick" type="range" min="0" max="100" value="32"><span class="value" id="topThickValue">32</span></div>
+        <div class="row"><label>Blend</label><input id="topBlend" type="range" min="0" max="100" value="68"><span class="value" id="topBlendValue">68</span></div>
+        <h3 class="subhead">Bottom Dither</h3>
+        <div class="row"><label>Mode</label><select id="bottomMode">
+          <option value="solid">Solid</option><option value="noise" selected>Noise</option><option value="lines">Lines</option>
+          <option value="crosshatch">Crosshatch</option><option value="dots">Dots</option><option value="random">Random</option>
+        </select></div>
+        <div class="row"><label>Ink Type</label><select id="bottomInk"><option value="bright">Bright</option><option value="dark" selected>Dark</option></select></div>
+        <div class="row"><label>Blend mode</label><select id="bottomBlendMode">
+          <option value="source-over" selected>Normal</option><option value="multiply">Multiply</option><option value="screen">Screen</option>
+          <option value="overlay">Overlay</option><option value="soft-light">Soft light</option><option value="hard-light">Hard light</option>
+        </select></div>
+        <div class="row"><label>Bright</label><input id="bottomBright" type="range" min="0" max="100" value="58"><span class="value" id="bottomBrightValue">58</span></div>
+        <div class="row"><label>Space</label><input id="bottomSpace" type="range" min="0" max="100" value="42"><span class="value" id="bottomSpaceValue">42</span></div>
+        <div class="row"><label>Thick</label><input id="bottomThick" type="range" min="0" max="100" value="32"><span class="value" id="bottomThickValue">32</span></div>
+        <div class="row"><label>Blend</label><input id="bottomBlend" type="range" min="0" max="100" value="68"><span class="value" id="bottomBlendValue">68</span></div>
+        <div class="button-grid"><button id="saveTile">Save as new tile</button><button id="updateTile">Update selected</button></div>
+        <p class="hint">Saves into the selected group and becomes part of the default tile library.</p>
+      </section>
+
+      <section class="section">
+        <h2>Tile Groups</h2>
+        <div class="row"><label>Group</label><select id="groupSelect"></select></div>
+        <div id="groupList"></div>
+        <div class="button-grid three"><button id="newGroup">New</button><button id="duplicateGroup">Duplicate</button><button id="deleteGroup">Delete</button></div>
+        <div class="button-grid"><button id="applyGroup">Apply designer to group</button><button id="deleteTile">Delete tile</button></div>
+        <p class="hint">Duplicate a group to make a variant, then edit the copy’s colours and dither settings together.</p>
+      </section>
+
+      
+
+      <section class="section"><h2>Import</h2><button id="chooseFile">Open JSON…</button><p class="hint">Loads Scene Studio exports and project <code>town-tilemap</code> JSON files.</p></section>
     </aside>
   </main>
+
+  <div id="floating-menu" class="floating-menu">
+    <button id="btn-pan" title="Hand tool — drag to pan">✋ Pan</button>
+    <button id="btn-zoom-in" title="Zoom in">＋</button>
+    <button id="btn-zoom-out" title="Zoom out">−</button>
+    <button id="btn-zoom-reset" title="Reset view">Reset</button>
+  </div>
   <footer class="status" id="status">Ready. <b>Autosaves in this browser.</b></footer>
 </div>
-<script>
-(() => {
-  const $ = id => document.getElementById(id);
-  const canvas = $('scene'), ctx = canvas.getContext('2d');
-  const PALETTE = [
-    {id:'grass',name:'Grass',top:'#6eaa5a',left:'#4c8040',right:'#5b934a'}, {id:'stone',name:'Stone',top:'#a7adb3',left:'#727980',right:'#8b9299'},
-    {id:'water',name:'Water',top:'#5db3d5',left:'#397eaa',right:'#4b99c1'}, {id:'sand',name:'Sand',top:'#e5c77b',left:'#b89550',right:'#d0ae62'},
-    {id:'brick',name:'Brick',top:'#c97259',left:'#914738',right:'#ad5844'}, {id:'wood',name:'Wood',top:'#b88955',left:'#815a35',right:'#9c7043'},
-    {id:'snow',name:'Snow',top:'#eff6fb',left:'#b8c9d5',right:'#d5e2ea'}, {id:'lava',name:'Lava',top:'#ec713f',left:'#a5342e',right:'#ca4d33'}
-  ];
-  const PALETTE_STORAGE = 'pixelIsometric.sceneStudio.palette.v1';
-  const DEFAULT_DITHER = {mode:'solid',ink:'bright',bright:50,space:50,thick:50,blend:50};
-  const TILE_TEX_SIZE = 24;
-  const tileTextureCache = new Map(), tilePreviewCache = new Map();
-  function hexToRgb(hex){const n=parseInt(hex.replace('#',''),16);return {r:(n>>16)&255,g:(n>>8)&255,b:n&255}}
-  function rgbToHex(r,g,b){const c=v=>Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,'0');return '#'+c(r)+c(g)+c(b)}
-  function shade(hex,amount){const c=hexToRgb(hex),f=v=>amount>=0?v+(255-v)*amount:v*(1+amount);return rgbToHex(f(c.r),f(c.g),f(c.b))}
-  function ditherSettings(mode='solid',ink='bright',bright=50,space=50,thick=50,blend=50){return {mode,ink,bright,space,thick,blend}}
-  function normalizeTile(tile){
-    if(!tile.bottom)tile.bottom=tile.left||shade(tile.top,-.28);
-    if(tile.split==null)tile.split=100;
-    if(!tile.topDither)tile.topDither=ditherSettings(tile.pattern==='lines'?'lines':tile.pattern==='dots'?'dots':'solid','bright',65,45,35,70);
-    if(!tile.bottomDither)tile.bottomDither=ditherSettings('solid','dark',55,45,35,70);
-    if(tile.left==null)tile.left=shade(tile.top,-.12);
-    if(tile.right==null)tile.right=shade(tile.top,.02);
-    return tile;
+<script type="module">
+import { STRUCTURE_GROUPS, STRUCTURES, STRUCTURES_WITH_90, getStructure, drawStructure, structurePreviewURL } from '../../js/scene-studio/structures.js';
+const LIBRARY_STORAGE = 'pixelIsometric.sceneStudio.library.v2';
+const SCENE_STORAGE = 'pixelIsometric.sceneStudio.scene.v1';
+const TEXTURE_SIZE = 40;
+
+const dither = (mode = 'solid', ink = 'bright', bright = 60, space = 45, thick = 30, blend = 65, blendMode = 'source-over') => ({
+  mode, ink, bright, space, thick, blend, blendMode,
+});
+
+const DEFAULT_SETS = [
+  { id: 'classic', name: 'Classic' },
+  { id: 'desert', name: 'Desert' },
+  { id: 'snow', name: 'Snow' },
+  { id: 'jungle', name: 'Jungle' },
+  { id: 'town', name: 'Town' },
+];
+
+const DEFAULT_GROUPS = [
+  { id: 'terrain', name: 'Terrain', setId: 'classic' },
+  { id: 'brick', name: 'Brick & Paving', setId: 'classic' },
+  { id: 'roofs', name: 'Roof Systems', setId: 'classic' },
+  { id: 'walls', name: 'Walls & Steps', setId: 'classic' },
+  { id: 'structures', name: 'Structures', setId: 'classic' },
+  { id: 'details', name: 'Details', setId: 'classic' },
+  { id: 'desert-ground', name: 'Desert Ground', setId: 'desert' },
+  { id: 'desert-build', name: 'Desert Build', setId: 'desert' },
+  { id: 'snow-ground', name: 'Snow Ground', setId: 'snow' },
+  { id: 'snow-build', name: 'Snow Build', setId: 'snow' },
+  { id: 'jungle-ground', name: 'Jungle Ground', setId: 'jungle' },
+  { id: 'jungle-build', name: 'Jungle Build', setId: 'jungle' },
+  { id: 'town-ground', name: 'Town Ground', setId: 'town' },
+  { id: 'town-stone', name: 'Town Stonework', setId: 'town' },
+  { id: 'town-walls', name: 'Town Walls', setId: 'town' },
+  { id: 'town-roofs', name: 'Town Roofs', setId: 'town' },
+  { id: 'town-props', name: 'Town Props', setId: 'town' },
+];
+
+const tile = (id, name, groupId, top, bottom, split, topDither, bottomDither) => ({
+  id, name, groupId, top, bottom, split, topDither, bottomDither,
+});
+
+const DEFAULT_TILES = [
+  tile('grass', 'Grass', 'terrain', '#6eaa5a', '#355d3a', 58,
+    dither('noise', 'bright', 72, 42, 32, 68), dither('noise', 'dark', 58, 42, 32, 68)),
+  tile('stone', 'Stone', 'terrain', '#a7adb3', '#5b646b', 52,
+    dither('crosshatch', 'bright', 66, 38, 28, 64), dither('lines', 'dark', 54, 34, 24, 60)),
+  tile('water', 'Water', 'terrain', '#5db3d5', '#24618a', 62,
+    dither('lines', 'bright', 58, 28, 22, 55), dither('solid', 'dark', 45, 45, 30, 55)),
+  tile('sand', 'Sand', 'terrain', '#e5c77b', '#9b7339', 48,
+    dither('dots', 'bright', 62, 38, 30, 62), dither('noise', 'dark', 50, 45, 35, 60)),
+  tile('snow', 'Snow', 'terrain', '#eff6fb', '#9fb6c6', 68,
+    dither('noise', 'bright', 70, 45, 28, 58), dither('solid', 'dark', 40, 45, 30, 55)),
+  tile('lava', 'Lava', 'terrain', '#ec713f', '#7c1f1b', 60,
+    dither('crosshatch', 'bright', 78, 34, 30, 74), dither('noise', 'dark', 60, 42, 34, 72)),
+  tile('dirt', 'Dirt', 'terrain', '#8a6a46', '#4c3524', 55,
+    dither('random', 'bright', 55, 48, 36, 62), dither('noise', 'dark', 48, 45, 34, 64)),
+
+  tile('brick-red', 'Red Brick', 'brick', '#b5564a', '#5d2c2b', 50,
+    dither('brick', 'bright', 62, 38, 28, 70, 'multiply'), dither('brick', 'dark', 50, 38, 28, 70, 'multiply')),
+  tile('brick-pale', 'Pale Brick', 'brick', '#c9b48e', '#7d674a', 52,
+    dither('brick', 'bright', 58, 42, 26, 66, 'overlay'), dither('brick', 'dark', 48, 42, 26, 66, 'multiply')),
+  tile('paving', 'Paving', 'brick', '#8c8f96', '#4e5359', 55,
+    dither('paving', 'bright', 64, 34, 30, 68, 'overlay'), dither('paving', 'dark', 52, 36, 28, 66, 'multiply')),
+  tile('cobble', 'Cobblestone', 'brick', '#9aa2a8', '#596267', 48,
+    dither('checker', 'bright', 60, 26, 34, 70, 'soft-light'), dither('noise', 'dark', 50, 40, 32, 64, 'multiply')),
+
+  tile('roof', 'Roof Tiles', 'roofs', '#9f4150', '#53242f', 46,
+    dither('lines', 'bright', 62, 30, 26, 66, 'overlay'), dither('crosshatch', 'dark', 55, 34, 24, 64, 'multiply')),
+  tile('roof-slate', 'Slate Roof', 'roofs', '#596a7b', '#2a3440', 50,
+    dither('weave', 'bright', 55, 30, 26, 72, 'overlay'), dither('weave', 'dark', 48, 30, 26, 72, 'multiply')),
+  tile('roof-terracotta', 'Terracotta Roof', 'roofs', '#b85a48', '#6a2e27', 50,
+    dither('lines', 'bright', 58, 22, 30, 72, 'overlay'), dither('crosshatch', 'dark', 45, 32, 24, 68, 'multiply')),
+
+  tile('wall', 'Painted Wall', 'walls', '#d6b66a', '#7d6631', 58,
+    dither('solid', 'bright', 50, 40, 30, 55), dither('lines', 'dark', 50, 36, 24, 60)),
+  tile('wall-plaster', 'Plaster Wall', 'walls', '#d6c89f', '#7b6f4f', 66,
+    dither('noise', 'bright', 46, 50, 30, 55, 'soft-light'), dither('lines', 'dark', 42, 34, 22, 60, 'multiply')),
+  tile('wall-stone', 'Stone Wall', 'walls', '#a7b0b4', '#546066', 52,
+    dither('brick', 'bright', 62, 40, 28, 68, 'overlay'), dither('paving', 'dark', 48, 38, 30, 64, 'multiply')),
+  tile('steps', 'Stone Steps', 'walls', '#b1b6b8', '#5c6367', 48,
+    dither('lines', 'bright', 56, 28, 32, 66, 'overlay'), dither('brick', 'dark', 46, 40, 26, 64, 'multiply')),
+
+  tile('brick', 'Brick', 'structures', '#c97259', '#7c3429', 56,
+    dither('lines', 'bright', 64, 35, 30, 68), dither('crosshatch', 'dark', 52, 38, 26, 65)),
+  tile('wood', 'Wood', 'structures', '#b88955', '#63432a', 54,
+    dither('lines', 'bright', 58, 32, 24, 62), dither('lines', 'dark', 48, 32, 24, 62)),
+  tile('metal', 'Metal', 'details', '#8d99a6', '#48515a', 50,
+    dither('crosshatch', 'bright', 68, 36, 26, 62), dither('dots', 'dark', 48, 42, 30, 58)),
+
+  tile('desert-sand', 'Desert Sand', 'desert-ground', '#e0b96e', '#9a6a32', 50,
+    dither('dots', 'bright', 58, 38, 30, 60), dither('noise', 'dark', 48, 44, 32, 62)),
+  tile('sandstone', 'Sandstone', 'desert-build', '#c89b62', '#79562f', 55,
+    dither('brick', 'bright', 60, 38, 28, 66, 'overlay'), dither('brick', 'dark', 48, 36, 26, 64, 'multiply')),
+  tile('desert-roof', 'Desert Roof', 'desert-build', '#b77f4d', '#6b4327', 52,
+    dither('lines', 'bright', 56, 26, 30, 66), dither('crosshatch', 'dark', 44, 34, 24, 60)),
+
+  tile('snow-pack', 'Snow Pack', 'snow-ground', '#f4fbff', '#a8c0d2', 64,
+    dither('noise', 'bright', 68, 46, 30, 58), dither('solid', 'dark', 38, 46, 30, 52)),
+  tile('ice-brick', 'Ice Brick', 'snow-build', '#b8e2f2', '#5b8fa8', 54,
+    dither('brick', 'bright', 60, 38, 28, 66, 'screen'), dither('brick', 'dark', 45, 38, 28, 64, 'multiply')),
+  tile('snow-roof', 'Snow Roof', 'snow-build', '#d9ecf5', '#7896a8', 58,
+    dither('weave', 'bright', 55, 30, 26, 64, 'screen'), dither('crosshatch', 'dark', 42, 34, 24, 60, 'multiply')),
+
+  tile('jungle-moss', 'Jungle Moss', 'jungle-ground', '#4f8a4a', '#244724', 60,
+    dither('noise', 'bright', 60, 48, 34, 66), dither('random', 'dark', 48, 46, 34, 64)),
+  tile('jungle-stone', 'Jungle Stone', 'jungle-build', '#7d8f6b', '#3f4d36', 56,
+    dither('crosshatch', 'bright', 58, 36, 28, 64), dither('paving', 'dark', 46, 38, 28, 62, 'multiply')),
+  tile('jungle-wood', 'Jungle Wood', 'jungle-build', '#8f6b43', '#4a3320', 54,
+    dither('lines', 'bright', 56, 30, 24, 62), dither('noise', 'dark', 46, 42, 32, 60)),
+
+  // ── Town set (palette sampled from tilemap_example.png) ──────────────
+  // Ground & floors
+  tile('mossy-flagstone', 'Mossy Flagstone', 'town-ground', '#a9b195', '#647968', 55,
+    dither('stonework', 'dark', 48, 40, 20, 70, 'multiply'), dither('stonework', 'dark', 52, 40, 20, 66, 'multiply')),
+  tile('plank-floor', 'Plank Floor', 'town-ground', '#8c7063', '#64453a', 50,
+    dither('plank', 'dark', 50, 42, 20, 72, 'multiply'), dither('plank', 'dark', 55, 42, 20, 66, 'multiply')),
+  tile('plank-floor-worn', 'Worn Planks', 'town-ground', '#78564a', '#49342d', 50,
+    dither('plank', 'dark', 58, 55, 20, 72, 'multiply'), dither('plank', 'dark', 50, 50, 20, 64, 'multiply')),
+  tile('courtyard-water', 'Well Water', 'town-ground', '#4d7fbb', '#2a4346', 62,
+    dither('lines', 'bright', 52, 28, 22, 55), dither('solid', 'dark', 45, 45, 30, 55)),
+
+  // Stone blocks, steps, pillars, wells
+  tile('moss-block', 'Mossy Stone Block', 'town-stone', '#95a083', '#56675e', 52,
+    dither('stonework', 'dark', 46, 38, 20, 72, 'multiply'), dither('stonework', 'dark', 54, 38, 20, 68, 'multiply')),
+  tile('moss-block-light', 'Light Stone Block', 'town-stone', '#a9b195', '#71846e', 52,
+    dither('stonework', 'dark', 40, 38, 20, 68, 'multiply'), dither('stonework', 'dark', 48, 38, 20, 66, 'multiply')),
+  tile('stone-steps-town', 'Stone Steps', 'town-stone', '#849277', '#465d57', 48,
+    dither('lines', 'dark', 45, 30, 26, 64, 'multiply'), dither('stonework', 'dark', 50, 38, 20, 66, 'multiply')),
+  tile('stone-pillar', 'Stone Pillar', 'town-stone', '#95a083', '#385150', 55,
+    dither('stonework', 'dark', 44, 60, 20, 66, 'multiply'), dither('stonework', 'dark', 52, 60, 20, 66, 'multiply')),
+  tile('stone-well', 'Well Rim', 'town-stone', '#a9b195', '#647968', 50,
+    dither('stonework', 'dark', 42, 34, 20, 68, 'multiply'), dither('stonework', 'dark', 50, 34, 20, 66, 'multiply')),
+
+  // Walls: plaster over stone, timber frames, lattice windows, doors
+  tile('plaster-stone-wall', 'Plaster & Stone Wall', 'town-walls', '#bea55b', '#56675e', 60,
+    dither('noise', 'dark', 36, 50, 30, 50, 'soft-light'), dither('stonework', 'dark', 50, 38, 20, 70, 'multiply')),
+  tile('timber-wall', 'Timber Frame', 'town-walls', '#a27b6d', '#64453a', 55,
+    dither('lines', 'dark', 40, 34, 22, 56, 'multiply'), dither('lines', 'dark', 48, 34, 22, 60, 'multiply')),
+  tile('timber-trim', 'Timber Trim', 'town-walls', '#8c7063', '#49342d', 58,
+    dither('plank', 'dark', 44, 40, 20, 60, 'multiply'), dither('plank', 'dark', 50, 40, 20, 62, 'multiply')),
+  tile('lattice-window', 'Lattice Window', 'town-walls', '#a27b6d', '#78564a', 70,
+    dither('lattice', 'dark', 62, 40, 20, 80, 'multiply'), dither('plank', 'dark', 48, 40, 20, 62, 'multiply')),
+  tile('door-wood', 'Wooden Door', 'town-walls', '#78564a', '#49342d', 50,
+    dither('lines', 'dark', 52, 26, 24, 66, 'multiply'), dither('lines', 'dark', 52, 26, 24, 66, 'multiply')),
+  tile('doorway-dark', 'Dark Doorway', 'town-walls', '#385150', '#2a4346', 50,
+    dither('noise', 'dark', 30, 45, 30, 50), dither('noise', 'dark', 30, 45, 30, 50)),
+
+  // Roofs
+  tile('roof-shingle-red', 'Red Shingle Roof', 'town-roofs', '#893f49', '#775066', 50,
+    dither('shingle', 'dark', 56, 42, 26, 72, 'multiply'), dither('shingle', 'dark', 50, 42, 26, 68, 'multiply')),
+  tile('roof-shingle-plum', 'Plum Shingle Roof', 'town-roofs', '#775066', '#49342d', 50,
+    dither('shingle', 'dark', 56, 42, 26, 72, 'multiply'), dither('shingle', 'dark', 50, 42, 26, 68, 'multiply')),
+  tile('roof-ridge', 'Roof Ridge', 'town-roofs', '#9e7570', '#64453a', 48,
+    dither('lines', 'dark', 48, 30, 26, 60, 'multiply'), dither('lines', 'dark', 44, 30, 26, 60, 'multiply')),
+  tile('gable-plaster', 'Gable Plaster', 'town-roofs', '#bea55b', '#aa865a', 55,
+    dither('noise', 'dark', 36, 50, 30, 50, 'soft-light'), dither('lines', 'dark', 42, 34, 22, 56, 'multiply')),
+
+  // Props
+  tile('table-wood', 'Wood Table', 'town-props', '#aa865a', '#64453a', 40,
+    dither('plank', 'dark', 46, 42, 20, 62, 'multiply'), dither('lines', 'dark', 48, 32, 24, 62, 'multiply')),
+  tile('stool-wood', 'Wood Stool', 'town-props', '#8c7063', '#49342d', 45,
+    dither('plank', 'dark', 44, 40, 20, 62, 'multiply'), dither('lines', 'dark', 48, 32, 24, 62, 'multiply')),
+  tile('planter-soil', 'Planter Soil', 'town-props', '#64453a', '#49342d', 55,
+    dither('noise', 'bright', 46, 48, 30, 60), dither('noise', 'dark', 48, 45, 34, 60)),
+];
+
+
+const textureCache = new Map();
+const previewCache = new Map();
+
+function hexToRgb(hex) {
+  const n = parseInt(String(hex).replace('#', ''), 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+function rgbToHex(r, g, b) {
+  const c = v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0');
+  return `#${c(r)}${c(g)}${c(b)}`;
+}
+
+function shade(hex, amount) {
+  const c = hexToRgb(hex);
+  const f = v => amount >= 0 ? v + (255 - v) * amount : v * (1 + amount);
+  return rgbToHex(f(c.r), f(c.g), f(c.b));
+}
+
+function normalizeTile(tile) {
+  tile.bottom ??= shade(tile.top, -0.32);
+  tile.split ??= 55;
+  tile.topDither ??= { mode: 'noise', ink: 'bright', bright: 65, space: 42, thick: 32, blend: 65, blendMode: 'source-over' };
+  tile.bottomDither ??= { mode: 'noise', ink: 'dark', bright: 55, space: 42, thick: 32, blend: 65, blendMode: 'source-over' };
+  tile.topDither.blendMode ??= 'source-over';
+  tile.bottomDither.blendMode ??= 'source-over';
+  return tile;
+}
+
+function stringSeed(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
   }
-  PALETTE.forEach(normalizeTile);
-  function savePalette(){try{localStorage.setItem(PALETTE_STORAGE,JSON.stringify(PALETTE.filter(t=>t.id.startsWith('custom-'))))}catch(_){}}
-  function loadPalette(){try{const saved=JSON.parse(localStorage.getItem(PALETTE_STORAGE)||'[]');if(Array.isArray(saved))saved.forEach(t=>{if(t&&t.id&&!PALETTE.some(p=>p.id===t.id))PALETTE.push(normalizeTile(t))})}catch(_){}}
-  function stringSeed(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
-  function hash2(x,y,seed){let n=(x*374761393+y*668265263+seed*69069)|0;n=(n^(n>>13))*1274126177;return ((n^(n>>16))>>>0)/4294967295}
-  function inkColor(base,s){return shade(base,s.ink==='dark'?-(0.12+(s.bright/100)*0.55):(0.12+(s.bright/100)*0.55))}
-  function patternAt(x,y,s,seed){
-    if(!s||s.mode==='solid')return false;
-    const space=1+Math.round((s.space/100)*6),thick=1+Math.round((s.thick/100)*3),density=0.12+(s.bright/100)*0.62;
-    const sx=x+(seed%17),sy=y+((seed>>4)%19);
-    if(s.mode==='lines')return ((sx+sy)%space)<thick;
-    if(s.mode==='crosshatch')return ((sx+sy)%space)<thick||((sx-sy+1000)%space)<thick;
-    if(s.mode==='dots')return (sx%space===0&&sy%space===0)||(thick>2&&sx%space===1&&sy%space===0);
-    if(s.mode==='noise'){const block=1+Math.round((s.space/100)*1.5);return hash2(Math.floor(x/block),Math.floor(y/block),seed)<density}
-    if(s.mode==='random'){const block=1+Math.round((s.space/100)*3);return hash2(Math.floor(x/block),Math.floor(y/block),seed)<density}
-    return false;
+  return h >>> 0;
+}
+
+function hash2(x, y, seed) {
+  let n = (x * 374761393 + y * 668265263 + seed * 69069) | 0;
+  n = (n ^ (n >> 13)) * 1274126177;
+  return ((n ^ (n >> 16)) >>> 0) / 4294967295;
+}
+
+function inkColor(base, s) {
+  return shade(base, s.ink === 'dark' ? -(0.12 + (s.bright / 100) * 0.55) : (0.12 + (s.bright / 100) * 0.55));
+}
+
+function patternAt(x, y, s, seed) {
+  if (!s || s.mode === 'solid') return false;
+  const space = 1 + Math.round((s.space / 100) * 6);
+  const thick = 1 + Math.round((s.thick / 100) * 3);
+  const density = 0.12 + (s.bright / 100) * 0.62;
+  const sx = x + (seed % 17);
+  const sy = y + ((seed >> 4) % 19);
+  if (s.mode === 'lines') return ((sx + sy) % space) < thick;
+  if (s.mode === 'crosshatch') return ((sx + sy) % space) < thick || ((sx - sy + 1000) % space) < thick;
+  if (s.mode === 'dots') return (sx % space === 0 && sy % space === 0) || (thick > 2 && sx % space === 1 && sy % space === 0);
+  if (s.mode === 'noise') {
+    const block = 1 + Math.round((s.space / 100) * 1.5);
+    return hash2(Math.floor(x / block), Math.floor(y / block), seed) < density;
   }
-  function ditherKey(s){return s?`${s.mode},${s.ink},${s.bright},${s.space},${s.thick},${s.blend}`:''}
-  function tileTextureKey(tile,face){return `${face}|${tile.id}|${tile.top}|${tile.left}|${tile.right}|${tile.bottom}|${tile.split}|${ditherKey(tile.topDither)}|${ditherKey(tile.bottomDither)}`}
-  function applyDither(g,tile,s,seed,y0,y1,base){
-    if(!s||s.mode==='solid'||y1<=y0)return;
-    g.save();g.globalAlpha=0.12+(s.blend/100)*0.88;g.fillStyle=inkColor(base,s);
-    for(let y=Math.floor(y0);y<Math.ceil(y1);y++)for(let x=0;x<TILE_TEX_SIZE;x++)if(patternAt(x,y,s,seed))g.fillRect(x,y,1,1);
-    g.restore();
+  if (s.mode === 'random') {
+    const block = 1 + Math.round((s.space / 100) * 3);
+    return hash2(Math.floor(x / block), Math.floor(y / block), seed) < density;
   }
-  function faceTexture(tile,face){
-    const key=tileTextureKey(tile,face),cached=tileTextureCache.get(key);if(cached)return cached;
-    const size=TILE_TEX_SIZE,c=document.createElement('canvas');c.width=size;c.height=size;const g=c.getContext('2d');
-    const split=Math.max(0,Math.min(1,(Number(tile.split)||0)/100)),seed=stringSeed(tile.id+face);
-    if(face==='top'){
-      g.fillStyle=tile.top;g.fillRect(0,0,size,size);
-      applyDither(g,tile,tile.topDither,seed,0,size,tile.top);
-    }else{
-      const left=face==='left',topColor=left?(tile.left||shade(tile.top,-.12)):(tile.right||shade(tile.top,.02));
-      const bottomBase=tile.bottom||tile.left||tile.top,bottomColor=left?shade(bottomBase,-.12):shade(bottomBase,.02);
-      const splitY=Math.round(size*split);
-      g.fillStyle=topColor;g.fillRect(0,0,size,splitY);
-      g.fillStyle=bottomColor;g.fillRect(0,splitY,size,size-splitY);
-      applyDither(g,tile,tile.topDither,seed+37,0,splitY,topColor);
-      applyDither(g,tile,tile.bottomDither,seed+101,splitY,size,bottomColor);
+  if (s.mode === 'brick') {
+    const bh = 2 + Math.round((100 - s.space) / 22);
+    const bw = bh * 2;
+    const row = Math.floor(y / bh);
+    const offset = (row % 2) * Math.floor(bw / 2);
+    return (y % bh === 0) || ((x + offset) % bw === 0);
+  }
+  if (s.mode === 'paving') {
+    const block = 3 + Math.round((100 - s.space) / 18);
+    return (x % block === 0) || (y % block === 0);
+  }
+  if (s.mode === 'checker') {
+    const block = 1 + Math.round((100 - s.space) / 18);
+    return (Math.floor(x / block) + Math.floor(y / block)) % 2 === 0;
+  }
+  if (s.mode === 'weave') {
+    const block = 2 + Math.round((100 - s.space) / 20);
+    const cx = Math.floor(x / block), cy = Math.floor(y / block);
+    const horizontal = (cx + cy) % 2 === 0;
+    return horizontal ? (y % block < thick) : (x % block < thick);
+  }
+  if (s.mode === 'plank') {
+    const bh = 3 + Math.round((100 - s.space) / 25);
+    const bw = bh * 5;
+    const row = Math.floor(y / bh);
+    const offset = Math.floor(hash2(row, 7, seed) * bw);
+    return (y % bh === 0) || ((x + offset) % bw === 0);
+  }
+  if (s.mode === 'shingle') {
+    const bh = 4 + Math.round((100 - s.space) / 20);
+    const bw = bh + 2;
+    const row = Math.floor(y / bh);
+    const off = (row % 2) * Math.floor(bw / 2);
+    const inRow = y % bh;
+    return (inRow === bh - 1) || (inRow >= Math.floor(bh / 2) && (x + off) % bw === 0);
+  }
+  if (s.mode === 'stonework') {
+    const bh = 5 + Math.round((100 - s.space) / 25);
+    const row = Math.floor(y / bh);
+    const bw = 7 + Math.floor(hash2(row, 3, seed) * 7);
+    const off = Math.floor(hash2(row, 11, seed) * bw);
+    return (y % bh === 0) || ((x + off) % bw === 0);
+  }
+  if (s.mode === 'lattice') {
+    const gap = 5 + Math.round((100 - s.space) / 20);
+    const edge = x < 2 || y < 2 || x >= TEXTURE_SIZE - 2 || y >= TEXTURE_SIZE - 2;
+    return edge || ((x + y) % gap) < 1 || ((x - y + 1000) % gap) < 1;
+  }
+  return false;
+}
+
+function ditherKey(s) {
+  return s ? `${s.mode},${s.ink},${s.bright},${s.space},${s.thick},${s.blend},${s.blendMode || 'source-over'}` : '';
+}
+
+function textureKey(tile, face) {
+  return `${face}|${tile.id}|${tile.top}|${tile.bottom}|${tile.split}|${ditherKey(tile.topDither)}|${ditherKey(tile.bottomDither)}`;
+}
+
+function applyDither(g, tile, s, seed, y0, y1, base) {
+  if (!s || s.mode === 'solid' || y1 <= y0) return;
+  g.save();
+  g.globalAlpha = 0.12 + (s.blend / 100) * 0.88;
+  g.globalCompositeOperation = s.blendMode || 'source-over';
+  g.fillStyle = inkColor(base, s);
+  for (let y = Math.floor(y0); y < Math.ceil(y1); y++) {
+    for (let x = 0; x < TEXTURE_SIZE; x++) if (patternAt(x, y, s, seed)) g.fillRect(x, y, 1, 1);
+  }
+  g.restore();
+}
+
+function faceTexture(tile, face) {
+  normalizeTile(tile);
+  const key = textureKey(tile, face);
+  const cached = textureCache.get(key);
+  if (cached) return cached;
+
+  const size = TEXTURE_SIZE;
+  const c = document.createElement('canvas');
+  c.width = size;
+  c.height = size;
+  const g = c.getContext('2d');
+  const split = Math.max(0, Math.min(1, (Number(tile.split) || 0) / 100));
+  const seed = stringSeed(tile.id + face);
+
+  if (face === 'top') {
+    g.fillStyle = tile.top;
+    g.fillRect(0, 0, size, size);
+    applyDither(g, tile, tile.topDither, seed, 0, size, tile.top);
+  } else {
+    const left = face === 'left';
+    const topColor = left ? shade(tile.top, -0.12) : shade(tile.top, 0.02);
+    const bottomBase = tile.bottom || tile.top;
+    const bottomColor = left ? shade(bottomBase, -0.12) : shade(bottomBase, 0.02);
+    const splitY = Math.round(size * split);
+    g.fillStyle = topColor;
+    g.fillRect(0, 0, size, splitY);
+    g.fillStyle = bottomColor;
+    g.fillRect(0, splitY, size, size - splitY);
+    applyDither(g, tile, tile.topDither, seed + 37, 0, splitY, topColor);
+    applyDither(g, tile, tile.bottomDither, seed + 101, splitY, size, bottomColor);
+  }
+
+  textureCache.set(key, c);
+  return c;
+}
+
+function drawTextureTri(g, points, texture, alpha = 1) {
+  if (!texture) return;
+  const [p0, p1, p2] = points;
+  const size = texture.width;
+  const ux = (p1[0] - p0[0]) / size;
+  const uy = (p1[1] - p0[1]) / size;
+  const vx = (p2[0] - p0[0]) / size;
+  const vy = (p2[1] - p0[1]) / size;
+  g.save();
+  g.globalAlpha = alpha;
+  g.beginPath(); g.moveTo(p0[0], p0[1]); g.lineTo(p1[0], p1[1]); g.lineTo(p2[0], p2[1]); g.closePath(); g.clip();
+  g.transform(ux, uy, vx, vy, p0[0], p0[1]);
+  g.drawImage(texture, 0, 0);
+  g.restore();
+  g.save();
+  g.globalAlpha = alpha;
+  g.strokeStyle = 'rgba(0,0,0,.42)'; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(p0[0], p0[1]); g.lineTo(p1[0], p1[1]); g.lineTo(p2[0], p2[1]); g.closePath(); g.stroke();
+  g.restore();
+}
+
+function drawTextureQuad(g, points, texture, alpha = 1) {
+  if (!texture) return;
+  const [p0, p1, , p3] = points;
+  const size = texture.width;
+  const ux = (p1[0] - p0[0]) / size;
+  const uy = (p1[1] - p0[1]) / size;
+  const vx = (p3[0] - p0[0]) / size;
+  const vy = (p3[1] - p0[1]) / size;
+
+  g.save();
+  g.globalAlpha = alpha;
+  g.beginPath();
+  g.moveTo(points[0][0], points[0][1]);
+  points.slice(1).forEach(pt => g.lineTo(pt[0], pt[1]));
+  g.closePath();
+  g.clip();
+  g.transform(ux, uy, vx, vy, p0[0], p0[1]);
+  g.drawImage(texture, 0, 0);
+  g.restore();
+
+  g.save();
+  g.globalAlpha = alpha;
+  g.strokeStyle = 'rgba(0,0,0,.4)';
+  g.lineWidth = 1;
+  g.beginPath();
+  g.moveTo(points[0][0], points[0][1]);
+  points.slice(1).forEach(pt => g.lineTo(pt[0], pt[1]));
+  g.closePath();
+  g.stroke();
+  g.restore();
+}
+
+function previewKey(tile) {
+  return `${tile.top}|${tile.bottom}|${tile.split}|${ditherKey(tile.topDither)}|${ditherKey(tile.bottomDither)}`;
+}
+
+function tilePreviewURL(tile) {
+  normalizeTile(tile);
+  const key = previewKey(tile);
+  if (previewCache.has(key)) return previewCache.get(key);
+
+  const c = document.createElement('canvas');
+  c.width = 80;
+  c.height = 64;
+  const g = c.getContext('2d');
+  const top = [[40, 7], [70, 23], [40, 39], [10, 23]];
+  const left = [[10, 23], [40, 39], [40, 57], [10, 41]];
+  const right = [[40, 39], [70, 23], [70, 41], [40, 57]];
+  drawTextureQuad(g, left, faceTexture(tile, 'left'));
+  drawTextureQuad(g, right, faceTexture(tile, 'right'));
+  drawTextureQuad(g, top, faceTexture(tile, 'top'));
+
+  const url = c.toDataURL();
+  previewCache.set(key, url);
+  return url;
+}
+
+
+const $ = id => document.getElementById(id);
+const canvas = $('scene');
+const ctx = canvas.getContext('2d');
+const designerPreview = $('tilePreview');
+const designerCtx = designerPreview.getContext('2d');
+
+const LAYER_RANK = { ground: 0, structure: 1, decoration: 2, collider: 3 };
+
+const SHAPE_GROUPS = [
+  { name: 'Surfaces', shapes: [
+    { id: 'cube', label: 'Cube', icon: '<svg viewBox="0 0 24 20"><polygon points="12,2 22,7 12,12 2,7" fill="currentColor" opacity=".9"/><polygon points="2,7 12,12 12,19 2,14" fill="currentColor" opacity=".55"/><polygon points="22,7 12,12 12,19 22,14" fill="currentColor" opacity=".35"/></svg>' },
+    { id: 'plane', label: 'Plane', icon: '<svg viewBox="0 0 24 20"><polygon points="12,5 22,10 12,15 2,10" fill="currentColor" opacity=".8"/></svg>' },
+  ]},
+  { name: 'Structures', shapes: [
+    { id: 'ramp', label: 'Ramp', icon: '<svg viewBox="0 0 24 20"><polygon points="2,16 22,16 22,6 2,11" fill="currentColor" opacity=".75"/></svg>' },
+    { id: 'arch', label: 'Arch', icon: '<svg viewBox="0 0 24 20"><path d="M3 18V9a9 9 0 0 1 18 0v9h-4V9a5 5 0 0 0-10 0v9z" fill="currentColor" opacity=".8"/></svg>' },
+    { id: 'pillar', label: 'Pillar', icon: '<svg viewBox="0 0 24 20"><rect x="8" y="3" width="8" height="14" fill="currentColor" opacity=".8"/><rect x="6" y="2" width="12" height="3" fill="currentColor"/></svg>' },
+    { id: 'wall', label: 'Wall', icon: '<svg viewBox="0 0 24 20"><rect x="3" y="4" width="18" height="13" fill="currentColor" opacity=".55"/><path d="M3 8h18M3 12h18M8 4v4M15 4v4M6 12v5M17 12v5" stroke="#0008"/></svg>' },
+    { id: 'stairs', label: 'Stairs', icon: '<svg viewBox="0 0 24 20"><path d="M3 17h5v-4h5V9h5V5h3v12H3z" fill="currentColor" opacity=".75"/></svg>' },
+    { id: 'roof', label: 'Roof', icon: '<svg viewBox="0 0 24 20"><polygon points="12,2 22,17 2,17" fill="currentColor" opacity=".8"/><path d="M12 2v15" stroke="#0006"/></svg>' },
+  ]},
+  { name: 'Complex', shapes: [
+    { id: 'bridge', label: 'Bridge', icon: '<svg viewBox="0 0 24 20"><path d="M2 14h20M5 14V9m14 5V9M2 9c3-5 17-5 20 0" fill="none" stroke="currentColor" stroke-width="2"/></svg>' },
+    { id: 'tower', label: 'Tower', icon: '<svg viewBox="0 0 24 20"><path d="M7 18V6h10v12M7 6V3h3v3m4-3v3m3-3v3" fill="none" stroke="currentColor" stroke-width="2"/></svg>' },
+    { id: 'gate', label: 'Gate', icon: '<svg viewBox="0 0 24 20"><path d="M4 18V8h4v10M16 18V8h4v10M8 8h8v3H8z" fill="currentColor" opacity=".75"/></svg>' },
+    { id: 'fence', label: 'Fence', icon: '<svg viewBox="0 0 24 20"><path d="M3 17V6m6 11V6m6 11V6m6 11V6M3 10h18M3 14h18" stroke="currentColor" stroke-width="2"/></svg>' },
+  ]},
+];
+
+
+let library = loadLibrary();
+let selectedTileId = library.tiles[0]?.id || null;
+let selectedGroupId = library.tiles[0]?.groupId || library.groups[0]?.id || null;
+let selectedSetId = library.groups.find(g => g.id === selectedGroupId)?.setId || library.sets[0]?.id || null;
+let state = loadScene();
+let history = [];
+let historyIndex = -1;
+let tool = 'brush';
+let activeShape = 'cube';
+let activeStructure = null;
+let activeRot = 0;
+let activeMirror = false;
+let activeLayer = 'ground';
+let colliderTool = 'top';
+let activeHeight = 0;
+let pointer = null;
+let drawing = false;
+let lastPaint = '';
+let edgeStart = null;
+let zoom = 1;
+let panX = 0;
+let panY = 0;
+let panMode = false;
+let panning = false;
+let panStart = null;
+let lastGrowAt = 0;
+const GROW_COOLDOWN = 140;
+
+function clone(value) { return JSON.parse(JSON.stringify(value)); }
+
+function loadLibrary() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LIBRARY_STORAGE) || 'null');
+    if (saved && Array.isArray(saved.tiles) && saved.tiles.length) {
+      saved.groups = Array.isArray(saved.groups) && saved.groups.length ? saved.groups : clone(DEFAULT_GROUPS);
+      saved.sets = Array.isArray(saved.sets) && saved.sets.length ? saved.sets : clone(DEFAULT_SETS);
+      saved.tiles = saved.tiles.map(tile => normalizeTile(tile));
+      const setIds = new Set(saved.sets.map(s => s.id));
+      DEFAULT_SETS.forEach(set => { if (!setIds.has(set.id)) saved.sets.push(clone(set)); });
+      const groupIds = new Set(saved.groups.map(g => g.id));
+      DEFAULT_GROUPS.forEach(g => { if (!groupIds.has(g.id)) saved.groups.push(clone(g)); });
+      saved.groups.forEach(g => { if (!g.setId) g.setId = saved.sets[0]?.id || 'classic'; });
+      const tileIds = new Set(saved.tiles.map(t => t.id));
+      DEFAULT_TILES.forEach(t => { if (!tileIds.has(t.id)) saved.tiles.push(normalizeTile(clone(t))); });
+      return saved;
     }
-    tileTextureCache.set(key,c);return c;
+  } catch (_) {}
+  return {
+    sets: clone(DEFAULT_SETS),
+    groups: clone(DEFAULT_GROUPS),
+    tiles: DEFAULT_TILES.map(tile => normalizeTile(clone(tile))),
+  };
+}
+
+function saveLibrary() {
+  try { localStorage.setItem(LIBRARY_STORAGE, JSON.stringify(library)); } catch (_) {}
+}
+
+function defaultScene() {
+  return { width: 20, height: 16, tiles: [], colliders: [] };
+}
+
+function loadScene() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SCENE_STORAGE) || 'null');
+    if (saved) {
+      const scene = { ...defaultScene(), ...saved, colliders: saved.colliders || [] };
+      scene.tiles = (scene.tiles || []).map(t => ({ ...t, layer: t.layer || 'ground', shape: t.shape || 'cube' }));
+      return scene;
+    }
+  } catch (_) {}
+  return defaultScene();
+}
+
+function snapshot() { return JSON.stringify(state); }
+
+function saveScene() {
+  try { localStorage.setItem(SCENE_STORAGE, snapshot()); } catch (_) {}
+}
+
+function commit() {
+  const now = snapshot();
+  if (history[historyIndex] === now) return;
+  history = history.slice(0, historyIndex + 1);
+  history.push(now);
+  if (history.length > 80) history.shift();
+  historyIndex = history.length - 1;
+  saveScene();
+  updateHistory();
+}
+
+function restore(raw) {
+  state = JSON.parse(raw);
+  renderInputs();
+  draw();
+  saveScene();
+}
+
+function undo() {
+  if (historyIndex > 0) { restore(history[--historyIndex]); updateHistory(); say('Undid last scene change.'); }
+}
+
+function redo() {
+  if (historyIndex < history.length - 1) { restore(history[++historyIndex]); updateHistory(); say('Redid scene change.'); }
+}
+
+function updateHistory() {
+  $('undo').disabled = historyIndex <= 0;
+  $('redo').disabled = historyIndex >= history.length - 1;
+}
+
+function say(message) { $('status').innerHTML = message; }
+function getTile(id = selectedTileId) { return library.tiles.find(t => t.id === id) || library.tiles[0]; }
+function groupTiles(groupId = selectedGroupId) { return library.tiles.filter(t => t.groupId === groupId); }
+
+/* ── library + groups UI ─────────────────────────────────── */
+function renderSets() {
+  const select = $('setSelect');
+  if (!select) return;
+  select.innerHTML = '';
+  library.sets.forEach(set => {
+    const option = document.createElement('option');
+    option.value = set.id;
+    option.textContent = set.name;
+    select.appendChild(option);
+  });
+  if (!library.sets.some(s => s.id === selectedSetId)) selectedSetId = library.sets[0]?.id || null;
+  select.value = selectedSetId;
+  const total = library.groups.filter(g => g.setId === selectedSetId).reduce((n, g) => n + groupTiles(g.id).length, 0);
+  const option = select.selectedOptions[0];
+  if (option) option.textContent = `${library.sets.find(s => s.id === selectedSetId)?.name || 'Set'} (${total})`;
+}
+
+function renderGroups() {
+  const select = $('groupSelect');
+  select.innerHTML = '';
+  const visibleGroups = library.groups.filter(g => g.setId === selectedSetId);
+  visibleGroups.forEach(group => {
+    const option = document.createElement('option');
+    option.value = group.id;
+    option.textContent = `${group.name} (${groupTiles(group.id).length})`;
+    select.appendChild(option);
+  });
+  if (!visibleGroups.some(g => g.id === selectedGroupId)) selectedGroupId = visibleGroups[0]?.id || null;
+  select.value = selectedGroupId || '';
+
+  const list = $('groupList');
+  list.innerHTML = '';
+  visibleGroups.forEach(group => {
+    const row = document.createElement('div');
+    row.className = 'group-row' + (group.id === selectedGroupId ? ' active' : '');
+    const setOptions = library.sets.map(s => `<option value="${s.id}" ${s.id === group.setId ? 'selected' : ''}>${s.name}</option>`).join('');
+    row.innerHTML = `<span class="group-name">${group.name}</span><span class="group-count">${groupTiles(group.id).length}</span><select class="group-set-select" data-group-id="${group.id}" title="Move group to set">${setOptions}</select>`;
+    row.onclick = (e) => {
+      if (e.target.closest('select')) return;
+      selectedGroupId = group.id;
+      const first = groupTiles(group.id)[0];
+      if (first) selectTile(first.id);
+      else { renderGroups(); renderPalette(); }
+    };
+    row.querySelector('.group-set-select').onchange = (e) => {
+      group.setId = e.target.value;
+      selectedSetId = group.setId;
+      saveLibrary();
+      renderSets();
+      renderGroups();
+      renderPalette();
+    };
+    list.appendChild(row);
+  });
+}
+
+function renderPalette() {
+  const holder = $('palette');
+  holder.innerHTML = '';
+  library.groups.filter(g => g.setId === selectedSetId).forEach(group => {
+    const tiles = groupTiles(group.id);
+    if (!tiles.length) return;
+    const section = document.createElement('div');
+    section.className = 'palette-group';
+    section.innerHTML = `<h3>${group.name}</h3>`;
+    const grid = document.createElement('div');
+    grid.className = 'palette';
+    tiles.forEach(tile => {
+      normalizeTile(tile);
+      const b = document.createElement('button');
+      b.className = 'tile' + (tile.id === selectedTileId ? ' active' : '');
+      b.dataset.id = tile.id;
+      b.title = `${tile.name} · ${group.name}`;
+      b.style.background = `linear-gradient(135deg,${tile.top},${tile.bottom})`;
+      b.innerHTML = `<i style="background-image:url(${tilePreviewURL(tile)});background-size:cover"></i>${tile.name}`;
+      b.onclick = () => selectTile(tile.id);
+      grid.appendChild(b);
+    });
+    section.appendChild(grid);
+    holder.appendChild(section);
+  });
+}
+
+function renderShapes() {
+  const holder = $('shapes');
+  if (!holder) return;
+  holder.innerHTML = '';
+  SHAPE_GROUPS.forEach(group => {
+    const wrap = document.createElement('div');
+    wrap.className = 'shape-group';
+    wrap.innerHTML = `<div class="shape-group-label">${group.name}</div>`;
+    const grid = document.createElement('div');
+    grid.className = 'shape-grid';
+    group.shapes.forEach(shape => {
+      const b = document.createElement('button');
+      b.className = 'shape-btn' + (shape.id === activeShape ? ' active' : '');
+      b.dataset.shape = shape.id;
+      b.innerHTML = `<span class="shape-icon">${shape.icon}</span><span>${shape.label}</span>`;
+      grid.appendChild(b);
+    });
+    wrap.appendChild(grid);
+    holder.appendChild(wrap);
+  });
+  STRUCTURE_GROUPS.forEach(group => {
+    const list = STRUCTURES_WITH_90.filter(s => s.group === group.id);
+    if (!list.length) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'shape-group';
+    wrap.innerHTML = `<div class="shape-group-label">${group.name}</div>`;
+    const grid = document.createElement('div');
+    grid.className = 'shape-grid';
+    list.forEach(structure => {
+      const b = document.createElement('button');
+      b.className = 'shape-btn' + (structure.id === activeStructure ? ' active' : '');
+      b.dataset.structure = structure.id;
+      b.title = structure.name;
+      b.innerHTML = `<img class="shape-icon" alt="" src="${structurePreviewURL(structure, library.tiles, {rot: activeRot, mirror: activeMirror})}"><span>${structure.name}</span>`;
+      grid.appendChild(b);
+    });
+    wrap.appendChild(grid);
+    holder.appendChild(wrap);
+  });
+}
+
+function selectTile(id) {
+  const tile = getTile(id);
+  if (!tile) return;
+  selectedTileId = tile.id;
+  selectedGroupId = tile.groupId || selectedGroupId;
+  selectedSetId = library.groups.find(g => g.id === selectedGroupId)?.setId || selectedSetId;
+  loadDesignerFromTile(tile);
+  renderGroups();
+  renderPalette();
+  draw();
+  say(`Selected tile <b>${tile.name}</b>.`);
+}
+
+/* ── designer ────────────────────────────────────────────── */
+function readDither(prefix) {
+  return {
+    mode: $(`${prefix}Mode`).value,
+    ink: $(`${prefix}Ink`).value,
+    bright: Number($(`${prefix}Bright`).value),
+    space: Number($(`${prefix}Space`).value),
+    thick: Number($(`${prefix}Thick`).value),
+    blend: Number($(`${prefix}Blend`).value),
+    blendMode: $(`${prefix}BlendMode`).value,
+  };
+}
+
+function readDesigner(id = selectedTileId, groupId = selectedGroupId) {
+  return {
+    id,
+    name: $('tileName').value.trim() || 'Custom tile',
+    groupId,
+    top: $('tileTop').value,
+    bottom: $('tileBottom').value,
+    split: Number($('tileSplit').value),
+    topDither: readDither('top'),
+    bottomDither: readDither('bottom'),
+  };
+}
+
+function loadDesignerFromTile(tile) {
+  normalizeTile(tile);
+  $('tileName').value = tile.name;
+  $('tileTop').value = tile.top;
+  $('tileBottom').value = tile.bottom;
+  $('tileSplit').value = tile.split;
+  ['top', 'bottom'].forEach(prefix => {
+    const d = tile[`${prefix}Dither`];
+    $(`${prefix}Mode`).value = d.mode;
+    $(`${prefix}Ink`).value = d.ink;
+    $(`${prefix}Bright`).value = d.bright;
+    $(`${prefix}Space`).value = d.space;
+    $(`${prefix}Thick`).value = d.thick;
+    $(`${prefix}Blend`).value = d.blend;
+    $(`${prefix}BlendMode`).value = d.blendMode || 'source-over';
+  });
+  updateDesignerLabels();
+  drawDesignerPreview();
+}
+
+function updateDesignerLabels() {
+  $('tileSplitValue').textContent = $('tileSplit').value;
+  ['top', 'bottom'].forEach(prefix => {
+    ['Bright', 'Space', 'Thick', 'Blend'].forEach(key => {
+      $(`${prefix}${key}Value`).textContent = $(`${prefix}${key}`).value;
+    });
+  });
+}
+
+function drawDesignerPreview() {
+  const tile = readDesigner('__preview__', selectedGroupId);
+  const w = designerPreview.width, h = designerPreview.height;
+  designerCtx.clearRect(0, 0, w, h);
+  designerCtx.fillStyle = '#0b0b0f';
+  designerCtx.fillRect(0, 0, w, h);
+  designerCtx.strokeStyle = 'rgba(255,255,255,.045)';
+  for (let x = -h; x < w + h; x += 18) {
+    designerCtx.beginPath(); designerCtx.moveTo(x, h); designerCtx.lineTo(x + h, 0); designerCtx.stroke();
   }
-  function tilePreviewURL(tile){const key=tileTextureKey(tile,'top');if(tilePreviewCache.has(key))return tilePreviewCache.get(key);const url=faceTexture(tile,'top').toDataURL();tilePreviewCache.set(key,url);return url}
-  const STORAGE = 'pixelIsometric.sceneStudio.v1';
-  let state = defaultState(), history = [], historyIndex = -1, tool = 'brush', selected = 'grass', activeShape = 'cube', activeLayer = 'ground', colliderTool = 'tile', activeHeight = 0, pointer = null, drawing = false, lastPaint = '', edgeStart = null;
-  function defaultState(){return {width:20,height:16,tiles:[],colliders:[],title:{visible:false}}}
-  function say(message){$('status').innerHTML = message;}
-  function tileAt(x,y,z=activeHeight){return state.tiles.find(t => t.x===x&&t.y===y&&t.z===z&&t.layer===activeLayer)}
-  function setTile(x,y,z,id,shape=activeShape){const i=state.tiles.findIndex(t=>t.x===x&&t.y===y&&t.z===z&&t.layer===activeLayer);if(id){if(i<0)state.tiles.push({x,y,z,id,shape,layer:activeLayer});else Object.assign(state.tiles[i],{id,shape})}else if(i>=0)state.tiles.splice(i,1)}
-  function snapshot(){return JSON.stringify(state)}
-  function commit(){const now=snapshot();if(history[historyIndex]===now)return;history=history.slice(0,historyIndex+1);history.push(now);if(history.length>80)history.shift();historyIndex=history.length-1;saveLocal();updateHistory()}
-  function restore(raw){state=JSON.parse(raw);renderInputs();draw();saveLocal()}
-  function undo(){if(historyIndex>0){restore(history[--historyIndex]);updateHistory();say('Undid last scene change.')}}
-  function redo(){if(historyIndex<history.length-1){restore(history[++historyIndex]);updateHistory();say('Redid scene change.')}}
-  function updateHistory(){$('undo').disabled=historyIndex<=0;$('redo').disabled=historyIndex>=history.length-1}
-  function saveLocal(){try{localStorage.setItem(STORAGE,snapshot())}catch(_){} }
-  function loadLocal(){try{const saved=localStorage.getItem(STORAGE);if(saved){state=JSON.parse(saved);state.colliders??=[];state.tiles.forEach(t=>t.layer??='ground');say('Restored the latest browser autosave.')}}catch(_){} }
-  function renderPalette(){const holder=$('palette');holder.textContent='';PALETTE.forEach(tile=>{const b=document.createElement('button');b.className='tile'+(tile.id===selected?' active':'');b.dataset.id=tile.id;b.style.background=`linear-gradient(135deg,${tile.top},${tile.right})`;b.innerHTML=`<i style="background:${tile.top}"></i>${tile.name}`;b.onclick=()=>{selected=tile.id;tool='brush';syncToolUI();renderPalette();draw()};holder.append(b)})}
-  function iso(x,y,z){const scale=Math.max(12,Math.min(34,Math.min(canvas.width/(state.width+state.height+4),canvas.height/(state.width+state.height+5))*1.45));return {x:canvas.width/2+(x-y)*scale,y:canvas.height*.58+(x+y-state.width*.52)*scale*.5-z*scale,scale}}
-  function poly(points,fill){ctx.beginPath();ctx.moveTo(points[0][0],points[0][1]);points.slice(1).forEach(p=>ctx.lineTo(p[0],p[1]));ctx.closePath();ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle='rgba(0,0,0,.3)';ctx.stroke()}
-  function drawTile(tile,alpha=1){const color=PALETTE.find(p=>p.id===tile.id)||PALETTE[0],p=iso(tile.x,tile.y,tile.z),s=p.scale,shape=tile.shape||'cube',h=s*(shape==='plane'?0:shape==='pillar'?1.25:.56);ctx.globalAlpha=alpha;const top=[[p.x,p.y-s*.5],[p.x+s,p.y],[p.x,p.y+s*.5],[p.x-s,p.y]];const left=[[p.x-s,p.y],[p.x,p.y+s*.5],[p.x,p.y+s*.5+h],[p.x-s,p.y+h]];const right=[[p.x,p.y+s*.5],[p.x+s,p.y],[p.x+s,p.y+h],[p.x,p.y+s*.5+h]];if(shape!=='plane'){poly(left,color.left);poly(right,color.right)}poly(top,color.top);if(shape==='ramp'){ctx.strokeStyle='rgba(255,255,255,.55)';ctx.beginPath();ctx.moveTo(p.x-s,p.y);ctx.lineTo(p.x,p.y-s*.5);ctx.lineTo(p.x+s,p.y);ctx.stroke()}if(shape==='arch'){ctx.fillStyle='#17171c';ctx.beginPath();ctx.ellipse(p.x,p.y+s*.63,s*.23,s*.19,0,Math.PI,Math.PI*2);ctx.lineTo(p.x+s*.23,p.y+s*.63+h*.55);ctx.lineTo(p.x-s*.23,p.y+s*.63+h*.55);ctx.closePath();ctx.fill()}if(shape==='pillar'){ctx.strokeStyle='rgba(255,255,255,.38)';ctx.beginPath();ctx.moveTo(p.x,p.y-s*.5);ctx.lineTo(p.x,p.y+s*.5+h);ctx.stroke()}if(tile.id==='water'){ctx.globalAlpha=alpha*.35;ctx.strokeStyle='#e8ffff';ctx.beginPath();ctx.moveTo(p.x-s*.45,p.y);ctx.lineTo(p.x+s*.25,p.y+s*.34);ctx.stroke()}ctx.globalAlpha=1}
-  function drawTitle(target,w,h){const t=state.title;if(!t.visible||!t.text.trim())return;const size=Math.max(9,t.size*(w/canvas.width));const x=w*t.x/100,y=h*t.y/100-(t.depth||0)*size*.35;target.save();target.translate(x,y);target.rotate((t.rotation||0)*Math.PI/180);target.font=`${size}px ${t.font}`;target.textAlign=t.align;target.textBaseline='middle';target.lineJoin='round';target.shadowColor=t.effect==='none'?'transparent':t.shadow;target.shadowBlur=t.effect==='glow'?size*.36:Math.max(1,size*.12);target.shadowOffsetY=t.effect==='shadow'?Math.max(2,size*.12):0;target.lineWidth=t.strokeWidth*(w/canvas.width);if(t.strokeWidth){target.strokeStyle=t.stroke;target.strokeText(t.text,0,0)}target.fillStyle=t.fill;target.fillText(t.text,0,0);target.restore()}
-  function draw(){const rect=canvas.getBoundingClientRect();if(canvas.width!==Math.max(1,Math.floor(rect.width))||canvas.height!==Math.max(1,Math.floor(rect.height))){canvas.width=Math.max(1,Math.floor(rect.width));canvas.height=Math.max(1,Math.floor(rect.height))}ctx.clearRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#0d0d10';ctx.fillRect(0,0,canvas.width,canvas.height);const base=[];for(let y=0;y<state.height;y++)for(let x=0;x<state.width;x++)base.push({x,y,z:0,id:'grid'});base.sort((a,b)=>(a.x+a.y)-(b.x+b.y));base.forEach(t=>{const p=iso(t.x,t.y,0),s=p.scale;ctx.beginPath();ctx.moveTo(p.x,p.y-s*.5);ctx.lineTo(p.x+s,p.y);ctx.lineTo(p.x,p.y+s*.5);ctx.lineTo(p.x-s,p.y);ctx.closePath();ctx.strokeStyle='rgba(255,255,255,.055)';ctx.stroke()});state.tiles.slice().sort((a,b)=>(a.x+a.y+a.z*.5)-(b.x+b.y+b.z*.5)).forEach(drawTile);(state.colliders||[]).forEach(c=>{const a=iso(c.x,c.y,c.z||0);ctx.strokeStyle='#4eff91';ctx.fillStyle='rgba(78,255,145,.12)';ctx.lineWidth=2;if(c.kind==='edge'){const b=iso(c.toX,c.toY,c.z||0);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}else{const s=a.scale;ctx.beginPath();ctx.moveTo(a.x,a.y-s*.5);ctx.lineTo(a.x+s,a.y);ctx.lineTo(a.x,a.y+s*.5);ctx.lineTo(a.x-s,a.y);ctx.closePath();ctx.fill();ctx.stroke()}ctx.lineWidth=1});if(pointer&&pointer.x>=0&&pointer.x<state.width&&pointer.y>=0&&pointer.y<state.height){const ghost={x:pointer.x,y:pointer.y,z:activeHeight,id:selected};if(tool==='brush'&&activeLayer!=='collider')drawTile(ghost,.38);else{const p=iso(pointer.x,pointer.y,activeHeight),s=p.scale;ctx.strokeStyle=tool==='erase'?'#d76670':'#4eff91';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(p.x,p.y-s*.5);ctx.lineTo(p.x+s,p.y);ctx.lineTo(p.x,p.y+s*.5);ctx.lineTo(p.x-s,p.y);ctx.closePath();ctx.stroke();ctx.lineWidth=1}}updateHud()}
-  function drawTitlePreview(){pctx.clearRect(0,0,preview.width,preview.height);pctx.fillStyle='#17171d';pctx.fillRect(0,0,preview.width,preview.height);pctx.strokeStyle='#2a2a38';for(let x=-128;x<300;x+=18){pctx.beginPath();pctx.moveTo(x,128);pctx.lineTo(x+128,0);pctx.stroke()}drawTitle(pctx,preview.width,preview.height)}
-  function cellFromEvent(event){const r=canvas.getBoundingClientRect(),mx=event.clientX-r.left,my=event.clientY-r.top;const zero=iso(0,0,activeHeight),s=zero.scale;const u=(mx-canvas.width/2)/s,v=(my-(canvas.height*.58-state.width*.52*s*.5)+activeHeight*s)/(s*.5);const x=Math.floor((v+u)/2),y=Math.floor((v-u)/2);return {x,y}}
-  function paint(cell,erase=false){if(cell.x<0||cell.y<0||cell.x>=state.width||cell.y>=state.height)return;const key=`${cell.x},${cell.y},${activeHeight},${erase?'':'p'}`;if(key===lastPaint)return;lastPaint=key;if(activeLayer==='collider'){const i=state.colliders.findIndex(c=>c.kind==='tile'&&c.x===cell.x&&c.y===cell.y&&c.z===activeHeight);if(erase){if(i>=0)state.colliders.splice(i,1)}else if(i<0)state.colliders.push({kind:'tile',x:cell.x,y:cell.y,z:activeHeight});draw();return}lastPaint=key;const radius=(Number($('brush').value)-1)/2;for(let y=cell.y-radius;y<=cell.y+radius;y++)for(let x=cell.x-radius;x<=cell.x+radius;x++)if(x>=0&&y>=0&&x<state.width&&y<state.height)setTile(x,y,activeHeight,erase?null:selected,activeShape);draw()}
-  function fill(cell){if(cell.x<0||cell.y<0||cell.x>=state.width||cell.y>=state.height)return;const start=tileAt(cell.x,cell.y)?.id||null;if(start===selected)return;const todo=[cell],seen=new Set();while(todo.length){const cur=todo.pop(),key=`${cur.x},${cur.y}`;if(seen.has(key))continue;seen.add(key);if(cur.x<0||cur.y<0||cur.x>=state.width||cur.y>=state.height)continue;if((tileAt(cur.x,cur.y)?.id||null)!==start)continue;setTile(cur.x,cur.y,activeHeight,selected,activeShape);todo.push({x:cur.x+1,y:cur.y},{x:cur.x-1,y:cur.y},{x:cur.x,y:cur.y+1},{x:cur.x,y:cur.y-1})}draw()}
-  function updateHud(){const c=pointer?`x ${pointer.x} · y ${pointer.y}`:'x — · y —';$('coords').textContent=c;$('hudText').textContent=`${tool[0].toUpperCase()+tool.slice(1)} · ${PALETTE.find(t=>t.id===selected).name} · z ${activeHeight}`}
-  function syncToolUI(){document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('active',b.dataset.tool===tool));document.querySelectorAll('[data-shape]').forEach(b=>b.classList.toggle('active',b.dataset.shape===activeShape));canvas.style.cursor=tool==='fill'?'cell':tool==='erase'?'not-allowed':'crosshair'}
-  function resizeScene(){const width=Math.max(4,Math.min(80,Number($('width').value)||state.width)),height=Math.max(4,Math.min(80,Number($('height').value)||state.height));state.width=width;state.height=height;state.tiles=state.tiles.filter(t=>t.x<width&&t.y<height);renderInputs();commit();draw();say('Resized scene to <b>'+width+' × '+height+'</b>.')}
-  function renderInputs(){['width','height'].forEach(id=>$(id).value=state[id]);updateLabels()}
-  function updateLabels(){$('brushValue').textContent=$('brush').value+'×'+$('brush').value;$('heightValue').textContent=activeHeight}
-  function projectExport(){return {format:'town-tilemap',version:2,width:state.width,height:state.height,tileSize:32,drawOrder:['background','isometric'],layers:[{id:'background',name:'Background',data:new Array(state.width*state.height).fill(0)},{id:'isometric',name:'Isometric scene tiles',data:state.tiles},{id:'collider',name:'Collider overlays',data:state.colliders}],isometricScene:{version:1,tiles:state.tiles,colliders:state.colliders}}}
-  function download(name,blob){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
-  function importScene(raw){const data=JSON.parse(raw);if(data.isometricScene){state={...defaultState(),width:data.width,height:data.height,tiles:data.isometricScene.tiles||[],colliders:data.isometricScene.colliders||[]}}else if(['town-tilemap','brighton-tilemap'].includes(data.format)){state=defaultState();state.width=data.width;state.height=data.height;const ground=data.layers?.find(layer=>layer.id==='bg'||layer.id==='background'||/ground/i.test(layer.name))?.data||[];ground.forEach((value,index)=>{if(value)state.tiles.push({x:index%state.width,y:Math.floor(index/state.width),z:0,id:'grass',layer:'ground'})})}else throw new Error('Unsupported format');history=[];historyIndex=-1;commit();renderInputs();draw();say('Loaded scene data. <b>Saved to browser autosave.</b>')}
-  canvas.addEventListener('contextmenu',e=>e.preventDefault());canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);pointer=cellFromEvent(e);drawing=true;lastPaint='';if(activeLayer==='collider'&&colliderTool==='edge'&&e.button===0){if(edgeStart){state.colliders.push({kind:'edge',x:edgeStart.x,y:edgeStart.y,toX:pointer.x,toY:pointer.y,z:activeHeight});edgeStart=null;commit()}else edgeStart={...pointer};drawing=false;draw();return}if(e.button===2||tool==='erase')paint(pointer,true);else if(tool==='fill'){fill(pointer);drawing=false;commit()}else paint(pointer);draw()});canvas.addEventListener('pointermove',e=>{pointer=cellFromEvent(e);if(drawing&&(e.buttons&1||e.buttons&2))paint(pointer,(e.buttons&2)||tool==='erase');draw()});canvas.addEventListener('pointerup',()=>{if(drawing){drawing=false;commit()}});canvas.addEventListener('pointerleave',()=>{pointer=null;draw()});
-  $('tools').addEventListener('click',e=>{const b=e.target.closest('[data-tool]');if(!b)return;tool=b.dataset.tool;syncToolUI();draw()});$('shapes').addEventListener('click',e=>{const b=e.target.closest('[data-shape]');if(!b)return;activeShape=b.dataset.shape;syncToolUI();draw()});$('layers').addEventListener('click',e=>{const b=e.target.closest('[data-layer]');if(!b)return;activeLayer=b.dataset.layer;document.querySelectorAll('[data-layer]').forEach(x=>x.classList.toggle('active',x===b));draw()});$('colliderTools').addEventListener('click',e=>{const b=e.target.closest('[data-collider]');if(!b)return;colliderTool=b.dataset.collider;document.querySelectorAll('[data-collider]').forEach(x=>x.classList.toggle('active',x===b))});$('brush').oninput=()=>{updateLabels();draw()};$('heightDown').onclick=()=>{activeHeight=Math.max(0,activeHeight-1);updateLabels();draw()};$('heightUp').onclick=()=>{activeHeight=Math.min(8,activeHeight+1);updateLabels();draw()};$('saveTile').onclick=()=>{const id='custom-'+Date.now(),tile={id,name:$('tileName').value||'Custom tile',top:$('tileTop').value,left:$('tileLeft').value,right:$('tileRight').value,pattern:$('tilePattern').value};PALETTE.push(tile);selected=id;renderPalette();say('Saved custom tile <b>'+tile.name+'</b>.')};$('updateTile').onclick=()=>{const tile=PALETTE.find(x=>x.id===selected);if(!tile)return;Object.assign(tile,{name:$('tileName').value||tile.name,top:$('tileTop').value,left:$('tileLeft').value,right:$('tileRight').value,pattern:$('tilePattern').value});renderPalette();draw()};$('resize').onclick=resizeScene;$('clear').onclick=()=>{if(confirm('Clear every painted tile?')){state.tiles=[];state.colliders=[];commit();draw();say('Cleared all layers.')}};$('undo').onclick=undo;$('redo').onclick=redo;$('save').onclick=()=>{saveLocal();say('Scene saved in this browser. <b>Use Export JSON to share it.</b>')};$('load').onclick=()=>{loadLocal();history=[];historyIndex=-1;commit();renderInputs();draw()};$('export').onclick=()=>download('pixel-isometric-scene.json',new Blob([JSON.stringify(projectExport(),null,2)],{type:'application/json'}));$('png').onclick=()=>canvas.toBlob(blob=>download('pixel-isometric-scene.png',blob));$('chooseFile').onclick=()=>$('file').click();$('file').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{importScene(await file.text())}catch(_){say('<b>Could not load that JSON.</b> Choose a Scene Studio or town-tilemap export.')}e.target.value=''};addEventListener('keydown',e=>{if(/INPUT|SELECT/.test(e.target.tagName))return;const key=e.key.toLowerCase();if((e.metaKey||e.ctrlKey)&&key==='z'){e.preventDefault();e.shiftKey?redo():undo();return}if((e.metaKey||e.ctrlKey)&&key==='y'){e.preventDefault();redo();return}if({b:'brush',e:'erase',f:'fill'}[key]){tool={b:'brush',e:'erase',f:'fill'}[key];syncToolUI();draw()}});new ResizeObserver(draw).observe(canvas.parentElement);
-  loadLocal();renderPalette();renderInputs();syncToolUI();commit();draw();
-})();
+  const cx = w / 2, cy = h * 0.5, s = Math.min(58, w * 0.2), body = s * 0.56;
+  const top = [[cx, cy - s * 0.5], [cx + s, cy], [cx, cy + s * 0.5], [cx - s, cy]];
+  const left = [[cx - s, cy], [cx, cy + s * 0.5], [cx, cy + s * 0.5 + body], [cx - s, cy + body]];
+  const right = [[cx, cy + s * 0.5], [cx + s, cy], [cx + s, cy + body], [cx, cy + s * 0.5 + body]];
+  drawTextureQuad(designerCtx, left, faceTexture(tile, 'left'));
+  drawTextureQuad(designerCtx, right, faceTexture(tile, 'right'));
+  drawTextureQuad(designerCtx, top, faceTexture(tile, 'top'));
+}
+
+function saveTile() {
+  const tile = readDesigner('custom-' + Date.now(), selectedGroupId);
+  library.tiles.push(tile);
+  selectedTileId = tile.id;
+  saveLibrary();
+  renderGroups();
+  renderPalette();
+  draw();
+  say(`Saved tile <b>${tile.name}</b> into the selected group.`);
+}
+
+function updateTile() {
+  const tile = getTile(selectedTileId);
+  if (!tile) return;
+  Object.assign(tile, readDesigner(tile.id, tile.groupId));
+  saveLibrary();
+  renderPalette();
+  draw();
+  say(`Updated <b>${tile.name}</b>.`);
+}
+
+function applyDesignerToGroup() {
+  const group = library.groups.find(g => g.id === selectedGroupId);
+  if (!group) return;
+  const design = readDesigner(selectedTileId, selectedGroupId);
+  groupTiles(group.id).forEach(tile => {
+    tile.top = design.top;
+    tile.bottom = design.bottom;
+    tile.split = design.split;
+    tile.topDither = { ...design.topDither };
+    tile.bottomDither = { ...design.bottomDither };
+  });
+  saveLibrary();
+  renderPalette();
+  draw();
+  say(`Applied designer colours and dithers to <b>${group.name}</b>.`);
+}
+
+function newGroup() {
+  const name = prompt('Group name', 'New group');
+  if (!name) return;
+  const group = { id: 'group-' + Date.now(), name, setId: selectedSetId };
+  library.groups.push(group);
+  selectedGroupId = group.id;
+  saveLibrary();
+  renderGroups();
+  renderPalette();
+}
+
+function duplicateGroup() {
+  const source = library.groups.find(g => g.id === selectedGroupId);
+  if (!source) return;
+  const group = { id: 'group-' + Date.now(), name: source.name + ' copy', setId: source.setId };
+  const copies = groupTiles(source.id).map((tile, i) => normalizeTile({
+    ...clone(tile),
+    id: 'copy-' + Date.now() + '-' + i,
+    groupId: group.id,
+    name: tile.name + ' copy',
+  }));
+  library.groups.push(group);
+  library.tiles.push(...copies);
+  selectedGroupId = group.id;
+  if (copies[0]) selectedTileId = copies[0].id;
+  saveLibrary();
+  renderGroups();
+  renderPalette();
+  if (copies[0]) loadDesignerFromTile(copies[0]);
+  say(`Duplicated group <b>${source.name}</b>.`);
+}
+
+function deleteGroup() {
+  const group = library.groups.find(g => g.id === selectedGroupId);
+  if (!group) return;
+  if (!confirm(`Delete group ${group.name} and its tiles?`)) return;
+  const ids = new Set(groupTiles(group.id).map(t => t.id));
+  library.groups = library.groups.filter(g => g.id !== group.id);
+  library.tiles = library.tiles.filter(t => !ids.has(t.id));
+  state.tiles = state.tiles.filter(t => !ids.has(t.id));
+  selectedGroupId = library.groups.find(g => g.setId === selectedSetId)?.id || library.groups[0]?.id || null;
+  selectedTileId = library.tiles[0]?.id || null;
+  saveLibrary();
+  saveScene();
+  if (selectedTileId) selectTile(selectedTileId);
+  else { renderGroups(); renderPalette(); draw(); }
+}
+
+function newSet() {
+  const name = prompt('Set name', 'New set');
+  if (!name) return;
+  const set = { id: 'set-' + Date.now(), name };
+  library.sets.push(set);
+  selectedSetId = set.id;
+  saveLibrary();
+  renderSets();
+  renderGroups();
+  renderPalette();
+}
+
+function duplicateSet() {
+  const source = library.sets.find(s => s.id === selectedSetId);
+  if (!source) return;
+  const set = { id: 'set-' + Date.now(), name: source.name + ' copy' };
+  library.sets.push(set);
+  const sourceGroups = library.groups.filter(g => g.setId === source.id);
+  sourceGroups.forEach(group => {
+    const newGroup = { ...clone(group), id: 'group-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6), setId: set.id, name: group.name + ' copy' };
+    library.groups.push(newGroup);
+    groupTiles(group.id).forEach((tile, i) => {
+      library.tiles.push(normalizeTile({ ...clone(tile), id: 'copy-' + Date.now() + '-' + i + '-' + Math.random().toString(36).slice(2, 5), groupId: newGroup.id, name: tile.name + ' copy' }));
+    });
+  });
+  selectedSetId = set.id;
+  const firstGroup = library.groups.find(g => g.setId === set.id);
+  selectedGroupId = firstGroup?.id || null;
+  const firstTile = firstGroup ? groupTiles(firstGroup.id)[0] : null;
+  if (firstTile) selectedTileId = firstTile.id;
+  saveLibrary();
+  renderSets();
+  renderGroups();
+  renderPalette();
+  if (firstTile) loadDesignerFromTile(firstTile);
+  say(`Duplicated set <b>${source.name}</b>.`);
+}
+
+function deleteSet() {
+  const set = library.sets.find(s => s.id === selectedSetId);
+  if (!set) return;
+  if (library.sets.length <= 1) return say('Keep at least one tile set.');
+  if (!confirm(`Delete set ${set.name}? Its groups will move to another set.`)) return;
+  const fallback = library.sets.find(s => s.id !== set.id);
+  library.groups.filter(g => g.setId === set.id).forEach(g => { g.setId = fallback.id; });
+  library.sets = library.sets.filter(s => s.id !== set.id);
+  selectedSetId = fallback.id;
+  saveLibrary();
+  renderSets();
+  renderGroups();
+  renderPalette();
+  say(`Deleted set <b>${set.name}</b>; its groups were moved to <b>${fallback.name}</b>.`);
+}
+
+function deleteTile() {
+  const tile = getTile(selectedTileId);
+  if (!tile) return;
+  if (!confirm(`Delete tile ${tile.name}?`)) return;
+  library.tiles = library.tiles.filter(t => t.id !== tile.id);
+  state.tiles = state.tiles.filter(t => t.id !== tile.id);
+  selectedTileId = library.tiles[0]?.id || null;
+  saveLibrary();
+  saveScene();
+  if (selectedTileId) selectTile(selectedTileId);
+  else { renderGroups(); renderPalette(); draw(); }
+}
+
+/* ── scene helpers ───────────────────────────────────────── */
+function tileAt(x, y, z = activeHeight, layer = activeLayer) {
+  return state.tiles.find(t => t.x === x && t.y === y && t.z === z && t.layer === layer);
+}
+
+function setTile(x, y, z, id, shape = activeShape, layer = activeLayer, structure = activeStructure, rot = activeRot, mirror = activeMirror) {
+  const i = state.tiles.findIndex(t => t.x === x && t.y === y && t.z === z && t.layer === layer);
+  if (id) {
+    const data = { id, shape, structure: structure || null, rot: rot || 0, mirror: !!mirror };
+    if (i < 0) state.tiles.push({ x, y, z, layer, ...data });
+    else Object.assign(state.tiles[i], data);
+  } else if (i >= 0) state.tiles.splice(i, 1);
+}
+
+function growCanvasFor(minX, minY, maxX, maxY) {
+  const now = performance.now();
+  if (now - lastGrowAt < GROW_COOLDOWN) return { dx: 0, dy: 0 };
+
+  let dx = minX < 0 ? 1 : 0;
+  let dy = minY < 0 ? 1 : 0;
+  if (dx || dy) {
+    state.tiles.forEach(t => { t.x += dx; t.y += dy; });
+    state.colliders.forEach(c => { c.x += dx; c.y += dy; c.toX += dx; c.toY += dy; });
+    state.width += dx;
+    state.height += dy;
+  }
+
+  let grew = !!(dx || dy);
+  if (maxX + dx >= state.width) { state.width += 1; grew = true; }
+  if (maxY + dy >= state.height) { state.height += 1; grew = true; }
+  if (grew) lastGrowAt = now;
+
+  $('width').value = state.width;
+  $('height').value = state.height;
+  return { dx, dy };
+}
+
+function toggleCollider(kind, x, y, z) {
+  const i = state.colliders.findIndex(c => c.kind === kind && c.x === x && c.y === y && c.z === z);
+  if (i >= 0) state.colliders.splice(i, 1);
+  else state.colliders.push({ kind, x, y, z });
+}
+
+function addEdgeCollider(cell) {
+  const c = { kind: 'edge', x: cell.x, y: cell.y, z: activeHeight, toX: cell.x, toY: cell.y, toZ: activeHeight };
+  if (colliderTool === 'edge-x') c.toX = cell.x + 1;
+  else if (colliderTool === 'edge-y') c.toY = cell.y + 1;
+  else if (colliderTool === 'edge-z') c.toZ = activeHeight + 1;
+  state.colliders.push(c);
+  commit();
+  draw();
+}
+
+function paint(cell, erase = false) {
+  const radius = (Number($('brush').value) - 1) / 2;
+  const minX = Math.floor(cell.x - radius), maxX = Math.ceil(cell.x + radius);
+  const minY = Math.floor(cell.y - radius), maxY = Math.ceil(cell.y + radius);
+  const { dx, dy } = growCanvasFor(minX, minY, maxX, maxY);
+  const baseX = cell.x + dx, baseY = cell.y + dy;
+  const key = `${baseX},${baseY},${activeHeight},${activeLayer},${erase ? 'e' : 'p'}`;
+  if (key === lastPaint) return;
+  lastPaint = key;
+
+  for (let y = baseY - radius; y <= baseY + radius; y++) {
+    for (let x = baseX - radius; x <= baseX + radius; x++) {
+      if (x < 0 || y < 0 || x >= state.width || y >= state.height) continue;
+      if (activeLayer === 'collider') {
+        const kind = ['top', 'left', 'right', 'tile'].includes(colliderTool) ? colliderTool : 'tile';
+        if (erase) {
+          state.colliders = state.colliders.filter(c => !(c.kind === kind && c.x === x && c.y === y && c.z === activeHeight));
+        } else {
+          const i = state.colliders.findIndex(c => c.kind === kind && c.x === x && c.y === y && c.z === activeHeight);
+          if (i < 0) state.colliders.push({ kind, x, y, z: activeHeight });
+        }
+      } else {
+        setTile(x, y, activeHeight, erase ? null : selectedTileId, activeShape, activeLayer);
+      }
+    }
+  }
+  draw();
+}
+
+function fill(cell) {
+  if (activeLayer === 'collider') return;
+  const start = tileAt(cell.x, cell.y)?.id || null;
+  if (start === selectedTileId) return;
+  const todo = [cell], seen = new Set();
+  while (todo.length) {
+    const cur = todo.pop(), key = `${cur.x},${cur.y}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (cur.x < 0 || cur.y < 0 || cur.x >= state.width || cur.y >= state.height) continue;
+    if ((tileAt(cur.x, cur.y)?.id || null) !== start) continue;
+    setTile(cur.x, cur.y, activeHeight, selectedTileId, activeShape, activeLayer);
+    todo.push({ x: cur.x + 1, y: cur.y }, { x: cur.x - 1, y: cur.y }, { x: cur.x, y: cur.y + 1 }, { x: cur.x, y: cur.y - 1 });
+  }
+  draw();
+}
+
+/* ── rendering ───────────────────────────────────────────── */
+function iso(x, y, z) {
+  const base = Math.max(10, Math.min(34, Math.min(canvas.width / (state.width + state.height + 4), canvas.height / (state.width + state.height + 5)) * 1.45));
+  const scale = base * zoom;
+  return {
+    x: canvas.width / 2 + (x - y) * scale + panX,
+    y: canvas.height * 0.58 + (x + y - state.width * 0.52) * scale * 0.5 - z * scale + panY,
+    scale,
+  };
+}
+
+function drawTile(tile, alpha = 1) {
+  const data = getTile(tile.id);
+  const p = iso(tile.x, tile.y, tile.z);
+  const s = p.scale;
+  const shape = tile.shape || 'cube';
+  if (tile.structure) {
+    const structure = getStructure(tile.structure);
+    if (structure) {
+      drawStructure(ctx, structure, library.tiles, {
+        x: p.x, y: p.y + s * 0.5, S: s,
+        rot: ((tile.rot || 0) % 4 + 4) % 4,
+        mirror: !!tile.mirror,
+        alpha,
+      });
+      return;
+    }
+  }
+  const h = s * (shape === 'plane' ? 0 : shape === 'pillar' ? 1.25 : shape === 'wall' ? 1.05 : shape === 'tower' ? 1.65 : shape === 'gate' ? 0.85 : shape === 'stairs' ? 0.8 : shape === 'bridge' ? 0.28 : shape === 'fence' ? 0.38 : 0.56);
+  const top = [[p.x, p.y - s * 0.5], [p.x + s, p.y], [p.x, p.y + s * 0.5], [p.x - s, p.y]];
+  const left = [[p.x - s, p.y], [p.x, p.y + s * 0.5], [p.x, p.y + s * 0.5 + h], [p.x - s, p.y + h]];
+  const right = [[p.x, p.y + s * 0.5], [p.x + s, p.y], [p.x + s, p.y + h], [p.x, p.y + s * 0.5 + h]];
+
+  if (shape === 'plane') {
+    drawTextureQuad(ctx, top, faceTexture(data, 'top'), alpha);
+    return;
+  }
+
+  if (shape === 'bridge') {
+    const topLift = s * 0.32;
+    const bridgeTop = top.map(([x, y]) => [x, y - topLift]);
+    ctx.strokeStyle = 'rgba(0,0,0,.45)';
+    ctx.fillStyle = 'rgba(0,0,0,.18)';
+    ctx.beginPath(); ctx.moveTo(bridgeTop[0][0], bridgeTop[0][1]); bridgeTop.slice(1).forEach(pt => ctx.lineTo(pt[0], pt[1])); ctx.closePath(); ctx.fill();
+    drawTextureQuad(ctx, bridgeTop, faceTexture(data, 'top'), alpha);
+    ctx.strokeStyle = '#6e552f';
+    ctx.lineWidth = Math.max(1, s * 0.08);
+    ctx.beginPath(); ctx.moveTo(bridgeTop[3][0], bridgeTop[3][1] - s * 0.16); ctx.lineTo(bridgeTop[2][0], bridgeTop[2][1] - s * 0.16); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bridgeTop[0][0], bridgeTop[0][1]); ctx.lineTo(bridgeTop[1][0], bridgeTop[1][1]); ctx.stroke();
+    ctx.lineWidth = 1;
+    return;
+  }
+
+  if (shape === 'fence') {
+    ctx.strokeStyle = '#5b4428';
+    ctx.lineWidth = Math.max(1, s * 0.06);
+    const posts = [top[0], top[1], top[2], top[3], [p.x, p.y]];
+    posts.forEach(pt => {
+      ctx.beginPath(); ctx.moveTo(pt[0], pt[1]); ctx.lineTo(pt[0], pt[1] + s * 0.42); ctx.stroke();
+    });
+    ctx.beginPath(); ctx.moveTo(top[0][0], top[0][1] + s * 0.18); ctx.lineTo(top[2][0], top[2][1] + s * 0.18); ctx.stroke();
+    ctx.lineWidth = 1;
+    return;
+  }
+
+  if (shape === 'ramp') {
+    const r = ((tile.rot || 0) % 4 + 4) % 4;
+    const rotUV = (u, v) => [[u, v], [-v, u], [-u, -v], [v, -u]][r];
+    const P = (lx, ly, lz) => { const [u, v] = rotUV(lx - 0.5, ly - 0.5); return iso(tile.x + 0.5 + u, tile.y + 0.5 + v, tile.z + lz); };
+    const q = (pts, face) => drawTextureQuad(ctx, pts.map(pt => [pt.x, pt.y]), faceTexture(data, face), alpha);
+    const t = (pts, face) => drawTextureTri(ctx, pts.map(pt => [pt.x, pt.y]), faceTexture(data, face), alpha);
+    const A = P(0, 0, 0), B = P(1, 0, 0), C = P(1, 1, 0), D = P(0, 1, 0), E = P(0, 0, 1), F = P(0, 1, 1);
+    t([A, B, E], 'left');
+    t([C, D, F], 'right');
+    q([A, E, F, D], 'left');
+    q([B, C, F, E], 'top');
+    return;
+  }
+
+  if (shape === 'roof') {
+    const apex = [p.x, p.y - s * 0.95];
+    const topV = [p.x, p.y - s * 0.5];
+    const rightV = [p.x + s, p.y];
+    const bottomV = [p.x, p.y + s * 0.5];
+    const leftV = [p.x - s, p.y];
+    drawTextureTri(ctx, [leftV, bottomV, apex], faceTexture(data, 'left'), alpha);
+    drawTextureTri(ctx, [bottomV, rightV, apex], faceTexture(data, 'right'), alpha);
+    drawTextureTri(ctx, [rightV, topV, apex], faceTexture(data, 'right'), alpha);
+    drawTextureTri(ctx, [topV, leftV, apex], faceTexture(data, 'left'), alpha);
+    return;
+  }
+
+  if (shape !== 'plane') {
+    drawTextureQuad(ctx, left, faceTexture(data, 'left'), alpha);
+    drawTextureQuad(ctx, right, faceTexture(data, 'right'), alpha);
+  }
+  drawTextureQuad(ctx, top, faceTexture(data, 'top'), alpha);
+
+  if (shape === 'arch' || shape === 'gate') {
+    const P = (lx, ly, lz) => iso(tile.x + lx, tile.y + ly, tile.z + lz);
+    const q = (pts, face) => drawTextureQuad(ctx, pts.map(pt => [pt.x, pt.y]), faceTexture(data, face), alpha);
+    const ow = 0.46, oh = 0.56, lw = (1 - ow) / 2, rs = lw + ow;
+
+    q([P(0, 0, 0), P(lw, 0, 0), P(lw, 0, oh), P(0, 0, oh)], 'left');
+    q([P(rs, 0, 0), P(1, 0, 0), P(1, 0, oh), P(rs, 0, oh)], 'left');
+    q([P(0, 0, oh), P(1, 0, oh), P(1, 0, 1), P(0, 0, 1)], 'left');
+
+    q([P(lw, 0, 0), P(lw, 1, 0), P(lw, 1, oh), P(lw, 0, oh)], 'left');
+    q([P(rs, 0, 0), P(rs, 1, 0), P(rs, 1, oh), P(rs, 0, oh)], 'right');
+    q([P(lw, 0, oh), P(rs, 0, oh), P(rs, 1, oh), P(lw, 1, oh)], 'top');
+
+    q([P(0, 0, 0), P(0, 1, 0), P(0, 1, 1), P(0, 0, 1)], 'left');
+    q([P(1, 0, 0), P(1, 1, 0), P(1, 1, 1), P(1, 0, 1)], 'right');
+
+    q([P(0, 1, 0), P(lw, 1, 0), P(lw, 1, oh), P(0, 1, oh)], 'right');
+    q([P(rs, 1, 0), P(1, 1, 0), P(1, 1, oh), P(rs, 1, oh)], 'right');
+    q([P(0, 1, oh), P(1, 1, oh), P(1, 1, 1), P(0, 1, 1)], 'right');
+
+    q([P(0, 0, 1), P(1, 0, 1), P(1, 1, 1), P(0, 1, 1)], 'top');
+    return;
+  }
+
+  if (shape === 'stairs') {
+    ctx.strokeStyle = 'rgba(0,0,0,.38)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i <= 3; i++) {
+      const yy = p.y + s * 0.5 + (h * i) / 3;
+      ctx.beginPath(); ctx.moveTo(p.x - s, p.y + (h * i) / 3); ctx.lineTo(p.x, yy); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(p.x, yy); ctx.lineTo(p.x + s, p.y + (h * i) / 3); ctx.stroke();
+    }
+  }
+
+  if (shape === 'tower') {
+    ctx.strokeStyle = 'rgba(0,0,0,.35)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i <= 3; i++) {
+      const yy = p.y - s * 0.5 + (s * 1.65 * i) / 4;
+      ctx.beginPath(); ctx.moveTo(p.x, yy); ctx.lineTo(p.x + s, yy + s * 0.5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(p.x, yy); ctx.lineTo(p.x - s, yy + s * 0.5); ctx.stroke();
+    }
+  }
+
+  if (shape === 'pillar' || shape === 'wall' || shape === 'tower') {
+    ctx.strokeStyle = 'rgba(255,255,255,.22)';
+    ctx.beginPath(); ctx.moveTo(p.x, p.y - s * 0.5); ctx.lineTo(p.x, p.y + s * 0.5 + h); ctx.stroke();
+  }
+
+  if (tile.id === 'water') {
+    ctx.globalAlpha = alpha * 0.35;
+    ctx.strokeStyle = '#e8ffff';
+    ctx.beginPath(); ctx.moveTo(p.x - s * 0.45, p.y); ctx.lineTo(p.x + s * 0.25, p.y + s * 0.34); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+}
+
+function draw() {
+  const rect = canvas.getBoundingClientRect();
+  if (canvas.width !== Math.max(1, Math.floor(rect.width)) || canvas.height !== Math.max(1, Math.floor(rect.height))) {
+    canvas.width = Math.max(1, Math.floor(rect.width));
+    canvas.height = Math.max(1, Math.floor(rect.height));
+  }
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#0d0d10';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  for (let y = 0; y < state.height; y++) {
+    for (let x = 0; x < state.width; x++) {
+      const p = iso(x, y, activeHeight), s = p.scale;
+      ctx.beginPath(); ctx.moveTo(p.x, p.y - s * 0.5); ctx.lineTo(p.x + s, p.y); ctx.lineTo(p.x, p.y + s * 0.5); ctx.lineTo(p.x - s, p.y); ctx.closePath();
+      ctx.strokeStyle = 'rgba(255,255,255,.055)'; ctx.stroke();
+    }
+  }
+
+  const visual = state.tiles
+    .filter(t => t.layer !== 'collider')
+    .slice()
+    .sort((a, b) => (LAYER_RANK[a.layer] - LAYER_RANK[b.layer]) || ((a.x + a.y + a.z * 0.5) - (b.x + b.y + b.z * 0.5)));
+  visual.forEach(t => drawTile(t));
+
+  (state.colliders || []).forEach(c => {
+    const a = iso(c.x, c.y, c.z || 0);
+    ctx.strokeStyle = '#4eff91';
+    ctx.fillStyle = 'rgba(78,255,145,.12)';
+    ctx.lineWidth = 2;
+    if (c.kind === 'edge') {
+      const b = iso(c.toX, c.toY, c.toZ ?? c.z ?? 0);
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    } else {
+      const z = c.z || 0;
+      const pts = c.kind === 'left'
+        ? [iso(c.x, c.y + 1, z + 1), iso(c.x + 1, c.y + 1, z + 1), iso(c.x + 1, c.y + 1, z), iso(c.x, c.y + 1, z)]
+        : c.kind === 'right'
+          ? [iso(c.x + 1, c.y, z + 1), iso(c.x + 1, c.y + 1, z + 1), iso(c.x + 1, c.y + 1, z), iso(c.x + 1, c.y, z)]
+          : [iso(c.x, c.y, z + 1), iso(c.x + 1, c.y, z + 1), iso(c.x + 1, c.y + 1, z + 1), iso(c.x, c.y + 1, z + 1)];
+      ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
+      pts.slice(1).forEach(pt => ctx.lineTo(pt.x, pt.y));
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+    ctx.lineWidth = 1;
+  });
+
+  if (pointer) {
+    if (activeLayer === 'collider') drawColliderGhost();
+    else {
+      const p = iso(pointer.x, pointer.y, activeHeight), s = p.scale;
+      if (tool === 'brush' && Number.isFinite(pointer.x) && Number.isFinite(pointer.y) && !(pointer.x < 0 || pointer.y < 0 || pointer.x >= state.width || pointer.y >= state.height)) {
+        drawTile({ x: pointer.x, y: pointer.y, z: activeHeight, id: selectedTileId, shape: activeShape, layer: activeLayer, structure: activeStructure, rot: activeRot, mirror: activeMirror }, 0.38);
+      }
+      ctx.strokeStyle = tool === 'erase' ? '#d76670' : '#4eff91';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(p.x, p.y - s * 0.5); ctx.lineTo(p.x + s, p.y); ctx.lineTo(p.x, p.y + s * 0.5); ctx.lineTo(p.x - s, p.y); ctx.closePath(); ctx.stroke();
+      ctx.lineWidth = 1;
+    }
+  }
+  updateHud();
+}
+
+function drawColliderGhost() {
+  const z = activeHeight;
+  const p = iso(pointer.x, pointer.y, z);
+  const s = p.scale;
+  ctx.save();
+  ctx.strokeStyle = '#4eff91';
+  ctx.setLineDash([4, 3]);
+  ctx.lineWidth = 2;
+
+  const top = [[p.x, p.y - s * 0.5], [p.x + s, p.y], [p.x, p.y + s * 0.5], [p.x - s, p.y]];
+  const left = [[p.x - s, p.y], [p.x, p.y + s * 0.5], [p.x, p.y + s * 0.5 + s * 0.56], [p.x - s, p.y + s * 0.56]];
+  const right = [[p.x, p.y + s * 0.5], [p.x + s, p.y], [p.x + s, p.y + s * 0.56], [p.x, p.y + s * 0.5 + s * 0.56]];
+
+  if (colliderTool === 'left') polyPath(left);
+  else if (colliderTool === 'right') polyPath(right);
+  else if (colliderTool === 'top' || colliderTool === 'tile') {
+    ctx.beginPath(); ctx.moveTo(p.x, p.y - s * 0.5); ctx.lineTo(p.x + s, p.y); ctx.lineTo(p.x, p.y + s * 0.5); ctx.lineTo(p.x - s, p.y); ctx.closePath(); ctx.stroke();
+  } else if (colliderTool === 'edge-x') lineGhost(p, iso(pointer.x + 1, pointer.y, z));
+  else if (colliderTool === 'edge-y') lineGhost(p, iso(pointer.x, pointer.y + 1, z));
+  else if (colliderTool === 'edge-z') lineGhost(p, iso(pointer.x, pointer.y, z + 1));
+
+  ctx.restore();
+}
+
+function polyPath(points) {
+  ctx.beginPath(); ctx.moveTo(points[0].x, points[0].y);
+  points.slice(1).forEach(pt => ctx.lineTo(pt.x, pt.y));
+  ctx.closePath(); ctx.stroke();
+}
+
+function lineGhost(a, b) {
+  ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+}
+
+function updateHud() {
+  $('coords').textContent = pointer ? `x ${pointer.x} · y ${pointer.y}` : 'x — · y —';
+  $('hudText').textContent = `${tool[0].toUpperCase() + tool.slice(1)} · ${getTile()?.name || '—'} · ${activeLayer} · z ${activeHeight}`;
+}
+
+/* ── interaction ─────────────────────────────────────────── */
+function cellFromEvent(event) {
+  const r = canvas.getBoundingClientRect();
+  const mx = event.clientX - r.left;
+  const my = event.clientY - r.top;
+  const zero = iso(0, 0, activeHeight), s = zero.scale;
+  const u = (mx - canvas.width / 2 - panX) / s;
+  const v = (my - (canvas.height * 0.58 + panY - state.width * 0.52 * s * 0.5) + activeHeight * s) / (s * 0.5);
+  return { x: Math.floor((v + u) / 2), y: Math.floor((v - u) / 2) };
+}
+
+function pointCellFromEvent(event) {
+  const cell = cellFromEvent(event);
+  pointer = cell;
+  draw();
+  return cell;
+}
+
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('pointerdown', e => {
+  canvas.setPointerCapture(e.pointerId);
+  if (panMode || e.button === 1) {
+    panning = true;
+    panStart = { x: e.clientX, y: e.clientY, px: panX, py: panY };
+    canvas.style.cursor = 'grabbing';
+    return;
+  }
+  const cell = pointCellFromEvent(e);
+  drawing = true;
+  lastPaint = '';
+  if (activeLayer === 'collider' && colliderTool.startsWith('edge-') && e.button === 0) {
+    addEdgeCollider(cell);
+    drawing = false;
+    return;
+  }
+  if (e.button === 2 || tool === 'erase') paint(cell, true);
+  else if (tool === 'fill') { fill(cell); drawing = false; commit(); }
+  else paint(cell);
+  draw();
+});
+canvas.addEventListener('pointermove', e => {
+  if (panning && panStart) {
+    panX = panStart.px + (e.clientX - panStart.x);
+    panY = panStart.py + (e.clientY - panStart.y);
+    draw();
+    return;
+  }
+  const cell = pointCellFromEvent(e);
+  if (drawing && (e.buttons & 1 || e.buttons & 2)) paint(cell, (e.buttons & 2) || tool === 'erase');
+  draw();
+});
+canvas.addEventListener('pointerup', () => {
+  if (panning) { panning = false; panStart = null; canvas.style.cursor = panMode ? 'grab' : 'crosshair'; return; }
+  if (drawing) { drawing = false; commit(); }
+});
+canvas.addEventListener('pointerleave', () => { pointer = null; draw(); });
+
+/* ── controls ────────────────────────────────────────────── */
+$('tools').addEventListener('click', e => {
+  const b = e.target.closest('[data-tool]'); if (!b) return;
+  tool = b.dataset.tool;
+  syncToolUI();
+  draw();
+});
+$('shapes').addEventListener('click', e => {
+  const st = e.target.closest('[data-structure]');
+  if (st) { activeStructure = st.dataset.structure; activeShape = 'structure'; syncToolUI(); draw(); return; }
+  const b = e.target.closest('[data-shape]'); if (!b) return;
+  activeStructure = null;
+  activeShape = b.dataset.shape;
+  syncToolUI();
+  draw();
+});
+$('layers').addEventListener('click', e => {
+  const b = e.target.closest('[data-layer]'); if (!b) return;
+  activeLayer = b.dataset.layer;
+  document.querySelectorAll('[data-layer]').forEach(x => x.classList.toggle('active', x === b));
+  syncLayerOptions();
+  draw();
+});
+$('colliderTools').addEventListener('click', e => {
+  const b = e.target.closest('[data-collider]'); if (!b) return;
+  colliderTool = b.dataset.collider;
+  document.querySelectorAll('[data-collider]').forEach(x => x.classList.toggle('active', x === b));
+});
+$('rotateBtn')?.addEventListener('click', () => { activeRot = (activeRot + 1) % 4; $('rotVal') && ($('rotVal').textContent = activeRot * 90 + '°'); renderShapes(); syncToolUI(); draw(); });
+$('mirrorBtn')?.addEventListener('click', () => { activeMirror = !activeMirror; $('mirrorBtn').classList.toggle('active', activeMirror); renderShapes(); syncToolUI(); draw(); });
+$('brush').oninput = () => { $('brushValue').textContent = $('brush').value + '×' + $('brush').value; draw(); };
+$('heightDown').onclick = () => { activeHeight = Math.max(0, activeHeight - 1); $('heightValue').textContent = activeHeight; draw(); };
+$('heightUp').onclick = () => { activeHeight = Math.min(8, activeHeight + 1); $('heightValue').textContent = activeHeight; draw(); };
+$('resize').onclick = () => {
+  state.width = Math.max(4, Math.min(120, Number($('width').value) || state.width));
+  state.height = Math.max(4, Math.min(120, Number($('height').value) || state.height));
+  state.tiles = state.tiles.filter(t => t.x < state.width && t.y < state.height);
+  renderInputs(); commit(); draw(); say(`Resized scene to <b>${state.width} × ${state.height}</b>.`);
+};
+$('clear').onclick = () => {
+  if (confirm('Clear every painted tile?')) { state.tiles = []; state.colliders = []; commit(); draw(); say('Cleared all layers.'); }
+};
+$('undo').onclick = undo;
+$('redo').onclick = redo;
+$('save').onclick = () => { saveScene(); saveLibrary(); say('Scene and tile library saved in this browser.'); };
+$('load').onclick = () => { state = loadScene(); library = loadLibrary(); selectedTileId = library.tiles[0]?.id; selectedGroupId = library.groups[0]?.id; history = []; historyIndex = -1; commit(); renderInputs(); renderGroups(); renderPalette(); if (selectedTileId) selectTile(selectedTileId); draw(); };
+$('export').onclick = () => download('pixel-isometric-scene.json', new Blob([JSON.stringify(projectExport(), null, 2)], { type: 'application/json' }));
+$('png').onclick = () => canvas.toBlob(blob => download('pixel-isometric-scene.png', blob));
+$('chooseFile').onclick = () => $('file').click();
+$('file').onchange = async e => {
+  const file = e.target.files[0]; if (!file) return;
+  try { importScene(await file.text()); } catch (_) { say('<b>Could not load that JSON.</b>'); }
+  e.target.value = '';
+};
+
+$('setSelect').onchange = e => { selectedSetId = e.target.value; renderSets(); renderGroups(); renderPalette(); };
+$('newSet').onclick = newSet;
+$('duplicateSet').onclick = duplicateSet;
+$('deleteSet').onclick = deleteSet;
+$('groupSelect').onchange = e => { selectedGroupId = e.target.value; renderGroups(); renderPalette(); };
+$('newGroup').onclick = newGroup;
+$('duplicateGroup').onclick = duplicateGroup;
+$('deleteGroup').onclick = deleteGroup;
+$('applyGroup').onclick = applyDesignerToGroup;
+$('deleteTile').onclick = deleteTile;
+$('saveTile').onclick = saveTile;
+$('updateTile').onclick = updateTile;
+
+$('btn-pan').onclick = () => {
+  panMode = !panMode;
+  $('btn-pan').classList.toggle('active', panMode);
+  canvas.style.cursor = panMode ? 'grab' : 'crosshair';
+};
+$('btn-zoom-in').onclick = () => { zoom = Math.min(2.5, zoom * 1.15); draw(); };
+$('btn-zoom-out').onclick = () => { zoom = Math.max(0.4, zoom / 1.15); draw(); };
+$('btn-zoom-reset').onclick = () => { zoom = 1; panX = 0; panY = 0; draw(); };
+
+const designerInputs = ['tileName', 'tileTop', 'tileBottom', 'tileSplit', 'topMode', 'topInk', 'topBright', 'topSpace', 'topThick', 'topBlend', 'topBlendMode', 'bottomMode', 'bottomInk', 'bottomBright', 'bottomSpace', 'bottomThick', 'bottomBlend', 'bottomBlendMode'];
+designerInputs.forEach(id => {
+  const el = $(id); if (!el) return;
+  el.addEventListener('input', () => { updateDesignerLabels(); drawDesignerPreview(); });
+  el.addEventListener('change', () => { updateDesignerLabels(); drawDesignerPreview(); });
+});
+
+/* ── import/export ───────────────────────────────────────── */
+function projectExport() {
+  return {
+    format: 'town-tilemap', version: 2, width: state.width, height: state.height, tileSize: 32,
+    drawOrder: ['background', 'isometric'],
+    layers: [
+      { id: 'background', name: 'Background', data: new Array(state.width * state.height).fill(0) },
+      { id: 'isometric', name: 'Isometric scene tiles', data: state.tiles },
+      { id: 'collider', name: 'Collider overlays', data: state.colliders },
+    ],
+    isometricScene: { version: 1, tiles: state.tiles, colliders: state.colliders },
+    tileLibrary: library,
+  };
+}
+
+function download(name, blob) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+function importScene(raw) {
+  const data = JSON.parse(raw);
+  if (data.isometricScene) {
+    state = { ...defaultScene(), width: data.width, height: data.height, tiles: (data.isometricScene.tiles || []).map(t => ({ ...t, layer: t.layer || 'ground', shape: t.shape || 'cube' })), colliders: data.isometricScene.colliders || [] };
+    if (data.tileLibrary?.tiles) {
+      library = data.tileLibrary;
+      library.sets = library.sets || clone(DEFAULT_SETS);
+      library.groups = library.groups || clone(DEFAULT_GROUPS);
+      library.tiles = library.tiles.map(normalizeTile);
+      selectedTileId = library.tiles[0]?.id;
+      selectedGroupId = library.groups?.[0]?.id;
+      selectedSetId = library.groups?.[0]?.setId || library.sets[0]?.id;
+    }
+  } else if (['town-tilemap', 'brighton-tilemap'].includes(data.format)) {
+    state = defaultScene();
+    state.width = data.width;
+    state.height = data.height;
+    const ground = data.layers?.find(layer => layer.id === 'bg' || layer.id === 'background' || /ground/i.test(layer.name))?.data || [];
+    ground.forEach((value, index) => {
+      if (value) state.tiles.push({ x: index % state.width, y: Math.floor(index / state.width), z: 0, id: 'grass', shape: 'cube', layer: 'ground' });
+    });
+  } else throw new Error('Unsupported format');
+  history = []; historyIndex = -1;
+  commit(); renderInputs(); renderGroups(); renderPalette();
+  if (selectedTileId) selectTile(selectedTileId);
+  draw();
+  say('Loaded scene data and tile library.');
+}
+
+/* ── boot ────────────────────────────────────────────────── */
+function renderInputs() {
+  $('width').value = state.width;
+  $('height').value = state.height;
+  $('brushValue').textContent = $('brush').value + '×' + $('brush').value;
+  $('heightValue').textContent = activeHeight;
+}
+
+function syncToolUI() {
+  document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
+  document.querySelectorAll('[data-shape]').forEach(b => b.classList.toggle('active', !activeStructure && b.dataset.shape === activeShape));
+  document.querySelectorAll('[data-structure]').forEach(b => b.classList.toggle('active', b.dataset.structure === activeStructure));
+  canvas.style.cursor = tool === 'fill' ? 'cell' : tool === 'erase' ? 'not-allowed' : 'crosshair';
+  syncLayerOptions();
+}
+
+function syncLayerOptions() {
+  const tileOptions = $('tileOptions');
+  const colliderOptions = $('colliderTools');
+  if (tileOptions) tileOptions.style.display = activeLayer === 'collider' ? 'none' : 'block';
+  if (colliderOptions) colliderOptions.style.display = activeLayer === 'collider' ? 'grid' : 'none';
+}
+
+addEventListener('keydown', e => {
+  if (/INPUT|SELECT/.test(e.target.tagName)) return;
+  const key = e.key.toLowerCase();
+  if ((e.metaKey || e.ctrlKey) && key === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+  if ((e.metaKey || e.ctrlKey) && key === 'y') { e.preventDefault(); redo(); return; }
+  if ({ b: 'brush', e: 'erase', f: 'fill' }[key]) { tool = { b: 'brush', e: 'erase', f: 'fill' }[key]; syncToolUI(); draw(); }
+  if (key === 'r' && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); $('rotateBtn')?.click(); }
+  if (key === 'm' && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); $('mirrorBtn')?.click(); }
+});
+
+addEventListener('resize', draw);
+
+renderInputs();
+renderSets();
+renderGroups();
+renderPalette();
+renderShapes();
+syncToolUI();
+if (selectedTileId) loadDesignerFromTile(getTile(selectedTileId));
+drawDesignerPreview();
+commit();
+draw();
 </script>
 </body>
 </html>

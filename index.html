@@ -32,6 +32,7 @@
           <button data-tool="fill">Fill</button>
         </div>
         <div id="shapes"></div>
+        <div class="row"><label>Facing</label><button id="rotateBtn" title="Rotate (R)">Rotate ↻ <span id="rotVal">0°</span></button><button id="mirrorBtn" title="Mirror (M)">Mirror</button></div>
         <div class="row"><label>Brush size</label><input id="brush" type="range" min="1" max="5" step="2" value="1"><span class="value" id="brushValue">1×1</span></div>
         </div>
         <div class="row"><label>Height</label><button id="heightDown">−</button><span class="value" id="heightValue">0</span><button id="heightUp">+</button></div>
@@ -56,7 +57,13 @@
         </div>
         <p class="hint">Layer order top → bottom: Collider, Decoration, Structure, Ground. Colliders export separately.</p>
       </section>
-      <section class="section"><h2>Tile Library</h2><div id="palette" class="palette"></div><p class="hint">Select a tile to load it into the designer.</p></section>
+      <section class="section">
+        <h2>Tile Library</h2>
+        <div class="row"><label>Set</label><select id="setSelect"></select></div>
+        <div class="button-grid three"><button id="newSet">New set</button><button id="duplicateSet">Duplicate set</button><button id="deleteSet">Delete set</button></div>
+        <div id="palette" class="palette"></div>
+        <p class="hint">Sets contain groups; groups contain tiles. Select a tile to load it into the designer.</p>
+      </section>
       <section class="section">
         <h2>Scene</h2>
         <div class="row"><label>Width</label><input id="width" type="number" min="4" max="120" value="20"></div>

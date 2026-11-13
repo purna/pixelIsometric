@@ -1,5 +1,6 @@
-import { LIBRARY_STORAGE, SCENE_STORAGE, DEFAULT_GROUPS, DEFAULT_TILES } from './config.js';
+import { LIBRARY_STORAGE, SCENE_STORAGE, DEFAULT_SETS, DEFAULT_GROUPS, DEFAULT_TILES } from './config.js';
 import { normalizeTile, faceTexture, drawTextureQuad, drawTextureTri, tilePreviewURL } from './textures.js';
+import { STRUCTURE_GROUPS, STRUCTURES, STRUCTURES_WITH_90, getStructure, drawStructure, structurePreviewURL } from './structures.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('scene');
@@ -34,11 +35,15 @@ const SHAPE_GROUPS = [
 let library = loadLibrary();
 let selectedTileId = library.tiles[0]?.id || null;
 let selectedGroupId = library.tiles[0]?.groupId || library.groups[0]?.id || null;
+let selectedSetId = library.groups.find(g => g.id === selectedGroupId)?.setId || library.sets[0]?.id || null;
 let state = loadScene();
 let history = [];
 let historyIndex = -1;
 let tool = 'brush';
 let activeShape = 'cube';
+let activeStructure = null;
+let activeRot = 0;
+let activeMirror = false;
 let activeLayer = 'ground';
 let colliderTool = 'top';
 let activeHeight = 0;
@@ -62,15 +67,20 @@ function loadLibrary() {
     const saved = JSON.parse(localStorage.getItem(LIBRARY_STORAGE) || 'null');
     if (saved && Array.isArray(saved.tiles) && saved.tiles.length) {
       saved.groups = Array.isArray(saved.groups) && saved.groups.length ? saved.groups : clone(DEFAULT_GROUPS);
+      saved.sets = Array.isArray(saved.sets) && saved.sets.length ? saved.sets : clone(DEFAULT_SETS);
       saved.tiles = saved.tiles.map(tile => normalizeTile(tile));
+      const setIds = new Set(saved.sets.map(s => s.id));
+      DEFAULT_SETS.forEach(set => { if (!setIds.has(set.id)) saved.sets.push(clone(set)); });
       const groupIds = new Set(saved.groups.map(g => g.id));
       DEFAULT_GROUPS.forEach(g => { if (!groupIds.has(g.id)) saved.groups.push(clone(g)); });
+      saved.groups.forEach(g => { if (!g.setId) g.setId = saved.sets[0]?.id || 'classic'; });
       const tileIds = new Set(saved.tiles.map(t => t.id));
       DEFAULT_TILES.forEach(t => { if (!tileIds.has(t.id)) saved.tiles.push(normalizeTile(clone(t))); });
       return saved;
     }
   } catch (_) {}
   return {
+    sets: clone(DEFAULT_SETS),
     groups: clone(DEFAULT_GROUPS),
     tiles: DEFAULT_TILES.map(tile => normalizeTile(clone(tile))),
   };
@@ -138,29 +148,57 @@ function getTile(id = selectedTileId) { return library.tiles.find(t => t.id === 
 function groupTiles(groupId = selectedGroupId) { return library.tiles.filter(t => t.groupId === groupId); }
 
 /* ── library + groups UI ─────────────────────────────────── */
+function renderSets() {
+  const select = $('setSelect');
+  if (!select) return;
+  select.innerHTML = '';
+  library.sets.forEach(set => {
+    const option = document.createElement('option');
+    option.value = set.id;
+    option.textContent = set.name;
+    select.appendChild(option);
+  });
+  if (!library.sets.some(s => s.id === selectedSetId)) selectedSetId = library.sets[0]?.id || null;
+  select.value = selectedSetId;
+  const total = library.groups.filter(g => g.setId === selectedSetId).reduce((n, g) => n + groupTiles(g.id).length, 0);
+  const option = select.selectedOptions[0];
+  if (option) option.textContent = `${library.sets.find(s => s.id === selectedSetId)?.name || 'Set'} (${total})`;
+}
+
 function renderGroups() {
   const select = $('groupSelect');
   select.innerHTML = '';
-  library.groups.forEach(group => {
+  const visibleGroups = library.groups.filter(g => g.setId === selectedSetId);
+  visibleGroups.forEach(group => {
     const option = document.createElement('option');
     option.value = group.id;
     option.textContent = `${group.name} (${groupTiles(group.id).length})`;
     select.appendChild(option);
   });
-  if (!library.groups.some(g => g.id === selectedGroupId)) selectedGroupId = library.groups[0]?.id || null;
-  select.value = selectedGroupId;
+  if (!visibleGroups.some(g => g.id === selectedGroupId)) selectedGroupId = visibleGroups[0]?.id || null;
+  select.value = selectedGroupId || '';
 
   const list = $('groupList');
   list.innerHTML = '';
-  library.groups.forEach(group => {
+  visibleGroups.forEach(group => {
     const row = document.createElement('div');
     row.className = 'group-row' + (group.id === selectedGroupId ? ' active' : '');
-    row.innerHTML = `<span class="group-name">${group.name}</span><span class="group-count">${groupTiles(group.id).length}</span>`;
-    row.onclick = () => {
+    const setOptions = library.sets.map(s => `<option value="${s.id}" ${s.id === group.setId ? 'selected' : ''}>${s.name}</option>`).join('');
+    row.innerHTML = `<span class="group-name">${group.name}</span><span class="group-count">${groupTiles(group.id).length}</span><select class="group-set-select" data-group-id="${group.id}" title="Move group to set">${setOptions}</select>`;
+    row.onclick = (e) => {
+      if (e.target.closest('select')) return;
       selectedGroupId = group.id;
       const first = groupTiles(group.id)[0];
       if (first) selectTile(first.id);
       else { renderGroups(); renderPalette(); }
+    };
+    row.querySelector('.group-set-select').onchange = (e) => {
+      group.setId = e.target.value;
+      selectedSetId = group.setId;
+      saveLibrary();
+      renderSets();
+      renderGroups();
+      renderPalette();
     };
     list.appendChild(row);
   });
@@ -169,7 +207,7 @@ function renderGroups() {
 function renderPalette() {
   const holder = $('palette');
   holder.innerHTML = '';
-  library.groups.forEach(group => {
+  library.groups.filter(g => g.setId === selectedSetId).forEach(group => {
     const tiles = groupTiles(group.id);
     if (!tiles.length) return;
     const section = document.createElement('div');
@@ -213,6 +251,25 @@ function renderShapes() {
     wrap.appendChild(grid);
     holder.appendChild(wrap);
   });
+  STRUCTURE_GROUPS.forEach(group => {
+    const list = STRUCTURES_WITH_90.filter(st => st.group === group.id);
+    if (!list.length) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'shape-group';
+    wrap.innerHTML = `<div class="shape-group-label">${group.name}</div>`;
+    const grid = document.createElement('div');
+    grid.className = 'shape-grid';
+    list.forEach(structure => {
+      const b = document.createElement('button');
+      b.className = 'shape-btn' + (structure.id === activeStructure ? ' active' : '');
+      b.dataset.structure = structure.id;
+      b.title = structure.name;
+      b.innerHTML = `<img class="shape-icon" alt="" src="${structurePreviewURL(structure, library.tiles, {rot: activeRot, mirror: activeMirror})}"><span>${structure.name}</span>`;
+      grid.appendChild(b);
+    });
+    wrap.appendChild(grid);
+    holder.appendChild(wrap);
+  });
 }
 
 function selectTile(id) {
@@ -220,6 +277,7 @@ function selectTile(id) {
   if (!tile) return;
   selectedTileId = tile.id;
   selectedGroupId = tile.groupId || selectedGroupId;
+  selectedSetId = library.groups.find(g => g.id === selectedGroupId)?.setId || selectedSetId;
   loadDesignerFromTile(tile);
   renderGroups();
   renderPalette();
@@ -342,7 +400,7 @@ function applyDesignerToGroup() {
 function newGroup() {
   const name = prompt('Group name', 'New group');
   if (!name) return;
-  const group = { id: 'group-' + Date.now(), name };
+  const group = { id: 'group-' + Date.now(), name, setId: selectedSetId };
   library.groups.push(group);
   selectedGroupId = group.id;
   saveLibrary();
@@ -353,7 +411,7 @@ function newGroup() {
 function duplicateGroup() {
   const source = library.groups.find(g => g.id === selectedGroupId);
   if (!source) return;
-  const group = { id: 'group-' + Date.now(), name: source.name + ' copy' };
+  const group = { id: 'group-' + Date.now(), name: source.name + ' copy', setId: source.setId };
   const copies = groupTiles(source.id).map((tile, i) => normalizeTile({
     ...clone(tile),
     id: 'copy-' + Date.now() + '-' + i,
@@ -379,12 +437,66 @@ function deleteGroup() {
   library.groups = library.groups.filter(g => g.id !== group.id);
   library.tiles = library.tiles.filter(t => !ids.has(t.id));
   state.tiles = state.tiles.filter(t => !ids.has(t.id));
-  selectedGroupId = library.groups[0]?.id || null;
+  selectedGroupId = library.groups.find(g => g.setId === selectedSetId)?.id || library.groups[0]?.id || null;
   selectedTileId = library.tiles[0]?.id || null;
   saveLibrary();
   saveScene();
   if (selectedTileId) selectTile(selectedTileId);
   else { renderGroups(); renderPalette(); draw(); }
+}
+
+function newSet() {
+  const name = prompt('Set name', 'New set');
+  if (!name) return;
+  const set = { id: 'set-' + Date.now(), name };
+  library.sets.push(set);
+  selectedSetId = set.id;
+  saveLibrary();
+  renderSets();
+  renderGroups();
+  renderPalette();
+}
+
+function duplicateSet() {
+  const source = library.sets.find(s => s.id === selectedSetId);
+  if (!source) return;
+  const set = { id: 'set-' + Date.now(), name: source.name + ' copy' };
+  library.sets.push(set);
+  const sourceGroups = library.groups.filter(g => g.setId === source.id);
+  sourceGroups.forEach(group => {
+    const newGroup = { ...clone(group), id: 'group-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6), setId: set.id, name: group.name + ' copy' };
+    library.groups.push(newGroup);
+    groupTiles(group.id).forEach((tile, i) => {
+      library.tiles.push(normalizeTile({ ...clone(tile), id: 'copy-' + Date.now() + '-' + i + '-' + Math.random().toString(36).slice(2, 5), groupId: newGroup.id, name: tile.name + ' copy' }));
+    });
+  });
+  selectedSetId = set.id;
+  const firstGroup = library.groups.find(g => g.setId === set.id);
+  selectedGroupId = firstGroup?.id || null;
+  const firstTile = firstGroup ? groupTiles(firstGroup.id)[0] : null;
+  if (firstTile) selectedTileId = firstTile.id;
+  saveLibrary();
+  renderSets();
+  renderGroups();
+  renderPalette();
+  if (firstTile) loadDesignerFromTile(firstTile);
+  say(`Duplicated set <b>${source.name}</b>.`);
+}
+
+function deleteSet() {
+  const set = library.sets.find(s => s.id === selectedSetId);
+  if (!set) return;
+  if (library.sets.length <= 1) return say('Keep at least one tile set.');
+  if (!confirm(`Delete set ${set.name}? Its groups will move to another set.`)) return;
+  const fallback = library.sets.find(s => s.id !== set.id);
+  library.groups.filter(g => g.setId === set.id).forEach(g => { g.setId = fallback.id; });
+  library.sets = library.sets.filter(s => s.id !== set.id);
+  selectedSetId = fallback.id;
+  saveLibrary();
+  renderSets();
+  renderGroups();
+  renderPalette();
+  say(`Deleted set <b>${set.name}</b>; its groups were moved to <b>${fallback.name}</b>.`);
 }
 
 function deleteTile() {
@@ -405,11 +517,12 @@ function tileAt(x, y, z = activeHeight, layer = activeLayer) {
   return state.tiles.find(t => t.x === x && t.y === y && t.z === z && t.layer === layer);
 }
 
-function setTile(x, y, z, id, shape = activeShape, layer = activeLayer) {
+function setTile(x, y, z, id, shape = activeShape, layer = activeLayer, structure = activeStructure, rot = activeRot, mirror = activeMirror) {
   const i = state.tiles.findIndex(t => t.x === x && t.y === y && t.z === z && t.layer === layer);
   if (id) {
-    if (i < 0) state.tiles.push({ x, y, z, id, shape, layer });
-    else Object.assign(state.tiles[i], { id, shape });
+    const data = { id, shape, structure: structure || null, rot: rot || 0, mirror: !!mirror };
+    if (i < 0) state.tiles.push({ x, y, z, layer, ...data });
+    else Object.assign(state.tiles[i], data);
   } else if (i >= 0) state.tiles.splice(i, 1);
 }
 
@@ -514,6 +627,18 @@ function drawTile(tile, alpha = 1) {
   const p = iso(tile.x, tile.y, tile.z);
   const s = p.scale;
   const shape = tile.shape || 'cube';
+  if (tile.structure) {
+    const structure = getStructure(tile.structure);
+    if (structure) {
+      drawStructure(ctx, structure, library.tiles, {
+        x: p.x, y: p.y + s * 0.5, S: s,
+        rot: ((tile.rot || 0) % 4 + 4) % 4,
+        mirror: !!tile.mirror,
+        alpha,
+      });
+      return;
+    }
+  }
   const h = s * (shape === 'plane' ? 0 : shape === 'pillar' ? 1.25 : shape === 'wall' ? 1.05 : shape === 'tower' ? 1.65 : shape === 'gate' ? 0.85 : shape === 'stairs' ? 0.8 : shape === 'bridge' ? 0.28 : shape === 'fence' ? 0.38 : 0.56);
   const top = [[p.x, p.y - s * 0.5], [p.x + s, p.y], [p.x, p.y + s * 0.5], [p.x - s, p.y]];
   const left = [[p.x - s, p.y], [p.x, p.y + s * 0.5], [p.x, p.y + s * 0.5 + h], [p.x - s, p.y + h]];
@@ -552,13 +677,16 @@ function drawTile(tile, alpha = 1) {
   }
 
   if (shape === 'ramp') {
-    const lowLeft = [p.x - s, p.y];
-    const lowRight = [p.x + s, p.y];
-    const highRight = [p.x + s, p.y - s * 0.55];
-    const highLeft = [p.x - s, p.y - s * 0.55];
-    drawTextureTri(ctx, [[p.x - s, p.y], [p.x, p.y + s * 0.5], [p.x, p.y + s * 0.5 + h]], faceTexture(data, 'left'), alpha);
-    drawTextureTri(ctx, [[p.x, p.y + s * 0.5], [p.x + s, p.y], [p.x, p.y + s * 0.5 + h]], faceTexture(data, 'right'), alpha);
-    drawTextureQuad(ctx, [lowLeft, lowRight, highRight, highLeft], faceTexture(data, 'top'), alpha);
+    const r = ((tile.rot || 0) % 4 + 4) % 4;
+    const rotUV = (u, v) => [[u, v], [-v, u], [-u, -v], [v, -u]][r];
+    const P = (lx, ly, lz) => { const [u, v] = rotUV(lx - 0.5, ly - 0.5); return iso(tile.x + 0.5 + u, tile.y + 0.5 + v, tile.z + lz); };
+    const q = (pts, face) => drawTextureQuad(ctx, pts.map(pt => [pt.x, pt.y]), faceTexture(data, face), alpha);
+    const t = (pts, face) => drawTextureTri(ctx, pts.map(pt => [pt.x, pt.y]), faceTexture(data, face), alpha);
+    const A = P(0, 0, 0), B = P(1, 0, 0), C = P(1, 1, 0), D = P(0, 1, 0), E = P(0, 0, 1), F = P(0, 1, 1);
+    t([A, B, E], 'left');
+    t([C, D, F], 'right');
+    q([A, E, F, D], 'left');
+    q([B, C, F, E], 'top');
     return;
   }
 
@@ -582,17 +710,27 @@ function drawTile(tile, alpha = 1) {
   drawTextureQuad(ctx, top, faceTexture(data, 'top'), alpha);
 
   if (shape === 'arch' || shape === 'gate') {
-    const ax = p.x - s * 0.16, ay = p.y + s * 0.28, aw = s * 0.36, ah = h * 0.72;
-    ctx.fillStyle = '#17171c';
-    ctx.beginPath();
-    ctx.moveTo(ax - aw / 2, ay + ah);
-    ctx.lineTo(ax - aw / 2, ay + aw / 2);
-    ctx.arc(ax, ay + aw / 2, aw / 2, Math.PI, 0);
-    ctx.lineTo(ax + aw / 2, ay + ah);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,.18)';
-    ctx.stroke();
+    const P = (lx, ly, lz) => iso(tile.x + lx, tile.y + ly, tile.z + lz);
+    const q = (pts, face) => drawTextureQuad(ctx, pts.map(pt => [pt.x, pt.y]), faceTexture(data, face), alpha);
+    const ow = 0.46, oh = 0.56, lw = (1 - ow) / 2, rs = lw + ow;
+
+    q([P(0, 0, 0), P(lw, 0, 0), P(lw, 0, oh), P(0, 0, oh)], 'left');
+    q([P(rs, 0, 0), P(1, 0, 0), P(1, 0, oh), P(rs, 0, oh)], 'left');
+    q([P(0, 0, oh), P(1, 0, oh), P(1, 0, 1), P(0, 0, 1)], 'left');
+
+    q([P(lw, 0, 0), P(lw, 1, 0), P(lw, 1, oh), P(lw, 0, oh)], 'left');
+    q([P(rs, 0, 0), P(rs, 1, 0), P(rs, 1, oh), P(rs, 0, oh)], 'right');
+    q([P(lw, 0, oh), P(rs, 0, oh), P(rs, 1, oh), P(lw, 1, oh)], 'top');
+
+    q([P(0, 0, 0), P(0, 1, 0), P(0, 1, 1), P(0, 0, 1)], 'left');
+    q([P(1, 0, 0), P(1, 1, 0), P(1, 1, 1), P(1, 0, 1)], 'right');
+
+    q([P(0, 1, 0), P(lw, 1, 0), P(lw, 1, oh), P(0, 1, oh)], 'right');
+    q([P(rs, 1, 0), P(1, 1, 0), P(1, 1, oh), P(rs, 1, oh)], 'right');
+    q([P(0, 1, oh), P(1, 1, oh), P(1, 1, 1), P(0, 1, 1)], 'right');
+
+    q([P(0, 0, 1), P(1, 0, 1), P(1, 1, 1), P(0, 1, 1)], 'top');
+    return;
   }
 
   if (shape === 'stairs') {
@@ -678,6 +816,9 @@ function draw() {
     if (activeLayer === 'collider') drawColliderGhost();
     else {
       const p = iso(pointer.x, pointer.y, activeHeight), s = p.scale;
+      if (tool === 'brush' && Number.isFinite(pointer.x) && Number.isFinite(pointer.y) && !(pointer.x < 0 || pointer.y < 0 || pointer.x >= state.width || pointer.y >= state.height)) {
+        drawTile({ x: pointer.x, y: pointer.y, z: activeHeight, id: selectedTileId, shape: activeShape, layer: activeLayer, structure: activeStructure, rot: activeRot, mirror: activeMirror }, 0.38);
+      }
       ctx.strokeStyle = tool === 'erase' ? '#d76670' : '#4eff91';
       ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(p.x, p.y - s * 0.5); ctx.lineTo(p.x + s, p.y); ctx.lineTo(p.x, p.y + s * 0.5); ctx.lineTo(p.x - s, p.y); ctx.closePath(); ctx.stroke();
@@ -791,7 +932,10 @@ $('tools').addEventListener('click', e => {
   draw();
 });
 $('shapes').addEventListener('click', e => {
+  const st = e.target.closest('[data-structure]');
+  if (st) { activeStructure = st.dataset.structure; activeShape = 'structure'; syncToolUI(); draw(); return; }
   const b = e.target.closest('[data-shape]'); if (!b) return;
+  activeStructure = null;
   activeShape = b.dataset.shape;
   syncToolUI();
   draw();
@@ -808,6 +952,8 @@ $('colliderTools').addEventListener('click', e => {
   colliderTool = b.dataset.collider;
   document.querySelectorAll('[data-collider]').forEach(x => x.classList.toggle('active', x === b));
 });
+$('rotateBtn')?.addEventListener('click', () => { activeRot = (activeRot + 1) % 4; if ($('rotVal')) $('rotVal').textContent = activeRot * 90 + '°'; renderShapes(); syncToolUI(); draw(); });
+$('mirrorBtn')?.addEventListener('click', () => { activeMirror = !activeMirror; $('mirrorBtn').classList.toggle('active', activeMirror); renderShapes(); syncToolUI(); draw(); });
 $('brush').oninput = () => { $('brushValue').textContent = $('brush').value + '×' + $('brush').value; draw(); };
 $('heightDown').onclick = () => { activeHeight = Math.max(0, activeHeight - 1); $('heightValue').textContent = activeHeight; draw(); };
 $('heightUp').onclick = () => { activeHeight = Math.min(8, activeHeight + 1); $('heightValue').textContent = activeHeight; draw(); };
@@ -833,6 +979,10 @@ $('file').onchange = async e => {
   e.target.value = '';
 };
 
+$('setSelect').onchange = e => { selectedSetId = e.target.value; renderSets(); renderGroups(); renderPalette(); };
+$('newSet').onclick = newSet;
+$('duplicateSet').onclick = duplicateSet;
+$('deleteSet').onclick = deleteSet;
 $('groupSelect').onchange = e => { selectedGroupId = e.target.value; renderGroups(); renderPalette(); };
 $('newGroup').onclick = newGroup;
 $('duplicateGroup').onclick = duplicateGroup;
@@ -887,9 +1037,12 @@ function importScene(raw) {
     state = { ...defaultScene(), width: data.width, height: data.height, tiles: (data.isometricScene.tiles || []).map(t => ({ ...t, layer: t.layer || 'ground', shape: t.shape || 'cube' })), colliders: data.isometricScene.colliders || [] };
     if (data.tileLibrary?.tiles) {
       library = data.tileLibrary;
+      library.sets = library.sets || clone(DEFAULT_SETS);
+      library.groups = library.groups || clone(DEFAULT_GROUPS);
       library.tiles = library.tiles.map(normalizeTile);
       selectedTileId = library.tiles[0]?.id;
       selectedGroupId = library.groups?.[0]?.id;
+      selectedSetId = library.groups?.[0]?.setId || library.sets[0]?.id;
     }
   } else if (['town-tilemap', 'brighton-tilemap'].includes(data.format)) {
     state = defaultScene();
@@ -917,7 +1070,8 @@ function renderInputs() {
 
 function syncToolUI() {
   document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
-  document.querySelectorAll('[data-shape]').forEach(b => b.classList.toggle('active', b.dataset.shape === activeShape));
+  document.querySelectorAll('[data-shape]').forEach(b => b.classList.toggle('active', !activeStructure && b.dataset.shape === activeShape));
+  document.querySelectorAll('[data-structure]').forEach(b => b.classList.toggle('active', b.dataset.structure === activeStructure));
   canvas.style.cursor = tool === 'fill' ? 'cell' : tool === 'erase' ? 'not-allowed' : 'crosshair';
   syncLayerOptions();
 }
@@ -935,11 +1089,14 @@ addEventListener('keydown', e => {
   if ((e.metaKey || e.ctrlKey) && key === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
   if ((e.metaKey || e.ctrlKey) && key === 'y') { e.preventDefault(); redo(); return; }
   if ({ b: 'brush', e: 'erase', f: 'fill' }[key]) { tool = { b: 'brush', e: 'erase', f: 'fill' }[key]; syncToolUI(); draw(); }
+  if (key === 'r' && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); $('rotateBtn')?.click(); }
+  if (key === 'm' && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); $('mirrorBtn')?.click(); }
 });
 
 addEventListener('resize', draw);
 
 renderInputs();
+renderSets();
 renderGroups();
 renderPalette();
 renderShapes();

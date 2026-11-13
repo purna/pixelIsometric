@@ -29,5 +29,9 @@
 .shape-btn.active{border-color:var(--accent);background:#14342f;color:var(--accent)}
 .shape-btn .shape-icon{width:24px;height:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .shape-btn .shape-icon svg{width:22px;height:18px;display:block}
+.shape-btn img.shape-icon{object-fit:contain;image-rendering:pixelated;background:#09090c;border-radius:2px}
 .palette-group{margin-bottom:12px}
 .palette-group h3{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 6px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+.group-set-select{width:76px;padding:3px 4px;font-size:9px;background:#0f0f14;color:var(--muted);border:1px solid var(--line);border-radius:3px}
+.group-set-select:hover{border-color:var(--accent);color:var(--accent)}
+#setSelect{min-width:0;flex:1}
