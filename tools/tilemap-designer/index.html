@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><script>if(location.protocol!=='file:' && !location.pathname.endsWith('/') && !location.pathname.endsWith('.html')){const base=document.createElement('base');base.href=location.href.split(/[?#]/)[0]+'/';document.head.appendChild(base);}</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Town Tilemap Designer</title>
+<script src="../tile-style.js"></script>
+<script src="../park-artwork.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+*{box-sizing:border-box}
+body{margin:0;overflow:hidden;background:#0d0d10;font-family:'Space Mono',monospace;color:#7a7a9a;display:flex;height:100vh}
+#stage{flex:1;position:relative;min-width:0}
+canvas{display:block;cursor:crosshair}
+#ui{width:272px;background:#111115;border-left:1px solid #1f1f28;padding:14px;display:flex;flex-direction:column;gap:7px;overflow-y:auto}
+#ui::-webkit-scrollbar{width:6px}#ui::-webkit-scrollbar-thumb{background:#2a2a38;border-radius:3px}
+.title{color:#7a7a9a;font-size:12px;letter-spacing:.14em;border-bottom:1px solid #1f1f28;padding-bottom:5px;margin-top:8px}
+.title:first-child{margin-top:0}
+.row{display:flex;align-items:center;justify-content:space-between;font-size:11px;gap:6px;min-height:24px}
+input[type=range]{flex:1;accent-color:#3ecfb2;margin:0}
+input[type=color]{background:none;border:1px solid #2a2a38;height:24px;width:40px;padding:0;cursor:pointer}
+input[type=number]{width:62px;background:#0f0f14;color:#9a9ab8;border:1px solid #2a2a38;padding:4px;font:inherit;font-size:11px}
+select,button,textarea{background:#0f0f14;color:#9a9ab8;border:1px solid #2a2a38;font:inherit;font-size:11px;padding:5px}
+button{cursor:pointer}button:hover{border-color:#3ecfb2;color:#fff}
+button.on{background:#3ecfb2;color:#0d0d10;border-color:#3ecfb2;font-weight:700}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #3ecfb2;outline-offset:1px}
+.btns{display:flex;flex-wrap:wrap;gap:4px}.btns button{flex:1 1 auto}
+.layer{display:flex;align-items:center;gap:6px}.layer button{flex:1;text-align:left}
+.layer input{accent-color:#3ecfb2}
+#pal{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+#pal button{height:42px;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;position:relative;overflow:hidden}
+#pal canvas{width:22px;height:22px;image-rendering:pixelated}
+#pal b{font-size:11px;line-height:1}
+textarea{width:100%;height:110px;resize:vertical;font-size:10px}
+#mini{position:absolute;right:10px;bottom:10px;width:160px;height:160px;border:1px solid #2a2a38;background:#0d0d10;cursor:pointer;image-rendering:pixelated}
+#status{position:absolute;left:10px;bottom:10px;font-size:11px;color:#3ecfb2;pointer-events:none;background:#0d0d10cc;padding:3px 6px}
+#hint{position:absolute;top:10px;left:10px;font-size:11px;pointer-events:none;color:#4a4a60}
+  .map-toolbar{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:5;display:flex;gap:5px;flex-wrap:wrap;justify-content:center;width:max-content;max-width:calc(100% - 20px);padding:7px;border:1px solid var(--line);border-radius:10px;background:var(--panel);box-shadow:0 3px 12px #0008}
+  .map-toolbar button{display:flex;align-items:center;gap:5px;font-size:13px;min-height:40px;padding:6px 9px;text-transform:none;letter-spacing:0}
+  .map-toolbar svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .map-toolbar button.on{background:var(--accent);color:#132126;border-color:var(--accent)}
+  .map-toolbar button:disabled{opacity:.4;cursor:default}
+#cv {touch-action:none;}
+#hint {top:auto;bottom:40px;max-width:calc(100% - 190px);line-height:1.5;}
+@media(max-width:750px){.map-toolbar{left:8px;right:8px;transform:none;width:auto;gap:3px;padding:5px}.map-toolbar button{flex:1;padding:7px;justify-content:center;min-width:36px}.map-toolbar button span{display:none}#hint{display:none}}
+</style>
+<link rel="stylesheet" href="../tools-ui.css">
+<script defer src="../tools-ui.js"></script>
+</head>
+<body>
+<div id="stage"><div class="map-toolbar" role="toolbar" aria-label="Map drawing tools"><button type="button" data-designer-tool="pan" title="Move (H)" aria-label="Move (H)"><span>Move</span></button><button type="button" data-designer-tool="brush" title="Paint (B)" aria-label="Paint (B)"><span>Paint</span></button><button type="button" data-designer-tool="erase" title="Erase (E)" aria-label="Erase (E)"><span>Erase</span></button><button type="button" data-designer-tool="pick" title="Pick (I)" aria-label="Pick (I)"><span>Pick</span></button><button type="button" data-designer-tool="fill" title="Fill (G)" aria-label="Fill (G)"><span>Fill</span></button><button type="button" data-designer-tool="rect" title="Rectangle (R)" aria-label="Rectangle (R)"><span>Rectangle</span></button><button type="button" id="floatingUndo" title="Undo (Ctrl / Cmd + Z)" aria-label="Undo"><span>Undo</span></button><button type="button" id="floatingRedo" title="Redo (Ctrl / Cmd + Shift + Z)" aria-label="Redo"><span>Redo</span></button></div><canvas id="cv"></canvas><div id="hint">Left: paint · Space/Right/Middle drag: pan · Scroll: zoom · 1-0 layer · B E G R I tools · Ctrl+Z/Y</div><canvas id="mini" width="160" height="160" title="Minimap: click to jump"></canvas><div id="status"></div></div>
+<div id="ui">
+  <div class="title">Map</div>
+  <div class="row">Size <span><input type="number" id="mw" min="4" max="200"> × <input type="number" id="mh" min="4" max="200"></span></div>
+  <div class="btns"><button id="resize">Resize</button><button id="big">Brighton 100×100</button><button id="sample">Small demo</button><button id="gal">Tile gallery</button><button id="fit">Fit view</button><button id="clearL">Clear layer</button></div>
+
+  <div class="title" style="color:#3ecfb2">Layers</div>
+  <div id="layers"></div>
+
+  <div class="title">Tool</div>
+  <div class="btns" id="tools"></div>
+  <div class="row"><label><input type="checkbox" id="grid" checked> Grid</label><label><input type="checkbox" id="dim"> Dim other layers</label></div>
+
+  <div class="title" style="color:#c94b6e">Tiles</div>
+  <div id="pal"></div>
+  <div class="row" id="tname" style="color:#9a9ab8"></div>
+  <div class="row">Colour A <input type="color" id="ca"></div>
+  <div class="row">Colour B <input type="color" id="cb"></div>
+  <div class="row">Split <select id="sm"><option value="0">None (B = ink)</option><option value="1">Top / bottom</option><option value="2">Left / right</option><option value="3">Diagonal ╲</option><option value="4">Diagonal ╱</option><option value="5">Frame (edge / centre)</option><option value="6">Disc (centre / outside)</option><option value="7">Line ─ solid</option><option value="8">Line │ solid</option><option value="9">Cross +</option><option value="10">Dashed ─</option><option value="11">Dashed │</option><option value="12">Double line ═</option><option value="13">Double line ║</option><option value="14">Stripes │ (zebra)</option><option value="15">Stripes ─ (zebra)</option><option value="16">Edge top</option><option value="17">Edge bottom</option><option value="18">Edge left</option><option value="19">Edge right</option><option value="20">Corner top-left</option><option value="21">Corner top-right</option><option value="22">Corner bottom-left</option><option value="23">Corner bottom-right</option></select></div>
+  <div class="row">Split pos <input type="range" id="cs" min="-50" max="50"></div>
+  <div class="row">See-through <select id="ctr"><option value="0">Nothing</option><option value="1">Colour A</option><option value="2">Colour B</option></select></div>
+  <div class="row">Pattern <select id="cd"></select></div>
+  <div class="row">Density <input type="range" id="cdn" min="2" max="100"></div>
+  <div class="row">Space <input type="range" id="csp" min="2" max="16"></div>
+  <div class="row">Variants <input type="range" id="cvr" min="1" max="4"></div>
+  <div class="title" style="color:#3ecfb2">Soft edge</div>
+  <div class="row">Priority <input type="range" id="cpr" min="0" max="9"></div>
+  <div class="row">Bleed px <input type="range" id="cbl" min="0" max="16"></div>
+  <div class="row"><label><input type="checkbox" id="cw"> Animated water</label></div>
+
+  <div class="title">Export / Import</div>
+  <p class="hint">Checkerboard = transparent. Sprite sheets: <a href="../park-atlas.png" download="park-atlas.png">Park PNG</a> · <a href="../roof-atlas.png" download="roof-atlas.png">Roof PNG</a></p>
+  <div class="row"><select id="fmt" style="flex:1"><option value="ascii">ASCII layers</option><option value="json">Designer JSON</option><option value="tiled">Tiled / Phaser JSON</option></select></div>
+  <div class="btns"><button id="exp">Export</button><button id="copy">Copy</button><button id="dl">Download</button><button id="png">Tileset PNG</button><button id="mpng">Map PNG</button><button id="imp">Load from box</button></div>
+  <textarea id="box" spellcheck="false" placeholder="Export appears here. Paste ASCII or JSON and press Load from box."></textarea>
+</div>
+<script>
+const TS=32;
+// index order is STABLE (used in exports). Draw order is separate.
+const LAYERS=[['bg','Background'],['mid','Middleground'],['fg','Foreground'],['col','Collectables'],['npc','NPCs & animations'],['hit','Colliders & triggers'],['wall','Walls'],['roof','Roofs (pitched)'],['flat','Flat roofs'],['decal','Decals: markings & rails']];
+const ORDER=[0,1,9,6,7,8,2,3,4,5];            // bottom to top
+const FULL=new Set([0,1,6,7,8,9]);             // layers drawn edge to edge (and eligible for soft edges)
+const PATTERNS=['Off','Noise','H-lines','V-lines','Crosshatch','Fine noise','Speckle','Diagonal /','Diagonal \\','Checker','Dots','Bayer (ordered)','Waves','Bricks','Cobbles','Shingles','Planks','Blooms (flowers)'];
+const mk=(l,c,n,a,b,o)=>Object.assign({l,c,n,a,b,sm:0,s:0,d:0,sp:6,dn:50,vr:1,pr:0,bl:0,w:0,tr:0},o||{});
+const DEF=[
+// 0 background: priority decides who bleeds onto whom (higher bleeds over lower)
+mk(0,'S','Sea','#1d5f8a','#14456a',{d:12,sp:8,dn:50,vr:2,w:1,pr:0}),
+mk(0,'~','Waves','#2a7fb0','#1d5f8a',{d:5,dn:40,vr:3,w:1,pr:1,bl:6}),
+mk(0,':','Pebble beach','#a8957a','#8a7860',{d:1,sp:4,dn:55,vr:4,pr:3,bl:8}),
+mk(0,'=','Promenade','#7d8794','#646d79',{d:14,sp:8,vr:2,pr:5,bl:4}),
+mk(0,'r','Road','#3b3f47','#2e3138',{d:6,dn:30,vr:3,pr:4}),
+mk(0,'g','Grass','#3f7a4a','#2f5f39',{d:1,sp:4,dn:50,vr:4,pr:6,bl:8}),
+// 1 middleground
+mk(1,'H','House footprint','#c9b79c','#9a8468',{sm:5,d:6,dn:20}),
+mk(1,'A','Arcade','#c94b6e','#8d2f4a',{sm:5,d:11,dn:35}),
+mk(1,'i','i360 tower','#9fb3c8','#6c829a',{sm:6,d:7,sp:6}),
+mk(1,'K','Kiosk','#e0b23e','#a8801f',{sm:5,d:2,sp:6}),
+mk(1,'p','Pier deck','#8b6b4a','#6a4f35',{d:16,sp:8,vr:2}),
+mk(1,'y','Playground','#d9703a','#a9531f',{d:1,sp:4,vr:3}),
+// 2 foreground objects
+mk(2,'T','Tree','#2f8f4e','#1f6a37',{sm:6,d:1,sp:4}),mk(2,'B','Bench','#8b5a2b','#5f3d1c',{d:16,sp:4}),mk(2,'C','Car / truck','#c0392b','#8a281d',{sm:5}),
+mk(2,'L','Lamp post','#f1d36b','#b39a3c',{sm:6}),mk(2,'X','Crossing','#e8e8e8','#222222',{d:2,sp:8}),mk(2,'b','Bin','#4a5560','#323a42',{sm:6}),
+// 3 collectables
+mk(3,'f','Good friend','#3ecfb2','#2a9a84',{sm:6}),mk(3,'s','Spam filter','#e0b23e','#a8801f',{sm:6}),mk(3,'l','App lock','#9b7bd4','#6e52a6',{sm:6}),mk(3,'p','Phone shield','#4ea0e8','#2f74b4',{sm:6}),
+// 4 npcs
+mk(4,'1','Apex Aaron','#c94b6e','#8d2f4a',{sm:6}),mk(4,'2','Eco-Viral Vault','#e0b23e','#a8801f',{sm:6}),mk(4,'3','Shadow_K','#7a5cc9','#523b94',{sm:6}),mk(4,'4','Freebies Frank','#e8833a','#b35a1c',{sm:6}),
+mk(4,'G','Seagull','#f2f2f2','#c8c8c8',{sm:6}),mk(4,'P','Police van','#3a6fd1','#254a94',{sm:5}),mk(4,'A','Ambulance','#e8e8e8','#d12f2f',{sm:5}),mk(4,'F','Fire engine','#d12f2f','#8f1f1f',{sm:5}),
+// 5 colliders
+mk(5,'#','Solid boundary','#e04a4a','#a02f2f',{d:7,sp:6}),mk(5,'T','Dialogue trigger','#3ecfb2','#2a9a84',{sm:5}),mk(5,'D','Death / water hazard','#4a7bd1','#2f5299',{d:12,sp:8}),
+// ---- appended (ids 34+) ----
+mk(0,'n','Sand','#d8c391','#b9a370',{d:6,dn:30,vr:4,pr:2,bl:9}),
+mk(0,'w','Shallow water','#4aa3c8','#2a7fb0',{d:12,sp:8,dn:50,vr:2,w:1,pr:1,bl:7}),
+mk(0,'-','Dirt path','#b08d5f','#8f6f45',{d:1,sp:4,dn:45,vr:4,pr:5,bl:5}),
+// 6 walls
+mk(6,'W','Brick wall','#a8553f','#7e3a2a',{d:13,sp:8,vr:2}),mk(6,'P','Pastel render','#e6a5b5','#c98799',{d:6,dn:25,vr:2}),
+mk(6,'R','White render','#e8e2d4','#cfc8b6',{d:6,dn:20,vr:3}),mk(6,'F','Flint / stone','#7d7f7a','#5f625d',{d:14,sp:8,vr:3}),
+mk(6,'G','Glass shopfront','#7fc4d6','#4f93a8',{sm:3,d:7,sp:8}),mk(6,'N','Window','#9fd0e8','#6b8fa0',{sm:5,d:7,sp:6}),
+mk(6,'D','Door','#7a4a2a','#4f2f18',{sm:5,d:16,sp:4}),mk(6,'V','Pillar','#5e5e66','#46464d',{sm:5}),
+// 7 pitched roofs (split = ridge line)
+mk(7,'h','Red tile ridge ─','#c0553b','#8f3b27',{sm:1,d:15,sp:8,vr:2}),mk(7,'v','Red tile ridge │','#c0553b','#8f3b27',{sm:2,d:15,sp:8,vr:2}),
+mk(7,'/','Red tile hip ╱','#c0553b','#8f3b27',{sm:4,d:15,sp:8}),mk(7,'\\','Red tile hip ╲','#c0553b','#8f3b27',{sm:3,d:15,sp:8}),
+mk(7,'H','Slate ridge ─','#5b6577','#3f4757',{sm:1,d:15,sp:8,vr:2}),mk(7,'V','Slate ridge │','#5b6577','#3f4757',{sm:2,d:15,sp:8,vr:2}),
+mk(7,'X','Slate hip ╱','#5b6577','#3f4757',{sm:4,d:15,sp:8}),mk(7,'Z','Slate hip ╲','#5b6577','#3f4757',{sm:3,d:15,sp:8}),
+mk(7,'t','Thatch','#c9a95a','#8f7a3c',{d:7,sp:4,vr:3}),
+// 8 flat roofs (frame = parapet)
+mk(8,'f','Flat roof (felt)','#5d6068','#44464c',{sm:5,s:-30,d:6,dn:30,vr:2}),mk(8,'g','Gravel roof','#8a8780','#6a6862',{d:1,sp:4,dn:55,vr:4}),
+mk(8,'l','Metal seam roof','#8ea0ab','#6c7d88',{sm:5,s:-35,d:3,sp:8}),mk(8,'p','Green roof','#6a9a52','#4d7a3a',{d:1,sp:4,dn:60,vr:4}),
+mk(8,'v','Roof vent','#b8bcc4','#8b9099',{sm:6}),mk(8,'k','Skylight','#9fd8e8','#6aa3b8',{sm:5,d:7,sp:8}),
+mk(8,'s','Solar panels','#2c3f6b','#1c2a4a',{sm:5,s:-40,d:4,sp:8}),
+mk(7,'u','Red slope (lit)','#d0674d','#a24630',{d:15,sp:8,vr:2}),mk(7,'d','Red slope (dark)','#9c3f2a','#7a2e1d',{d:15,sp:8,vr:2}),
+mk(7,'U','Slate slope (lit)','#6c7790','#4d586e',{d:15,sp:8,vr:2}),mk(7,'D','Slate slope (dark)','#454f63','#323a4a',{d:15,sp:8,vr:2}),
+// ---- surfaces (bg) ----
+mk(0,'o','Cobbles (grey)','#8a8e94','#676b72',{d:14,sp:8,vr:3,pr:5,bl:3}),
+mk(0,'O','Cobbles (warm)','#a89880','#7f7260',{d:14,sp:6,vr:3,pr:5,bl:3}),
+mk(0,'k','Red brick paving','#a85a45','#7a3d2e',{d:13,sp:8,vr:2,pr:5,bl:3}),
+mk(0,'q','Block paving','#b9aaa6','#8f8380',{d:13,sp:12,vr:2,pr:5,bl:3}),
+mk(0,'t','Tarmac','#2f3238','#23252a',{d:6,dn:18,vr:3,pr:4}),
+mk(0,'T','Tarmac (worn)','#464a52','#33363c',{d:6,dn:38,vr:3,pr:4}),
+mk(0,'P','Paving slabs','#b5b8bd','#8f9399',{d:14,sp:16,vr:2,pr:5,bl:2}),
+mk(0,'m','Gravel path','#c4b494','#9d8f72',{d:5,dn:45,vr:4,pr:5,bl:4}),
+mk(0,'e','Decking / boardwalk','#9a7650','#6f5436',{d:16,sp:8,vr:2,pr:5,bl:2}),
+mk(0,'a','Pond water','#3f7f9f','#2f6483',{d:12,sp:8,vr:2,w:1,pr:2,bl:5}),
+mk(0,'A','Pond rim (stone)','#8d9096','#6a6d73',{d:14,sp:8,vr:2,pr:5,bl:2}),
+mk(0,'f','Flowers: pink','#3f7a4a','#e06b9a',{d:17,sp:6,dn:60,vr:4,pr:7,bl:4}),
+mk(0,'y','Flowers: yellow','#3f7a4a','#f2d03b',{d:17,sp:6,dn:60,vr:4,pr:7,bl:4}),
+mk(0,'v','Flowers: violet','#3f7a4a','#9b7bd4',{d:17,sp:6,dn:60,vr:4,pr:7,bl:4}),
+mk(0,'W','Flowers: white daisies','#3f7a4a','#f4f4f0',{d:17,sp:6,dn:60,vr:4,pr:7,bl:4}),
+mk(0,'x','Flowers: red poppies','#3f7a4a','#d6453a',{d:17,sp:6,dn:60,vr:4,pr:7,bl:4}),
+mk(0,'h','Hedge','#2c6b3a','#1f4f2b',{d:1,sp:3,dn:65,vr:4,pr:8,bl:3}),
+mk(0,'G','Cycle lane (green)','#3f8f5a','#2f6f45',{d:6,dn:25,vr:3,pr:5,bl:2}),
+// ---- decals (layer 9, see-through): markings, railings ----
+mk(9,'-','Dashed white ─','#000000','#f2f2f2',{sm:10,tr:1}),
+mk(9,'|','Dashed white │','#000000','#f2f2f2',{sm:11,tr:1}),
+mk(9,'c','Solid white ─','#000000','#f2f2f2',{sm:7,tr:1}),
+mk(9,'C','Solid white │','#000000','#f2f2f2',{sm:8,tr:1}),
+mk(9,'y','Double yellow ═','#000000','#e8c43a',{sm:12,tr:1,s:-20}),
+mk(9,'Y','Double yellow ║','#000000','#e8c43a',{sm:13,tr:1,s:-20}),
+mk(9,'z','Zebra (road runs ─)','#000000','#f2f2f2',{sm:15,tr:1}),
+mk(9,'Z','Zebra (road runs │)','#000000','#f2f2f2',{sm:14,tr:1}),
+mk(9,'p','Parking bay','#000000','#f2f2f2',{sm:5,tr:1,s:-40}),
+mk(9,'B','Yellow box','#000000','#e8c43a',{sm:5,tr:1,s:-40}),
+mk(9,'m','Manhole cover','#5a5d63','#000000',{sm:6,tr:2,d:4,sp:6,s:0}),
+mk(9,'^','Railing top (navy)','#000000','#2d3a4a',{sm:16,tr:1,s:-10,d:10,sp:8}),
+mk(9,'v','Railing bottom (navy)','#000000','#2d3a4a',{sm:17,tr:1,s:-10,d:10,sp:8}),
+mk(9,'<','Railing left (navy)','#000000','#2d3a4a',{sm:18,tr:1,s:-10,d:10,sp:8}),
+mk(9,'>','Railing right (navy)','#000000','#2d3a4a',{sm:19,tr:1,s:-10,d:10,sp:8}),
+mk(9,'1','Railing corner TL','#000000','#2d3a4a',{sm:20,tr:1,s:-30,d:10,sp:8}),
+mk(9,'2','Railing corner TR','#000000','#2d3a4a',{sm:21,tr:1,s:-30,d:10,sp:8}),
+mk(9,'3','Railing corner BL','#000000','#2d3a4a',{sm:22,tr:1,s:-30,d:10,sp:8}),
+mk(9,'4','Railing corner BR','#000000','#2d3a4a',{sm:23,tr:1,s:-30,d:10,sp:8}),
+mk(9,'a','Pier rail top (white)','#000000','#eceff1',{sm:16,tr:1,s:-30,d:10,sp:8}),
+mk(9,'b','Pier rail bottom (white)','#000000','#eceff1',{sm:17,tr:1,s:-30,d:10,sp:8}),
+mk(9,'e','Pier rail left (white)','#000000','#eceff1',{sm:18,tr:1,s:-30,d:10,sp:8}),
+mk(9,'f','Pier rail right (white)','#000000','#eceff1',{sm:19,tr:1,s:-30,d:10,sp:8}),
+// ---- objects ----
+mk(2,'i','Bicycle','#3ecfb2','#1f8a76',{sm:2,d:2,sp:4}),
+mk(2,'k','Bike rack','#9aa4ae','#6c7782',{sm:2,d:3,sp:4}),
+mk(2,'P','Planter (flowers)','#c0553b','#e06b9a',{sm:6,d:17,sp:4,dn:70}),
+mk(2,'H','Beach hut','#e6a5b5','#c98799',{sm:1,d:2,sp:6}),
+mk(2,'u','Parasol','#e84a5f','#f2f2f2',{sm:6,d:4,sp:6}),
+mk(4,'c','Cyclist','#e8833a','#b35a1c',{sm:2})
+];
+
+// Shared map-overlay colours: soft pale terrain, dark solid rooftops.
+for(const t of DEF){
+ if(t.l===0){
+  const water=/sea|waves|water/i.test(t.n),grass=/grass|hedge|cycle/i.test(t.n);
+  const flower=t.n.startsWith('Flowers:');
+  if(!flower)t.a=water?(t.n==='Sea'?'#66b9df':'#85c6e6'):grass?'#b9d4aa':t.n==='Road'?'#d2d6ce':t.n==='Pebble beach'?'#f9f1d9':'#e8ebdf';
+  if(!flower)t.b=water?'#5aa6c9':grass?'#a6c797':'#c9cebf';t.bl=Math.max(6,t.bl);t.dn=Math.min(25,t.dn);
+ }
+ if([1,6,7,8].includes(t.l)&&!['Pier deck','Playground'].includes(t.n)){
+  t.a=t.n.includes('Red')?'#b65a43':'#596773';t.b=t.n.includes('Red')?'#793b30':'#394754';t.bl=0;
+ }
+}
+
+
+// Park artwork variants: stable appended tile positions.
+DEF.push(
+mk(2,"\u0391","Bush: round",'#4f7650','#31553c'),
+mk(2,"\u0392","Bush: sage",'#4f7650','#31553c'),
+mk(2,"\u0393","Bush: dark leafy",'#4f7650','#31553c'),
+mk(2,"\u0394","Flower bed: yellow and white",'#4f7650','#31553c'),
+mk(2,"\u0395","Flower bed: purple and blue",'#4f7650','#31553c'),
+mk(2,"\u0396","Flower bed: red",'#4f7650','#31553c'),
+mk(2,"\u0397","Flower bed: wildflowers",'#4f7650','#31553c'),
+mk(2,"\u0398","Tree: small deciduous",'#4f7650','#31553c'),
+mk(2,"\u0399","Tree: small conifer",'#4f7650','#31553c'),
+mk(2,"\u039a","Tree: broad oak 2×2",'#4f7650','#31553c'),
+mk(2,"\u039b","Tree: broad lime 2×1",'#4f7650','#31553c'),
+mk(2,"\u039c","Tree: tall birch 1×2",'#4f7650','#31553c'),
+mk(2,"\u039d","Tree: tall pine 1×2",'#4f7650','#31553c')
+);
+
+// Bird’s-eye rooftop fittings.
+DEF.push(
+mk(2,"\u03b1","Roof: air conditioning",'#89979d','#46545e'),
+mk(2,"\u03b2","Roof: twin-fan air conditioning",'#89979d','#46545e'),
+mk(2,"\u03b3","Roof: extractor vent",'#89979d','#46545e'),
+mk(2,"\u03b4","Roof: ventilation grille",'#89979d','#46545e'),
+mk(2,"\u03b5","Roof: straight pipe",'#89979d','#46545e'),
+mk(2,"\u03b6","Roof: elbow pipe",'#89979d','#46545e'),
+mk(2,"\u03b7","Roof: T-junction pipe",'#89979d','#46545e'),
+mk(2,"\u03b9","Roof: double chimney",'#89979d','#46545e'),
+mk(2,"\u03ba","Roof: oval satellite dish",'#89979d','#46545e'),
+mk(2,"\u03bb","Roof: television aerial",'#89979d','#46545e'),
+mk(2,"\u03bc","Roof: round satellite dish",'#89979d','#46545e')
+);
+// Non-blocking road furniture; mapped from explicit OSM tags.
+DEF.push(
+mk(2,'А','Crossing: zebra','#d2d6ce','#26343c'),
+mk(2,'Б','Crossing: puffin','#d2d6ce','#26343c'),
+mk(2,'В','Crossing: signal-controlled','#d2d6ce','#26343c'),
+mk(2,'Г','Traffic signals: junction','#d2d6ce','#26343c'),
+mk(2,'Д','Railway: signalised level crossing','#d2d6ce','#26343c'),
+mk(2,'Е','Traffic light','#d2d6ce','#26343c')
+);
+DEF.push(
+mk(2,'а','Roof: planted trough','#6e8d60','#344b3c'),
+mk(2,'б','Roof: plant pots','#6e8d60','#344b3c'),
+mk(2,'в','Roof: flowering planter','#6e8d60','#344b3c'),
+mk(2,'г','Roof: green garden patch','#6e8d60','#344b3c'),
+mk(2,'д','Street: postbox','#6e8d60','#344b3c'),
+mk(2,'е','Street: public telephone','#6e8d60','#344b3c')
+);
+DEF.push(mk(2,'я','Signpost: school','#497596','#f0ead6'),mk(2,'ѐ','Signpost: hospital','#a74f53','#f0ead6'),mk(2,'ё','Signpost: leisure centre','#348c87','#f0ead6'));
+DEF.push(mk(2,'ђ','Signpost: train station','#497596','#f0ead6'),mk(2,'ѓ','Signpost: bus station','#497596','#f0ead6'));
+// Boundary-only colliders: connected edges, clear tile interiors.
+DEF.push(
+mk(2,"؀","Pier railing: north",'#89979a','#354751'),
+mk(2,"؁","Pier railing: east",'#89979a','#354751'),
+mk(2,"؂","Pier railing: north + east",'#89979a','#354751'),
+mk(2,"؃","Pier railing: south",'#89979a','#354751'),
+mk(2,"؄","Pier railing: north + south",'#89979a','#354751'),
+mk(2,"؅","Pier railing: east + south",'#89979a','#354751'),
+mk(2,"؆","Pier railing: north + east + south",'#89979a','#354751'),
+mk(2,"؇","Pier railing: west",'#89979a','#354751'),
+mk(2,"؈","Pier railing: north + west",'#89979a','#354751'),
+mk(2,"؉","Pier railing: east + west",'#89979a','#354751'),
+mk(2,"؊","Pier railing: north + east + west",'#89979a','#354751'),
+mk(2,"؋","Pier railing: south + west",'#89979a','#354751'),
+mk(2,"،","Pier railing: north + south + west",'#89979a','#354751'),
+mk(2,"؍","Pier railing: east + south + west",'#89979a','#354751'),
+mk(2,"؎","Pier railing: north + east + south + west",'#89979a','#354751'),
+mk(2,"؏","Railway fence: north",'#89979a','#354751'),
+mk(2,"ؐ","Railway fence: east",'#89979a','#354751'),
+mk(2,"ؑ","Railway fence: north + east",'#89979a','#354751'),
+mk(2,"ؒ","Railway fence: south",'#89979a','#354751'),
+mk(2,"ؓ","Railway fence: north + south",'#89979a','#354751'),
+mk(2,"ؔ","Railway fence: east + south",'#89979a','#354751'),
+mk(2,"ؕ","Railway fence: north + east + south",'#89979a','#354751'),
+mk(2,"ؖ","Railway fence: west",'#89979a','#354751'),
+mk(2,"ؗ","Railway fence: north + west",'#89979a','#354751'),
+mk(2,"ؘ","Railway fence: east + west",'#89979a','#354751'),
+mk(2,"ؙ","Railway fence: north + east + west",'#89979a','#354751'),
+mk(2,"ؚ","Railway fence: south + west",'#89979a','#354751'),
+mk(2,"؛","Railway fence: north + south + west",'#89979a','#354751'),
+mk(2,"؜","Railway fence: east + south + west",'#89979a','#354751'),
+mk(2,"؝","Railway fence: north + east + south + west",'#89979a','#354751'),
+mk(2,"؞","Stone fence: north",'#89979a','#354751'),
+mk(2,"؟","Stone fence: east",'#89979a','#354751'),
+mk(2,"ؠ","Stone fence: north + east",'#89979a','#354751'),
+mk(2,"ء","Stone fence: south",'#89979a','#354751'),
+mk(2,"آ","Stone fence: north + south",'#89979a','#354751'),
+mk(2,"أ","Stone fence: east + south",'#89979a','#354751'),
+mk(2,"ؤ","Stone fence: north + east + south",'#89979a','#354751'),
+mk(2,"إ","Stone fence: west",'#89979a','#354751'),
+mk(2,"ئ","Stone fence: north + west",'#89979a','#354751'),
+mk(2,"ا","Stone fence: east + west",'#89979a','#354751'),
+mk(2,"ب","Stone fence: north + east + west",'#89979a','#354751'),
+mk(2,"ة","Stone fence: south + west",'#89979a','#354751'),
+mk(2,"ت","Stone fence: north + south + west",'#89979a','#354751'),
+mk(2,"ث","Stone fence: east + south + west",'#89979a','#354751'),
+mk(2,"ج","Stone fence: north + east + south + west",'#89979a','#354751')
+);
+DEF.push(
+mk(2,"ڀ","Railway track: north",'#8b8a7b','#ccd3cc'),
+mk(2,"ځ","Railway track: east",'#8b8a7b','#ccd3cc'),
+mk(2,"ڂ","Railway track: north + east",'#8b8a7b','#ccd3cc'),
+mk(2,"ڃ","Railway track: south",'#8b8a7b','#ccd3cc'),
+mk(2,"ڄ","Railway track: north + south",'#8b8a7b','#ccd3cc'),
+mk(2,"څ","Railway track: east + south",'#8b8a7b','#ccd3cc'),
+mk(2,"چ","Railway track: north + east + south",'#8b8a7b','#ccd3cc'),
+mk(2,"ڇ","Railway track: west",'#8b8a7b','#ccd3cc'),
+mk(2,"ڈ","Railway track: north + west",'#8b8a7b','#ccd3cc'),
+mk(2,"ډ","Railway track: east + west",'#8b8a7b','#ccd3cc'),
+mk(2,"ڊ","Railway track: north + east + west",'#8b8a7b','#ccd3cc'),
+mk(2,"ڋ","Railway track: south + west",'#8b8a7b','#ccd3cc'),
+mk(2,"ڌ","Railway track: north + south + west",'#8b8a7b','#ccd3cc'),
+mk(2,"ڍ","Railway track: east + south + west",'#8b8a7b','#ccd3cc'),
+mk(2,"ڎ","Railway track: north + east + south + west",'#8b8a7b','#ccd3cc')
+);
+
+// Shared transparent town scenery; IDs remain stable across exports.
+DEF.push(mk(2,"\u1000","Bench \u00b7 green","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1001","Bench \u00b7 sage","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1002","Bench \u00b7 moss","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1003","Bench \u00b7 autumn","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1004","Bench \u00b7 rust","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1005","Bench \u00b7 frost","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1006","Bench \u00b7 olive","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1007","Bench \u00b7 lime","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1008","Bench \u00b7 emerald","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1009","Bench \u00b7 spring","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u100a","Bench \u00b7 gold","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u100b","Bench \u00b7 khaki","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u100c","Flower bed \u00b7 green","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u100d","Flower bed \u00b7 sage","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u100e","Flower bed \u00b7 moss","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u100f","Flower bed \u00b7 autumn","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1010","Flower bed \u00b7 rust","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1011","Flower bed \u00b7 frost","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1012","Flower bed \u00b7 olive","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1013","Flower bed \u00b7 lime","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1014","Flower bed \u00b7 emerald","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1015","Flower bed \u00b7 spring","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1016","Flower bed \u00b7 gold","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1017","Flower bed \u00b7 khaki","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1018","Grass tuft \u00b7 green","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1019","Grass tuft \u00b7 sage","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u101a","Grass tuft \u00b7 moss","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u101b","Grass tuft \u00b7 autumn","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u101c","Grass tuft \u00b7 rust","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u101d","Grass tuft \u00b7 frost","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u101e","Grass tuft \u00b7 olive","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u101f","Grass tuft \u00b7 lime","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1020","Grass tuft \u00b7 emerald","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1021","Grass tuft \u00b7 spring","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1022","Grass tuft \u00b7 gold","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1023","Grass tuft \u00b7 khaki","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1024","Bush: round \u00b7 green","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1025","Bush: round \u00b7 sage","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1026","Bush: round \u00b7 moss","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1027","Bush: round \u00b7 autumn","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1028","Bush: round \u00b7 rust","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1029","Bush: round \u00b7 frost","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u102a","Bush: round \u00b7 olive","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u102b","Bush: round \u00b7 lime","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u102c","Bush: round \u00b7 emerald","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u102d","Bush: round \u00b7 spring","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u102e","Bush: round \u00b7 gold","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u102f","Bush: round \u00b7 khaki","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1030","Bush: sage \u00b7 green","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1031","Bush: sage \u00b7 sage","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1032","Bush: sage \u00b7 moss","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1033","Bush: sage \u00b7 autumn","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1034","Bush: sage \u00b7 rust","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1035","Bush: sage \u00b7 frost","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1036","Bush: sage \u00b7 olive","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1037","Bush: sage \u00b7 lime","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1038","Bush: sage \u00b7 emerald","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1039","Bush: sage \u00b7 spring","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u103a","Bush: sage \u00b7 gold","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u103b","Bush: sage \u00b7 khaki","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u103c","Bush: dark leafy \u00b7 green","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u103d","Bush: dark leafy \u00b7 sage","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u103e","Bush: dark leafy \u00b7 moss","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u103f","Bush: dark leafy \u00b7 autumn","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1040","Bush: dark leafy \u00b7 rust","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1041","Bush: dark leafy \u00b7 frost","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1042","Bush: dark leafy \u00b7 olive","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1043","Bush: dark leafy \u00b7 lime","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1044","Bush: dark leafy \u00b7 emerald","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1045","Bush: dark leafy \u00b7 spring","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1046","Bush: dark leafy \u00b7 gold","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1047","Bush: dark leafy \u00b7 khaki","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1048","Flower bed: yellow and white \u00b7 green","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1049","Flower bed: yellow and white \u00b7 sage","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u104a","Flower bed: yellow and white \u00b7 moss","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u104b","Flower bed: yellow and white \u00b7 autumn","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u104c","Flower bed: yellow and white \u00b7 rust","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u104d","Flower bed: yellow and white \u00b7 frost","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u104e","Flower bed: yellow and white \u00b7 olive","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u104f","Flower bed: yellow and white \u00b7 lime","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1050","Flower bed: yellow and white \u00b7 emerald","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1051","Flower bed: yellow and white \u00b7 spring","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1052","Flower bed: yellow and white \u00b7 gold","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1053","Flower bed: yellow and white \u00b7 khaki","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1054","Flower bed: purple and blue \u00b7 green","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1055","Flower bed: purple and blue \u00b7 sage","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1056","Flower bed: purple and blue \u00b7 moss","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1057","Flower bed: purple and blue \u00b7 autumn","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1058","Flower bed: purple and blue \u00b7 rust","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1059","Flower bed: purple and blue \u00b7 frost","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u105a","Flower bed: purple and blue \u00b7 olive","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u105b","Flower bed: purple and blue \u00b7 lime","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u105c","Flower bed: purple and blue \u00b7 emerald","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u105d","Flower bed: purple and blue \u00b7 spring","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u105e","Flower bed: purple and blue \u00b7 gold","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u105f","Flower bed: purple and blue \u00b7 khaki","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1060","Flower bed: red \u00b7 green","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1061","Flower bed: red \u00b7 sage","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1062","Flower bed: red \u00b7 moss","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1063","Flower bed: red \u00b7 autumn","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1064","Flower bed: red \u00b7 rust","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1065","Flower bed: red \u00b7 frost","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1066","Flower bed: red \u00b7 olive","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1067","Flower bed: red \u00b7 lime","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1068","Flower bed: red \u00b7 emerald","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1069","Flower bed: red \u00b7 spring","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u106a","Flower bed: red \u00b7 gold","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u106b","Flower bed: red \u00b7 khaki","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u106c","Flower bed: wildflowers \u00b7 green","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u106d","Flower bed: wildflowers \u00b7 sage","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u106e","Flower bed: wildflowers \u00b7 moss","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u106f","Flower bed: wildflowers \u00b7 autumn","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1070","Flower bed: wildflowers \u00b7 rust","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1071","Flower bed: wildflowers \u00b7 frost","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1072","Flower bed: wildflowers \u00b7 olive","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1073","Flower bed: wildflowers \u00b7 lime","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1074","Flower bed: wildflowers \u00b7 emerald","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1075","Flower bed: wildflowers \u00b7 spring","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1076","Flower bed: wildflowers \u00b7 gold","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1077","Flower bed: wildflowers \u00b7 khaki","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1078","Tree: small deciduous \u00b7 green 1","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1079","Tree: small deciduous \u00b7 green 2","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u107a","Tree: small deciduous \u00b7 green 3","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u107b","Tree: small deciduous \u00b7 green 4","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u107c","Tree: small deciduous \u00b7 green 5","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u107d","Tree: small deciduous \u00b7 green 6","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u107e","Tree: small deciduous \u00b7 green 7","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u107f","Tree: small deciduous \u00b7 green 8","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1080","Tree: small deciduous \u00b7 green 9","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1081","Tree: small deciduous \u00b7 green 10","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1082","Tree: small deciduous \u00b7 green 11","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1083","Tree: small deciduous \u00b7 green 12","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1084","Tree: small conifer \u00b7 green 1","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1085","Tree: small conifer \u00b7 green 2","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1086","Tree: small conifer \u00b7 green 3","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1087","Tree: small conifer \u00b7 green 4","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1088","Tree: small conifer \u00b7 green 5","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1089","Tree: small conifer \u00b7 green 6","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u108a","Tree: small conifer \u00b7 green 7","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u108b","Tree: small conifer \u00b7 green 8","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u108c","Tree: small conifer \u00b7 green 9","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u108d","Tree: small conifer \u00b7 green 10","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u108e","Tree: small conifer \u00b7 green 11","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u108f","Tree: small conifer \u00b7 green 12","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1090","Tree pair: large + small \u00b7 birch 0","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1091","Tree pair: large + small \u00b7 birch 1","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1092","Tree pair: large + small \u00b7 birch 2","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1093","Tree pair: large + small \u00b7 birch 3","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1094","Tree pair: large + small \u00b7 birch 4","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1095","Tree pair: large + small \u00b7 birch 5","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1096","Tree pair: large + small \u00b7 birch 6","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1097","Tree pair: large + small \u00b7 birch 7","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1098","Tree pair: large + small \u00b7 birch 8","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u1099","Tree pair: large + small \u00b7 birch 9","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u109a","Tree pair: large + small \u00b7 birch 10","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u109b","Tree pair: large + small \u00b7 birch 11","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u109c","Tree pair: large + small \u00b7 pine 0","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u109d","Tree pair: large + small \u00b7 pine 1","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u109e","Tree pair: large + small \u00b7 pine 2","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u109f","Tree pair: large + small \u00b7 pine 3","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10a0","Tree pair: large + small \u00b7 pine 4","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10a1","Tree pair: large + small \u00b7 pine 5","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10a2","Tree pair: large + small \u00b7 pine 6","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10a3","Tree pair: large + small \u00b7 pine 7","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10a4","Tree pair: large + small \u00b7 pine 8","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10a5","Tree pair: large + small \u00b7 pine 9","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10a6","Tree pair: large + small \u00b7 pine 10","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10a7","Tree pair: large + small \u00b7 pine 11","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10a8","Tree pair: large + small \u00b7 lime 0","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10a9","Tree pair: large + small \u00b7 lime 1","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10aa","Tree pair: large + small \u00b7 lime 2","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10ab","Tree pair: large + small \u00b7 lime 3","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10ac","Tree pair: large + small \u00b7 lime 4","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10ad","Tree pair: large + small \u00b7 lime 5","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10ae","Tree group: 3 crowns \u00b7 oak 0","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10af","Tree group: 3 crowns \u00b7 oak 1","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10b0","Tree group: 4 crowns \u00b7 oak 2","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10b1","Tree group: 4 crowns \u00b7 oak 3","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10b2","Tree: broad oak 2\u00d72 \u00b7 green 5","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10b3","Tree: broad oak 2\u00d72 \u00b7 green 6","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10b4","Building planting: green \u00b7 west","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10b5","Building planting: green \u00b7 south","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10b6","Building planting: green \u00b7 east","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10b7","Building planting: green \u00b7 north","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10b8","Building planting: red flowers \u00b7 west","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10b9","Building planting: red flowers \u00b7 south","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10ba","Building planting: red flowers \u00b7 east","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10bb","Building planting: red flowers \u00b7 north","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10bc","Building planting: white flowers \u00b7 west","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10bd","Building planting: white flowers \u00b7 south","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10be","Building planting: white flowers \u00b7 east","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10bf","Building planting: white flowers \u00b7 north","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10c0","Building planting: blue flowers \u00b7 west","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10c1","Building planting: blue flowers \u00b7 south","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10c2","Building planting: blue flowers \u00b7 east","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10c3","Building planting: blue flowers \u00b7 north","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10c4","Building planting: mixed flowers \u00b7 west","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10c5","Building planting: mixed flowers \u00b7 south","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10c6","Building planting: mixed flowers \u00b7 east","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10c7","Building planting: mixed flowers \u00b7 north","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10c8","Building planting: gold flowers \u00b7 west","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10c9","Building planting: gold flowers \u00b7 south","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10ca","Building planting: gold flowers \u00b7 east","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10cb","Building planting: gold flowers \u00b7 north","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10cc","Building planting: lime \u00b7 west","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10cd","Building planting: lime \u00b7 south","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10ce","Building planting: lime \u00b7 east","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10cf","Building planting: lime \u00b7 north","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10d0","Building planting: autumn \u00b7 west","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10d1","Building planting: autumn \u00b7 south","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10d2","Building planting: autumn \u00b7 east","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10d3","Building planting: autumn \u00b7 north","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10d4","Car: red \u00b7 north","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10d5","Car: red \u00b7 east","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10d6","Car: red \u00b7 south","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10d7","Car: red \u00b7 west","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10d8","Car: blue \u00b7 north","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10d9","Car: blue \u00b7 east","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10da","Car: blue \u00b7 south","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10db","Car: blue \u00b7 west","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10dc","Car: cream \u00b7 north","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10dd","Car: cream \u00b7 east","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10de","Car: cream \u00b7 south","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10df","Car: cream \u00b7 west","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10e0","Car: silver \u00b7 north","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10e1","Car: silver \u00b7 east","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10e2","Car: silver \u00b7 south","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10e3","Car: silver \u00b7 west","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10e4","Car: green \u00b7 north","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10e5","Car: green \u00b7 east","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10e6","Car: green \u00b7 south","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10e7","Car: green \u00b7 west","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10e8","Car: mustard \u00b7 north","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10e9","Car: mustard \u00b7 east","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10ea","Car: mustard \u00b7 south","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10eb","Car: mustard \u00b7 west","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10ec","Car: teal \u00b7 north","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10ed","Car: teal \u00b7 east","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10ee","Car: teal \u00b7 south","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10ef","Car: teal \u00b7 west","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10f0","Car: charcoal \u00b7 north","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10f1","Car: charcoal \u00b7 east","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10f2","Car: charcoal \u00b7 south","#75946b","#cbd9bd"));
+DEF.push(mk(2,"\u10f3","Car: charcoal \u00b7 west","#75946b","#cbd9bd"));
+
+DEF.push(mk(2,"\u1200","Grass detail: 1","#78936a","#c9d4bd"));
+DEF.push(mk(2,"\u1201","Grass detail: 2","#78936a","#c9d4bd"));
+DEF.push(mk(2,"\u1202","Grass detail: 3","#78936a","#c9d4bd"));
+DEF.push(mk(2,"\u1203","Grass detail: 4","#78936a","#c9d4bd"));
+DEF.push(mk(2,"\u1204","Grass detail: 5","#78936a","#c9d4bd"));
+DEF.push(mk(2,"\u1205","Grass detail: 6","#78936a","#c9d4bd"));
+DEF.push(mk(2,"\u1206","Grass detail: 7","#78936a","#c9d4bd"));
+DEF.push(mk(2,"\u1207","Grass detail: 8","#78936a","#c9d4bd"));
+DEF.push(mk(2,"\u1208","Pavement detail: 1","#78936a","#c9d4bd"));
+DEF.push(mk(2,"\u1209","Pavement detail: 2","#78936a","#c9d4bd"));
+DEF.push(mk(2,"\u120a","Pavement detail: 3","#78936a","#c9d4bd"));
+DEF.push(mk(2,"\u120b","Pavement detail: 4","#78936a","#c9d4bd"));
+DEF.push(mk(2,"\u120c","Pavement detail: 5","#78936a","#c9d4bd"));
+DEF.push(mk(2,"\u120d","Pavement detail: 6","#78936a","#c9d4bd"));
+DEF.push(mk(2,"\u120e","Pavement detail: 7","#78936a","#c9d4bd"));
+DEF.push(mk(2,"\u120f","Pavement detail: 8","#78936a","#c9d4bd"));
+DEF.push(mk(2,'♣','Trees: 2 small crowns · 1','#3f7048','#173b2c'),mk(2,'♣','Trees: 2 small crowns · 2','#3f7048','#173b2c'),mk(2,'♣','Trees: 2 small crowns · 3','#3f7048','#173b2c'),mk(2,'♣','Trees: 3 small crowns · 1','#3f7048','#173b2c'),mk(2,'♣','Trees: 3 small crowns · 2','#3f7048','#173b2c'),mk(2,'♣','Trees: 3 small crowns · 3','#3f7048','#173b2c'),mk(2,'♣','Trees: woodland 3×3 · open quarter · 1','#3f7048','#173b2c'),mk(2,'♣','Trees: woodland 3×3 · open quarter · 2','#3f7048','#173b2c'),mk(2,'♣','Trees: woodland 3×3 · open quarter · 3','#3f7048','#173b2c'),mk(2,'♣','Trees: woodland 3×3 · open quarter · 4','#3f7048','#173b2c'));
+DEF.push(mk(2,'♣','Trees: large tree and saplings 3×3 · 1','#3f7048','#173b2c'),mk(2,'♣','Trees: large tree and saplings 3×3 · 2','#3f7048','#173b2c'),mk(2,'♣','Trees: large tree and saplings 3×3 · 3','#3f7048','#173b2c'),mk(2,'♣','Trees: large tree and saplings 3×3 · 4','#3f7048','#173b2c'));
+const T=DEF.map((t,i)=>(t.id=i+1,t));
+const byChar=LAYERS.map((_,l)=>{const o={};T.filter(t=>t.l===l).forEach(t=>o[t.c]=t.id);return o});
+
+const $=id=>document.getElementById(id), cv=$('cv'), g=cv.getContext('2d'), stage=$('stage');
+let M, active=0, tool='brush', sel=1, vis=LAYERS.map(()=>true), view={x:20,y:20,z:1}, hist=[], hp=-1, hover=null, drag=null, dirty=true, fr=0;
+let cache={}, cn=0;
+
+// ---------- procedural texture ----------
+const hash=(a,b,s)=>{const h=Math.sin(a*12.9898+b*78.233+s*37.719)*43758.5453;return h-Math.floor(h)};
+const BAYER=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
+function on(t,px,py,v,off){
+  const sp=t.sp,th=Math.max(1,Math.round(sp/6)),cs=Math.max(2,sp>>1),dn=t.dn/100,sd=v*17+t.id*5,ux=px+off;
+  switch(t.d){
+    case 1:return hash(Math.floor(ux/cs),Math.floor(py/cs),sd)<dn;
+    case 2:return py%sp<th;
+    case 3:return ux%sp<th;
+    case 4:return py%sp<th||ux%sp<th;
+    case 5:return hash(ux,py,sd)<dn;
+    case 6:return hash(ux,py,sd)<dn*.35;
+    case 7:return (ux+py)%sp<th;
+    case 8:return (ux-py+512)%sp<th;
+    case 9:{const c=Math.max(1,sp>>1);return ((Math.floor(ux/c)+Math.floor(py/c))&1)===0}
+    case 10:return ux%sp<2&&py%sp<2;
+    case 11:return BAYER[(py&3)*4+(ux&3)]/16<dn;
+    case 12:return (((py+Math.round(Math.sin(ux/sp*6.283)*2))%sp)+sp)%sp<th;
+    case 13:case 14:{const bh=t.d===13?Math.max(3,sp>>1):sp,bw=sp,row=Math.floor(py/bh);return py%bh===0||(ux+(row&1)*(bw>>1))%bw===0}
+    case 15:{const bh=Math.max(3,sp>>1),row=Math.floor(py/bh);return py%bh===0||((py%bh)<bh/2&&(ux+(row&1)*(sp>>1))%sp===0)}
+    case 16:return ux%sp===0||(py+(Math.floor(ux/sp)%3)*sp)%(sp*3)===0;
+    case 17:{const cx=Math.floor(ux/sp),cy=Math.floor(py/sp);if(hash(cx,cy,sd)>=dn)return false;
+      const jx=Math.floor(hash(cx,cy,sd+1)*(sp-1)),jy=Math.floor(hash(cx,cy,sd+2)*(sp-1)),lx=ux-cx*sp,ly=py-cy*sp;
+      return (lx===jx||lx===jx+1)&&(ly===jy||ly===jy+1)}
+  }
+  return false;
+}
+function region(t,px,py){
+  const k=(t.s+50)/100,pos=k*TS;
+  switch(t.sm){
+    case 1:return py<pos?0:1;
+    case 2:return px<pos?0:1;
+    case 3:return px+py<pos*2?0:1;
+    case 4:return px+(TS-1-py)<pos*2?0:1;
+    case 5:return Math.min(px,py,TS-1-px,TS-1-py)<k*TS*.4?1:0;
+    case 6:return Math.hypot(px-15.5,py-15.5)<k*TS*.7?0:1;
+  }
+  if(t.sm>=7){
+    const th=Math.round(2+k*4),h=th/2,bH=Math.abs(py-15.5)<h,bV=Math.abs(px-15.5)<h,T_=py<th,B_=py>=TS-th,L_=px<th,R_=px>=TS-th;
+    switch(t.sm){
+      case 7:return bH?1:0;case 8:return bV?1:0;case 9:return bH||bV?1:0;
+      case 10:return bH&&px%16<10?1:0;case 11:return bV&&py%16<10?1:0;
+      case 12:return Math.abs(py-11)<h||Math.abs(py-21)<h?1:0;case 13:return Math.abs(px-11)<h||Math.abs(px-21)<h?1:0;
+      case 14:return px%8<5?1:0;case 15:return py%8<5?1:0;
+      case 16:return T_?1:0;case 17:return B_?1:0;case 18:return L_?1:0;case 19:return R_?1:0;
+      case 20:return T_||L_?1:0;case 21:return T_||R_?1:0;case 22:return B_||L_?1:0;case 23:return B_||R_?1:0;
+    }
+  }
+  return 0;
+}
+const seam=(t,px,py)=>{const pos=(t.s+50)/100*TS;return t.sm===1?Math.abs(py-pos)<1.2:t.sm===2?Math.abs(px-pos)<1.2:t.sm===3?Math.abs(px+py-pos*2)<1.6:t.sm===4?Math.abs(px+(TS-1-py)-pos*2)<1.6:false};
+function tex(t,v,f){
+  const art=window.TownDecorations?.byLabel(t.n);if(art){const out=document.createElement('canvas');out.width=out.height=TS;const c=out.getContext('2d');c.imageSmoothingEnabled=false;c.drawImage(art,0,0,TS,TS);return out;}
+
+  const k=t.id+'.'+v+'.'+(t.w?f:0);if(cache[k])return cache[k];
+  const c=document.createElement('canvas');c.width=c.height=TS;const x=c.getContext('2d');
+  const hid=(px,py)=>t.tr&&(t.tr===1?region(t,px,py)===0:region(t,px,py)===1);
+  if(t.tr){for(let py=0;py<TS;py++)for(let px=0;px<TS;px++){if(hid(px,py))continue;x.fillStyle=region(t,px,py)?t.b:t.a;x.fillRect(px,py,1,1)}}
+  else{
+    x.fillStyle=t.a;x.fillRect(0,0,TS,TS);
+    if(t.sm){x.fillStyle=t.b;for(let py=0;py<TS;py++)for(let px=0;px<TS;px++)if(region(t,px,py))x.fillRect(px,py,1,1)}
+  }
+  if(t.d){
+    const off=t.w?Math.round(f*t.sp/4):0;
+    for(let py=0;py<TS;py++)for(let px=0;px<TS;px++)if(!(t.tr&&hid(px,py))&&on(t,px,py,v,off)){
+      if(t.sm)x.fillStyle=region(t,px,py)?'rgba(0,0,0,.32)':'rgba(255,255,255,.26)';
+      else{x.fillStyle=t.b;x.globalAlpha=t.d===17?1:t.d>=13?.8:.6}
+      x.fillRect(px,py,1,1);x.globalAlpha=1;
+    }
+  }
+  if(t.sm>=1&&t.sm<=4&&!t.tr){x.fillStyle='rgba(0,0,0,.35)';for(let py=0;py<TS;py++)for(let px=0;px<TS;px++)if(seam(t,px,py))x.fillRect(px,py,1,1)}
+  c._d=null;if(++cn>20000){cache={};cn=0}return cache[k]=c;
+}
+const pix=c=>c._d||(c._d=c.getContext('2d').getImageData(0,0,TS,TS));
+const DIRS=[[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1]];
+const vari=(t,x,y)=>t.vr>1?Math.floor(hash(x,y,t.id)*t.vr):0;
+// tile texture for a map cell, with higher-priority neighbours bleeding in
+function cellTex(l,x,y,id){
+  const t=T[id-1],v=vari(t,x,y),L=M.L[l],cand=[];
+  if(FULL.has(l))for(let i=0;i<8;i++){
+    const nx=x+DIRS[i][0],ny=y+DIRS[i][1];if(!inb(nx,ny))continue;
+    const nid=L[ny*M.w+nx];if(!nid||nid===id)continue;const nt=T[nid-1];
+    if(nt.bl>0&&nt.pr>t.pr)cand.push({i,nt,nv:vari(nt,nx,ny)});
+  }
+  if(!cand.length)return tex(t,v,fr);
+  const anyW=t.w||cand.some(c=>c.nt.w),f=anyW?fr:0,es=(x*3+y*5)&3;
+  const key='c'+id+'.'+v+'.'+f+'|'+cand.map(c=>c.i+':'+c.nt.id+'.'+c.nv).join(',')+'|'+es;
+  if(cache[key])return cache[key];
+  const base=tex(t,v,fr),c=document.createElement('canvas');c.width=c.height=TS;const cx=c.getContext('2d');
+  cx.drawImage(base,0,0);const out=cx.getImageData(0,0,TS,TS),d=out.data;
+  const srcs=cand.map(q=>pix(tex(q.nt,q.nv,fr)).data);
+  for(let py=0;py<TS;py++)for(let px=0;px<TS;px++){
+    let best=0,bi=-1;
+    for(let k=0;k<cand.length;k++){
+      const [dx,dy]=DIRS[cand[k].i],ex=dx<0?px:dx>0?TS-1-px:99,ey=dy<0?py:dy>0?TS-1-py:99;
+      const dist=dx&&dy?Math.hypot(ex,ey):Math.min(ex,ey),p=1-(dist+.5)/cand[k].nt.bl;
+      if(p>best){best=p;bi=k}
+    }
+    if(bi>=0&&hash(px,py,es+7)<best){const o=(py*TS+px)*4,s=srcs[bi];d[o]=s[o];d[o+1]=s[o+1];d[o+2]=s[o+2];d[o+3]=s[o+3]}
+  }
+  cx.putImageData(out,0,0);cn++;return cache[key]=c;
+}
+
+// ---------- map ----------
+function newMap(w,h){M={w,h,L:LAYERS.map(()=>new Array(w*h).fill(0))};$('mw').value=w;$('mh').value=h}
+const snap=()=>JSON.stringify({w:M.w,h:M.h,L:M.L});
+function fix(){while(M.L.length<LAYERS.length)M.L.push(new Array(M.w*M.h).fill(0))}
+function push(){hist=hist.slice(0,hp+1);hist.push(snap());if(hist.length>60)hist.shift();hp=hist.length-1;save();syncFloatingTools()}
+function restore(s){M=JSON.parse(s);fix();$('mw').value=M.w;$('mh').value=M.h;dirty=true;save();syncFloatingTools()}
+function undo(){if(hp>0)restore(hist[--hp])}function redo(){if(hp<hist.length-1)restore(hist[++hp])}
+function save(){try{localStorage.setItem('brightonTilemap2',snap())}catch(e){}}
+const inb=(x,y)=>x>=0&&y>=0&&x<M.w&&y<M.h;
+function put(l,ch,x,y){if(inb(x,y)&&byChar[l][ch])M.L[l][y*M.w+x]=byChar[l][ch]}
+function sample(){
+  newMap(48,30);const w=48;
+  for(let y=0;y<30;y++)for(let x=0;x<w;x++){
+    put(0,y<4?(y%2?'~':'S'):y<6?'w':y<8?'n':y<10?':':y<13?'=':y<15?'r':'g',x,y);
+    if(y<6)put(5,'D',x,y);
+  }
+  for(let x=0;x<w;x++)if(x%9<3)put(0,'-',x,15);
+  for(let y=2;y<12;y++)for(let x=22;x<25;x++){put(1,'p',x,y);M.L[5][y*w+x]=0}
+  for(let y=10;y<12;y++)for(let x=26;x<30;x++){put(1,'A',x,y);put(8,y===10?'k':'f',x,y);put(5,'#',x,y)}
+  put(8,'v',27,11);put(8,'s',29,11);
+  put(1,'i',40,11);put(5,'#',40,11);put(1,'K',38,11);put(8,'l',38,11);put(5,'#',38,11);
+  for(let x0=2;x0<46;x0+=8){
+    for(let x=x0;x<x0+6;x++){
+      put(7,x===x0?'/':x===x0+5?'\\':'h',x,17);
+      put(6,x===x0+2?'D':(x===x0+1||x===x0+4)?'N':'P',x,18);
+      put(5,'#',x,17);put(5,'#',x,18);
+    }
+  }
+  for(let y=22;y<25;y++)for(let x=10;x<20;x++){put(8,(x+y)%7===0?'k':'f',x,y);put(5,'#',x,y)}
+  put(8,'v',12,23);put(8,'v',17,23);
+  for(let x=10;x<20;x++){put(6,x%3===1?'G':'R',x,25);put(5,'#',x,25)}
+  for(let y=22;y<25;y++)for(let x=26;x<34;x++){put(7,y===22?'H':'H',x,y);}
+  for(let x=26;x<34;x++){put(6,'F',x,25);put(5,'#',x,25)}
+  for(let x=3;x<w;x+=6)put(2,'L',x,10);
+  [8,16,32].forEach(x=>put(2,'B',x,12));[5,13,21,35,43].forEach(x=>put(2,'T',x,14));
+  put(2,'X',18,13);put(2,'X',19,13);put(2,'b',11,12);put(2,'C',24,14);
+  put(3,'f',9,11);put(3,'s',14,12);put(3,'l',31,11);put(3,'p',44,12);
+  [['1',28,12],['2',12,9],['3',4,12],['4',41,12]].forEach(([c,x,y])=>{put(4,c,x,y);put(5,'T',x-1,y);put(5,'T',x+1,y)});
+  [[10,3],[30,5],[36,2]].forEach(([x,y])=>put(4,'G',x,y));put(4,'P',33,13);put(4,'A',6,13);
+  view={x:20,y:20,z:1};dirty=true;push();
+}
+
+// ---------- drawing ----------
+function resize(){cv.width=stage.clientWidth;cv.height=stage.clientHeight;dirty=true}
+function layerAlpha(l,ex){return !ex&&$('dim').checked&&l!==active?.3:(l===5&&!ex?.6:1)}
+function drawLayers(c,x0,y0,x1,y1,ex){
+  for(const l of ORDER){
+    if(ex?[3,4,5].includes(l):!vis[l])continue;
+    c.globalAlpha=layerAlpha(l,ex);
+    for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){
+      const id=M.L[l][y*M.w+x];if(!id)continue;const t=T[id-1],px=x*TS,py=y*TS;
+      const park=window.TownDecorations?.byLabel(t.n,x,y),info=window.TownDecorations?.infoByLabel(t.n);
+      if(park){c.imageSmoothingEnabled=false;c.drawImage(park,px,py-(info.unitsHigh-1)*TS,info.unitsWide*TS,info.unitsHigh*TS);continue;}
+      if(FULL.has(l)){
+       c.drawImage(cellTex(l,x,y,id),px,py);
+       if([1,6,7,8].includes(l)&&t.n!=='Pier deck')TileStyle.building(c,px,py,TS,[[0,-1],[1,0],[0,1],[-1,0]].map(([dx,dy])=>{const nx=x+dx,ny=y+dy;return inb(nx,ny)&&[1,6,7,8].some(layer=>M.L[layer][ny*M.w+nx]);}));
+      }
+      else{c.drawImage(tex(t,vari(t,x,y),fr),px+4,py+4,TS-8,TS-8);
+        if(!ex&&view.z>=.7){c.globalAlpha=1;c.fillStyle='#000';c.font='bold 14px Space Mono';c.textAlign='center';c.textBaseline='middle';c.fillText(t.c,px+TS/2,py+TS/2+1);c.globalAlpha=layerAlpha(l,ex)}}
+    }
+  }
+  c.globalAlpha=1;
+}
+function draw(){
+  g.setTransform(1,0,0,1,0,0);g.fillStyle='#0d0d10';g.fillRect(0,0,cv.width,cv.height);
+  const z=view.z;g.setTransform(z,0,0,z,view.x,view.y);g.imageSmoothingEnabled=false;
+  const x0=Math.max(0,Math.floor(-view.x/z/TS)),y0=Math.max(0,Math.floor(-view.y/z/TS));
+  const x1=Math.min(M.w,Math.ceil((cv.width-view.x)/z/TS)),y1=Math.min(M.h,Math.ceil((cv.height-view.y)/z/TS));
+  g.fillStyle='#16161c';g.fillRect(0,0,M.w*TS,M.h*TS);
+  drawLayers(g,x0,y0,x1,y1,false);
+  if($('grid').checked&&z>=.5){g.strokeStyle='rgba(255,255,255,.08)';g.lineWidth=1/z;g.beginPath();
+    for(let x=x0;x<=x1;x++){g.moveTo(x*TS,y0*TS);g.lineTo(x*TS,y1*TS)}
+    for(let y=y0;y<=y1;y++){g.moveTo(x0*TS,y*TS);g.lineTo(x1*TS,y*TS)}g.stroke()}
+  g.strokeStyle='#3ecfb2';g.lineWidth=2/z;g.strokeRect(0,0,M.w*TS,M.h*TS);
+  if(drag&&drag.k==='rect'){const a=rect();g.strokeStyle='#c94b6e';g.strokeRect(a.x0*TS,a.y0*TS,(a.x1-a.x0+1)*TS,(a.y1-a.y0+1)*TS)}
+  else if(hover&&inb(hover.x,hover.y)){g.strokeStyle='#c94b6e';g.lineWidth=2/z;g.strokeRect(hover.x*TS,hover.y*TS,TS,TS)}
+}
+setInterval(()=>{fr=(fr+1)%4;dirty=true},450);
+(function loop(){if(dirty&&M){draw();dirty=false;drawMini()}requestAnimationFrame(loop)})();
+
+// ---------- editing ----------
+const cell=e=>{const r=cv.getBoundingClientRect();return{x:Math.floor((e.clientX-r.left-view.x)/view.z/TS),y:Math.floor((e.clientY-r.top-view.y)/view.z/TS)}};
+const val=()=>tool==='erase'?0:sel;
+function paint(c){if(inb(c.x,c.y)){const i=c.y*M.w+c.x;if(M.L[active][i]!==val()){M.L[active][i]=val();dirty=true}}}
+function line(a,b){const n=Math.max(Math.abs(b.x-a.x),Math.abs(b.y-a.y))||1;for(let i=0;i<=n;i++)paint({x:Math.round(a.x+(b.x-a.x)*i/n),y:Math.round(a.y+(b.y-a.y)*i/n)})}
+function fill(c){
+  if(!inb(c.x,c.y))return;const d=M.L[active],from=d[c.y*M.w+c.x],to=val();if(from===to)return;
+  const st=[c.x+c.y*M.w];while(st.length){const i=st.pop();if(d[i]!==from)continue;d[i]=to;const x=i%M.w,y=(i/M.w)|0;
+    if(x>0)st.push(i-1);if(x<M.w-1)st.push(i+1);if(y>0)st.push(i-M.w);if(y<M.h-1)st.push(i+M.w)}
+  dirty=true;
+}
+function rect(){const a=drag.a,b=drag.b;return{x0:Math.max(0,Math.min(a.x,b.x)),x1:Math.min(M.w-1,Math.max(a.x,b.x)),y0:Math.max(0,Math.min(a.y,b.y)),y1:Math.min(M.h-1,Math.max(a.y,b.y))}}
+let space=false;
+function commit(){if(snap()!==hist[hp])push()}
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('pointerdown',e=>{
+  cv.setPointerCapture(e.pointerId);
+  if(tool==='pan'||e.button===1||e.button===2||space){drag={k:'pan',sx:e.clientX-view.x,sy:e.clientY-view.y};return}
+  if(e.button!==0)return;const c=cell(e);
+  if(tool==='pick'){if(inb(c.x,c.y)){const id=M.L[active][c.y*M.w+c.x];if(id){sel=id;tool='brush';ui()}}return}
+  if(tool==='fill'){fill(c);commit()}
+  else if(tool==='rect')drag={k:'rect',a:c,b:c};
+  else{drag={k:'paint',last:c};paint(c)}
+});
+cv.addEventListener('pointermove',e=>{
+  const c=cell(e);hover=c;$('status').textContent=inb(c.x,c.y)?`x ${c.x}  y ${c.y}  ·  ${LAYERS[active][1]}  ·  zoom ${Math.round(view.z*100)}%`:'';
+  if(drag){if(drag.k==='pan'){view.x=e.clientX-drag.sx;view.y=e.clientY-drag.sy}
+    else if(drag.k==='paint'){line(drag.last,c);drag.last=c}else if(drag.k==='rect')drag.b=c}
+  dirty=true;
+});
+cv.addEventListener('pointerup',()=>{
+  if(drag&&drag.k==='rect'){const r=rect();for(let y=r.y0;y<=r.y1;y++)for(let x=r.x0;x<=r.x1;x++)M.L[active][y*M.w+x]=val()}
+  if(drag&&drag.k!=='pan')commit();drag=null;dirty=true;
+});
+cv.addEventListener('wheel',e=>{e.preventDefault();const r=cv.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
+  const nz=Math.min(4,Math.max(.08,view.z*(e.deltaY<0?1.12:1/1.12)));
+  view.x=mx-(mx-view.x)*nz/view.z;view.y=my-(my-view.y)*nz/view.z;view.z=nz;dirty=true},{passive:false});
+addEventListener('keydown',e=>{
+  if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)&&e.target.type!=='checkbox')return;
+  if(e.code==='Space'){space=true;e.preventDefault();return}
+  const k=e.key.toLowerCase();
+  if((e.ctrlKey||e.metaKey)&&k==='z'){e.preventDefault();e.shiftKey?redo():undo();return}
+  if((e.ctrlKey||e.metaKey)&&k==='y'){e.preventDefault();redo();return}
+  if(/^[0-9]$/.test(k)){const n=k==='0'?9:+k-1;if(ORDER[n]!==undefined){active=ORDER[n];ui();dirty=true}}
+  const tm={h:'pan',b:'brush',e:'erase',g:'fill',r:'rect',i:'pick'};if(tm[k]){tool=tm[k];ui()}
+});
+addEventListener('keyup',e=>{if(e.code==='Space')space=false});
+addEventListener('resize',resize);
+
+// Floating map tools mirror the sidebar and keyboard state.
+const floatingPaths={pan:'M12 2v20M2 12h20M8 6l4-4 4 4M8 18l4 4 4-4M6 8l-4 4 4 4M18 8l4 4-4 4',brush:'M4 20l1-5L17 3l4 4L9 19l-5 1zM14 6l4 4',erase:'M3 15L14 4l7 7-9 9H8l-5-5zM8 10l7 7M12 20h9',pick:'M4 20l3-6L17 4l3 3-10 10-6 3zM14 4l6 6',fill:'M4 11l8-8 8 8-8 8-8-8zM4 11h16M20 15s-2 3-2 4a2 2 0 004 0c0-1-2-4-2-4z'};
+floatingPaths.rect='M4 4h16v16H4z';
+function syncFloatingTools(){
+ for(const b of document.querySelectorAll('[data-designer-tool]')){b.classList.toggle('on',b.dataset.designerTool===tool);b.setAttribute('aria-pressed',String(b.dataset.designerTool===tool));}
+ $('floatingUndo').disabled=hp<=0;$('floatingRedo').disabled=hp>=hist.length-1;
+ cv.style.cursor=tool==='pan'?'grab':'crosshair';
+}
+for(const b of document.querySelectorAll('[data-designer-tool]')){
+ b.insertAdjacentHTML('afterbegin',`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${floatingPaths[b.dataset.designerTool]}"/></svg>`);
+ b.onclick=()=>{if(drag&&drag.k==='paint')commit();drag=null;tool=b.dataset.designerTool;ui();dirty=true;};
+}
+for(const [id,path] of [['floatingUndo','M9 5L3 11l6 6M3 11h12a6 6 0 016 6'],['floatingRedo','M15 5l6 6-6 6M21 11H9a6 6 0 00-6 6']])$(''+id).insertAdjacentHTML('afterbegin',`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${path}"/></svg>`);
+$('floatingUndo').onclick=()=>undo();$('floatingRedo').onclick=()=>redo();
+cv.addEventListener('pointercancel',()=>{if(drag?.k==='paint')commit();drag=null;dirty=true;});
+
+// ---------- UI ----------
+PATTERNS.forEach((n,i)=>{const o=document.createElement('option');o.value=i;o.textContent=n;$('cd').append(o)});
+function ui(){
+  syncFloatingTools();
+  $('layers').innerHTML='';
+  ORDER.forEach((l,n)=>{
+    const d=document.createElement('div');d.className='layer';
+    const cb=document.createElement('input');cb.type='checkbox';cb.checked=vis[l];cb.title='Show / hide';cb.setAttribute('aria-label','Show '+LAYERS[l][1]);
+    cb.onchange=()=>{vis[l]=cb.checked;dirty=true};
+    const b=document.createElement('button');b.textContent=(n+1)+'  '+LAYERS[l][1];b.className=l===active?'on':'';
+    b.onclick=()=>{active=l;ui();dirty=true};
+    d.append(cb,b);$('layers').append(d);
+  });
+  $('tools').innerHTML='';
+  [['pan','Move H'],['brush','Brush B'],['erase','Erase E'],['fill','Fill G'],['rect','Rect R'],['pick','Pick I']].forEach(([k,n])=>{
+    const b=document.createElement('button');b.textContent=n;b.className=k===tool?'on':'';b.onclick=()=>{tool=k;ui()};$('tools').append(b)});
+  if(T[sel-1].l!==active)sel=T.find(t=>t.l===active).id;
+  $('pal').innerHTML='';
+  T.filter(t=>t.l===active).forEach(t=>{
+    const b=document.createElement('button');b.title=t.n;b.className=t.id===sel&&tool!=='erase'?'on':'';
+    const c=document.createElement('canvas');if(t.l===2)c.classList.add('transparency-preview');c.width=c.height=TS;c.getContext('2d').drawImage(tex(t,0,0),0,0);
+    const s=document.createElement('b');s.textContent=t.c;b.append(c,s);b.onclick=()=>{sel=t.id;if(tool==='erase'||tool==='pick'||tool==='pan')tool='brush';ui()};$('pal').append(b)});
+  const t=T[sel-1];$('tname').textContent=t.c+'  '+t.n;
+  $('ca').value=t.a;$('cb').value=t.b;$('sm').value=t.sm;$('cs').value=t.s;$('cd').value=t.d;$('cdn').value=t.dn;$('csp').value=t.sp;$('cvr').value=t.vr;$('cpr').value=t.pr;$('cbl').value=t.bl;$('cw').checked=!!t.w;$('ctr').value=t.tr;
+}
+function style(k,v){T[sel-1][k]=v;cache={};cn=0;ui();dirty=true}
+[['ca','a',0],['cb','b',0],['sm','sm',1],['cs','s',1],['cd','d',1],['cdn','dn',1],['csp','sp',1],['cvr','vr',1],['cpr','pr',1],['cbl','bl',1],['ctr','tr',1]].forEach(([id,k,n])=>{
+  $(id).oninput=$(id).onchange=e=>style(k,n?+e.target.value:e.target.value)});
+$('cw').onchange=e=>style('w',e.target.checked?1:0);
+$('grid').onchange=$('dim').onchange=()=>dirty=true;
+$('resize').onclick=()=>{
+  const w=Math.min(200,Math.max(4,+$('mw').value||M.w)),h=Math.min(200,Math.max(4,+$('mh').value||M.h));
+  const L=LAYERS.map((_,l)=>{const a=new Array(w*h).fill(0);for(let y=0;y<Math.min(h,M.h);y++)for(let x=0;x<Math.min(w,M.w);x++)a[y*w+x]=M.L[l][y*M.w+x];return a});
+  M={w,h,L};push();dirty=true};
+$('sample').onclick=()=>{if(confirm('Replace the current map with the sample seafront?'))sample()};
+$('clearL').onclick=()=>{M.L[active].fill(0);push();dirty=true};
+
+// ---------- export / import ----------
+const EMPTY='.';
+function toAscii(){return LAYERS.map(([id,n],l)=>{let s='## '+n+'\n';for(let y=0;y<M.h;y++){for(let x=0;x<M.w;x++){const v=M.L[l][y*M.w+x];s+=v?T[v-1].c:EMPTY}s+='\n'}return s}).join('\n')+
+  '\n# Legend\n'+LAYERS.map(([id,n],l)=>'# '+n+': '+T.filter(t=>t.l===l).map(t=>t.c+'='+t.n).join(', ')).join('\n')+'\n'}
+function toJson(){return JSON.stringify({format:'town-tilemap',version:2,width:M.w,height:M.h,tileSize:TS,drawOrder:ORDER.map(l=>LAYERS[l][0]),
+  layers:LAYERS.map(([id,n],l)=>({id,name:n,data:M.L[l]})),
+  tiles:T.map(t=>({id:t.id,layer:LAYERS[t.l][0],char:t.c,name:t.n,top:t.a,bottom:t.b,splitMode:t.sm,split:t.s,dither:t.d,density:t.dn,space:t.sp,variants:t.vr,priority:t.pr,bleed:t.bl,water:t.w,transparent:t.tr}))})}
+function toTiled(){return JSON.stringify({compressionlevel:-1,width:M.w,height:M.h,tilewidth:TS,tileheight:TS,infinite:false,orientation:'orthogonal',renderorder:'right-down',type:'map',version:'1.10',tiledversion:'1.10.2',nextlayerid:LAYERS.length+1,nextobjectid:1,
+  layers:ORDER.map((l,i)=>({id:i+1,name:LAYERS[l][0],type:'tilelayer',x:0,y:0,width:M.w,height:M.h,opacity:1,visible:true,data:M.L[l]})),
+  tilesets:[{firstgid:1,name:'town_tiles',image:'town_tiles.png',imagewidth:TS*T.length,imageheight:TS,tilewidth:TS,tileheight:TS,columns:T.length,tilecount:T.length,margin:0,spacing:0}]},null,1)}
+const gen={ascii:toAscii,json:toJson,tiled:toTiled},ext={ascii:'txt',json:'json',tiled:'json'};
+$('exp').onclick=()=>{$('box').value=gen[$('fmt').value]()};
+$('copy').onclick=async()=>{if(!$('box').value)$('exp').click();try{await navigator.clipboard.writeText($('box').value)}catch(e){$('box').select();document.execCommand('copy')}$('copy').textContent='Copied';setTimeout(()=>$('copy').textContent='Copy',1200)};
+function dl(name,blob){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+$('dl').onclick=()=>{const f=$('fmt').value;dl('town_'+f+'.'+ext[f],new Blob([gen[f]()],{type:'text/plain'}))};
+$('png').onclick=()=>{const c=document.createElement('canvas');c.width=TS*T.length;c.height=TS;const x=c.getContext('2d');T.forEach((t,i)=>x.drawImage(tex(t,0,0),i*TS,0));c.toBlob(b=>dl('town_tiles.png',b))};
+// baked image of the visual layers INCLUDING soft edges (the tileset PNG cannot contain edge blending)
+$('mpng').onclick=()=>{const c=document.createElement('canvas');c.width=M.w*TS;c.height=M.h*TS;const x=c.getContext('2d');x.imageSmoothingEnabled=false;drawLayers(x,0,0,M.w,M.h,true);c.toBlob(b=>dl('town_map.png',b))};
+$('imp').onclick=()=>{
+  const s=$('box').value.trim();if(!s)return;
+  try{
+    if(s[0]==='{'){
+      const j=JSON.parse(s);
+      if(['brighton-tilemap','town-tilemap'].includes(j.format)){
+        M={w:j.width,h:j.height,L:LAYERS.map(([id])=>(j.layers.find(x=>x.id===id)||{data:new Array(j.width*j.height).fill(0)}).data)};
+        (j.tiles||[]).forEach(o=>{const t=T[o.id-1];if(!t)return;t.a=o.top;t.b=o.bottom;t.s=o.split;t.d=o.dither;t.sp=o.space;
+          if(o.splitMode!==undefined){t.sm=o.splitMode;t.dn=o.density;t.vr=o.variants;t.pr=o.priority;t.bl=o.bleed;t.w=o.water?1:0;t.tr=o.transparent||0}});
+        cache={};cn=0}
+      else if(j.tilewidth){M={w:j.width,h:j.height,L:LAYERS.map(([id])=>{const l=j.layers.find(x=>x.name===id);return l?l.data.slice():new Array(j.width*j.height).fill(0)})}}
+      else throw 0;
+    }else{
+      const secs={};let cur=null;s.split('\n').forEach(r=>{if(r.startsWith('## ')){cur=r.slice(3).trim();secs[cur]=[]}else if(cur&&r.trim()&&r[0]!=='#')secs[cur].push(r.trimEnd())});
+      const rows=Object.values(secs);const h=Math.max(...rows.map(r=>r.length)),w=Math.max(...rows.flat().map(r=>r.length));
+      M={w,h,L:LAYERS.map(([id,n],l)=>{const a=new Array(w*h).fill(0),r=secs[n]||[];r.forEach((row,y)=>[...row].forEach((ch,x)=>{a[y*w+x]=byChar[l][ch]||0}));return a})};
+    }
+    $('mw').value=M.w;$('mh').value=M.h;push();ui();dirty=true;
+  }catch(e){alert('Could not read that. Paste ASCII layers (## Layer name headers), Designer JSON, or Tiled JSON.')}
+};
+
+
+// ---------- Brighton 100x100 (generated from the supplied S/R/B/C/P grid) ----------
+const ROADROWS=[5,40,46,49,50,51];
+const isPier=(x,y)=>(y>=56&&y<=64||y>=68&&y<=71)?(x===54||x===55):(y>=65&&y<=67||y===72)?(x>=53&&x<=56):(y===73||y===74)?(x>=52&&x<=57):false;
+function srcChar(x,y){
+  if(x<0||y<0||x>=100||y>=100)return'X';
+  if(y>=52&&y<=54)return'C';
+  if(y>=55)return isPier(x,y)?'B':'S';
+  if(ROADROWS.includes(y))return'R';
+  if(y>=6&&y<=15&&(x===45||x===46))return'P';
+  return x%10===5?'R':'B';
+}
+function brightonBig(){
+  newMap(100,100);const W=100;
+  for(let y=0;y<100;y++)for(let x=0;x<W;x++){
+    const c=srcChar(x,y),r=hash(x,y,9);
+    if(c==='S'){put(0,y===55?'w':y===56?'~':y%9===0&&y>60?'~':'S',x,y);put(5,'D',x,y)}
+    else if(c==='C')put(0,(x===54||x===55)?'e':':',x,y);
+    else if(c==='R')put(0,y===51?(x>=70?'G':'P'):(y===49||y===50)?'t':'T',x,y);
+    else if(c==='P'){put(0,'g',x,y);if(r<.12)put(2,'T',x,y)}
+    else if(y>=56&&isPier(x,y)){put(0,'S',x,y);put(1,'p',x,y)}
+    else{ // building
+      put(0,'=',x,y);put(5,'#',x,y);
+      let y0=y;while(srcChar(x,y0-1)==='B')y0--;let y1=y;while(srcChar(x,y1+1)==='B')y1++;
+      let xs=x;while(srcChar(xs-1,y)==='B')xs--;let xe=x;while(srcChar(xe+1,y)==='B')xe++;
+      const seg=Math.floor((y-y0)/4),pos=(y-y0)%4,h=hash(xs,y0+seg*4,3),h2=hash(xs*3,y0+seg*4,5),w=xe-xs+1;
+      if(pos===3||y===y1){ // wall row
+        put(6,h2>.93?'G':(x-xs)===(w>>1)?'D':(x-xs)%2===1?'N':h2<.35?'P':h2<.6?'R':h2<.8?'W':'F',x,y);
+      }else if(h<.5){ // pitched
+        const slate=h>=.3,t=pos===0?(slate?'U':'u'):pos===1?(slate?'H':'h'):(slate?'D':'d');
+        put(7,pos===1&&x===xs?(slate?'X':'/'):pos===1&&x===xe?(slate?'Z':'\\'):t,x,y);
+      }else{ // flat
+        put(8,hash(x,y,11)<.025?'v':hash(x,y,12)<.015?'k':hash(x,y,13)<.012?'s':h<.85?'g':'p',x,y);
+      }
+    }
+  }
+  // bridge the pier to the beach (source grid leaves row 55 as open sea)
+  [54,55].forEach(x=>{put(1,'p',x,55);M.L[5][55*W+x]=0});
+  // pier head arcade
+  for(let x=53;x<=56;x++){put(1,'A',x,73);put(8,x===54?'k':'f',x,73);put(5,'#',x,73)}
+  [[55,60],[54,63]].forEach(([x,y])=>{put(1,'K',x,y);put(5,'#',x,y)});
+  // i360 and kiosk on the beach
+  put(1,'i',28,53);put(5,'#',28,53);put(1,'K',30,53);put(5,'#',30,53);
+  // street furniture along the seafront
+  for(let x=4;x<W;x+=8)put(2,'L',x,52);
+  for(let x=12;x<W;x+=16){put(2,'B',x,52);put(2,'b',x+3,52)}
+  [[20,49],[75,49]].forEach(([x,y])=>put(2,'C',x,y));
+
+  // road markings, zebra crossings and the navy seafront railing
+  const pc=(x,y)=>isPier(x,y)||(y===55&&(x===54||x===55));
+  for(let x=0;x<W;x++){
+    const cross=x%10===8;
+    if(cross)[49,50].forEach(y=>put(9,'z',x,y)); else put(9,'-',x,50);
+    if(x%10!==5&&!cross)[5,40,46].forEach(y=>put(9,'-',x,y));
+    if(!cross&&x!==54&&x!==55)put(9,'v',x,51);
+  }
+  for(let y=0;y<49;y++)for(let x=5;x<W;x+=10)if(srcChar(x,y)==='R'&&!ROADROWS.includes(y))put(9,'|',x,y);
+  [[22,49],[48,50],[70,49],[90,50]].forEach(([x,y])=>put(9,'m',x,y));
+  // white railings around the pier
+  for(let y=55;y<=74;y++)for(let x=52;x<=57;x++)if(pc(x,y)){
+    if(!pc(x-1,y))put(9,'e',x,y);else if(!pc(x+1,y))put(9,'f',x,y);else if(!pc(x,y+1))put(9,'b',x,y);
+    if(!pc(x-1,y)&&!pc(x+1,y))put(9,'e',x,y);
+  }
+  // variety of street surfaces
+  [[15,'o'],[65,'O'],[25,'k'],[35,'q'],[75,'m']].forEach(([x,c])=>{for(let y=0;y<49;y++)if(srcChar(x,y)==='R'&&!ROADROWS.includes(y)){put(0,c,x,y);M.L[9][y*W+x]=0}});
+  // park: pond with stone rim and flower beds
+  [[45,9],[46,9],[45,10],[46,10]].forEach(([x,y])=>put(0,'a',x,y));
+  [[45,8],[46,8],[45,11],[46,11]].forEach(([x,y])=>put(0,'A',x,y));
+  const fl=['f','y','v','W','x'];
+  [6,7,12,13,14,15].forEach((y,i)=>[45,46].forEach((x,j)=>put(0,fl[(i+j)%5],x,y)));
+  // bikes, planters, beach huts, parasols, cyclists
+  [30,32,34].forEach(x=>{put(2,'k',x,52);put(2,'i',x+1,52)});
+  for(let x=6;x<W;x+=16)put(2,'P',x,51);
+  [62,65,68,71,74,77].forEach(x=>put(2,'H',x,54));
+  [20,40,47,60,83,90].forEach(x=>put(2,'u',x,53));
+  put(4,'c',78,51);put(4,'c',14,50);
+  // collectables
+  [['f',14,51],['f',72,51],['s',36,50],['s',66,52],['l',22,50],['l',85,50],['p',44,50],['p',93,51]].forEach(([c,x,y])=>put(3,c,x,y));
+  // NPCs and their dialogue triggers
+  const N=[['1',54,70],['3',8,52],['2',32,52],['4',26,51]];
+  N.forEach(([c,x,y])=>{put(4,c,x,y);[[1,0],[-1,0],[0,1],[0,-1]].forEach(([dx,dy])=>{const nx=x+dx,ny=y+dy;if(inb(nx,ny)&&!M.L[5][ny*W+nx]&&!M.L[4][ny*W+nx])put(5,'T',nx,ny)})});
+  [[10,60],[30,68],[70,62],[88,80],[44,58],[62,90]].forEach(([x,y])=>put(4,'G',x,y));
+  put(4,'P',70,50);put(4,'A',28,50);put(4,'F',88,49);
+  fit();push();dirty=true;
+}
+
+function gallery(){
+  const W=36;newMap(W,22);
+  for(let y=0;y<22;y++)for(let x=0;x<W;x++)put(0,'T',x,y);
+  ORDER.forEach((l,n)=>{
+    const y=1+2*n,list=T.filter(t=>t.l===l);
+    if(l===9){ // markings on tarmac, railings on a light row so they are visible
+      for(let x=0;x<W;x++){M.L[0][y*W+x]=byChar[0]['t'];M.L[0][(y+1)*W+x]=byChar[0]['P']}
+      list.forEach((t,i)=>{const mark=!/Railing|rail/.test(t.n);const k=mark?list.filter(u=>!/Railing|rail/.test(u.n)).indexOf(t):list.filter(u=>/Railing|rail/.test(u.n)).indexOf(t);M.L[l][(mark?y:y+1)*W+1+k]=t.id});
+    }else list.forEach((t,i)=>{if(1+i<W)M.L[l][y*W+1+i]=t.id});
+  });
+  fit();push();dirty=true;
+}
+$('gal').onclick=()=>{if(confirm('Replace the current map with a gallery of every tile, one layer per row?'))gallery()};
+function fit(){const z=Math.min(cv.width/(M.w*TS),cv.height/(M.h*TS))*.95;view.z=Math.max(.08,Math.min(2,z));view.x=(cv.width-M.w*TS*view.z)/2;view.y=(cv.height-M.h*TS*view.z)/2;dirty=true}
+// minimap
+const mini=document.getElementById('mini'),mg=mini.getContext('2d');let lastMini=0;
+function drawMini(){
+  const now=Date.now();if(now-lastMini<250)return;lastMini=now;
+  const c=document.createElement('canvas');c.width=M.w;c.height=M.h;const x=c.getContext('2d'),im=x.createImageData(M.w,M.h);
+  for(let i=0;i<M.w*M.h;i++){let col='#16161c';
+    for(let k=ORDER.length-1;k>=0;k--){const l=ORDER[k];if(l===5||l===4||l===3||l===9)continue;const id=M.L[l][i];if(id){col=T[id-1].a;break}}
+    im.data[i*4]=parseInt(col.slice(1,3),16);im.data[i*4+1]=parseInt(col.slice(3,5),16);im.data[i*4+2]=parseInt(col.slice(5,7),16);im.data[i*4+3]=255}
+  x.putImageData(im,0,0);
+  const sc=Math.min(160/M.w,160/M.h);mg.clearRect(0,0,160,160);mg.imageSmoothingEnabled=false;mg.drawImage(c,0,0,M.w*sc,M.h*sc);
+  const vx=-view.x/view.z/TS*sc,vy=-view.y/view.z/TS*sc,vw=cv.width/view.z/TS*sc,vh=cv.height/view.z/TS*sc;
+  mg.strokeStyle='#c94b6e';mg.lineWidth=1.5;mg.strokeRect(vx,vy,vw,vh);
+}
+mini.addEventListener('pointerdown',e=>{
+  const r=mini.getBoundingClientRect(),sc=Math.min(160/M.w,160/M.h),cx=(e.clientX-r.left)/sc,cy=(e.clientY-r.top)/sc;
+  view.x=cv.width/2-cx*TS*view.z;view.y=cv.height/2-cy*TS*view.z;dirty=true;lastMini=0});
+$('big').onclick=()=>{if(confirm('Replace the current map with the Brighton 100×100 seafront?'))brightonBig()};
+$('fit').onclick=fit;
+
+// ---------- boot ----------
+resize();
+TownDecorations.ready.then(()=>{dirty=true;ui();});
+try{const s=localStorage.getItem('brightonTilemap2');if(s){M=JSON.parse(s);fix();$('mw').value=M.w;$('mh').value=M.h;push()}else brightonBig()}catch(e){brightonBig()}
+ui();
+</script>
+
+</body>
+</html>

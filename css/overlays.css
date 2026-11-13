@@ -1,0 +1,88 @@
+/*
+ * overlays.css — Status bar, hints, settings modal
+ */
+#statusbar {
+  padding: 5px 14px;
+  border-top: 1px solid var(--border-color-light);
+  background: var(--bg-root);
+  font-size: 10px;
+  letter-spacing: .06em;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+#info {
+  padding: 8px 12px;
+  border-right: 1px solid var(--border-color-med);
+  color: var(--color-primary);
+  font-size: 10px;
+  font-family: 'Space Mono', monospace;
+  white-space: nowrap;
+}
+
+/* ── FLOATING MENU ─────────────────────────────────────────────── */
+.floating-menu {
+  position: fixed;
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-color-strong);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  z-index: 100;
+}
+
+.fm-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 8px;
+  border-right: 1px solid var(--border-color-med);
+}
+
+.fm-section:last-child {
+  border-right: none;
+  padding-right: 0;
+}
+
+.fm-label {
+  font-size: 9px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-right: 4px;
+}
+
+.fm-tool-btn,
+.fm-direction-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border-color-strong);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: all .15s;
+}
+
+.fm-tool-btn:hover,
+.fm-direction-btn:hover {
+  background: var(--bg-surface);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.fm-tool-btn.active,
+.fm-direction-btn.active {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-color: var(--color-primary);
+}

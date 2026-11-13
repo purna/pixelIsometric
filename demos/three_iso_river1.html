@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js Isometric 3D River Cube</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #0d0d10;
+            font-family: 'Space Mono', monospace;
+            color: #4a4a60;
+        }
+
+        #ui {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #111115;
+            border: 1px solid #1f1f28;
+            padding: 15px;
+            width: 260px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 10;
+            max-height: 95vh;
+            overflow-y: auto;
+        }
+
+        /* Scrollbar styling for the UI panel */
+        #ui::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #ui::-webkit-scrollbar-thumb {
+            background: #2a2a38;
+            border-radius: 3px;
+        }
+
+        .row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11px;
+            min-height: 24px;
+        }
+
+        .btn-group { display: flex; gap: 6px; width: 100px; }
+        button { 
+            flex: 1; 
+            background: #191920; 
+            border: 1px solid #2a2a38; 
+            color: #3ecfb2; 
+            font-family: 'Space Mono'; 
+            font-size: 10px; 
+            padding: 4px 0; 
+            cursor: pointer; 
+            text-transform: uppercase;
+        }
+        button:hover { background: #22222b; border-color: #3ecfb2; }
+
+        input[type="range"] {
+            flex: 1;
+            margin: 0 10px;
+            accent-color: #3ecfb2;
+            background: #191920;
+        }
+
+        input[type="color"] {
+            background: none;
+            border: 1px solid #2a2a38;
+            cursor: pointer;
+            height: 24px;
+            width: 40px;
+            padding: 0;
+        }
+
+        select {
+            background: #0f0f14;
+            color: #7a7a9a;
+            border: 1px solid #2a2a38;
+            padding: 4px;
+            font-family: 'Space Mono';
+            font-size: 10px;
+            text-transform: uppercase;
+            width: 100px;
+        }
+
+        .title {
+            color: #7a7a9a;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            border-bottom: 1px solid #1f1f28;
+            padding-bottom: 6px;
+            margin-top: 10px;
+            margin-bottom: 4px;
+        }
+
+        .title:first-child {
+            margin-top: 0;
+        }
+
+        .hint {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: #3ecfb2;
+            font-size: 12px;
+            pointer-events: none;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="ui">
+        <div class="title" style="color: #a3d39c">Tile Rotation</div>
+        <div class="row">Rotate Step
+            <div class="btn-group">
+                <button id="btnCCW">CCW</button>
+                <button id="btnCW">CW</button>
+            </div>
+        </div>
+
+        <div class="title">Base Terrain</div>
+        <div id="topColRow" class="row">Ground Color <input type="color" id="colA" value="#3ecfb2"></div>
+        <div id="botColRow" class="row">Sub-block Col <input type="color" id="colB" value="#c94b6e"></div>
+        
+        <div class="title" style="color:#4ba3c9">Path / River Layout</div>
+        <div class="row">Path Color <input type="color" id="colRiver" value="#1d557a"></div>
+        <div class="row">Bank Color <input type="color" id="colBank" value="#a3d39c"></div>
+        <div class="row">Path Width <input type="range" id="riverWidth" min="5" max="60" value="20"></div>
+        
+        <div class="row">Start X <input type="range" id="startX" min="-100" max="100" value="0"></div>
+        <div class="row">Start Z <input type="range" id="startY" min="-100" max="100" value="-100"></div>
+        <div class="row">End X <input type="range" id="endX" min="-100" max="100" value="100"></div>
+        <div class="row">End Z <input type="range" id="endY" min="-100" max="100" value="0"></div>
+
+        <div class="title" style="color:#3ecfb2">Ground Dither (Top)</div>
+        <div class="row">Mode
+            <select id="tMode">
+                <option value="0">Off</option>
+                <option value="1">Noise</option>
+                <option value="2">H-Lines</option>
+                <option value="3">V-Lines</option>
+                <option value="4" selected>Crosshatch</option>
+            </select>
+        </div>
+        <div class="row">Ink Type
+            <select id="tInkMode">
+                <option value="0" selected>Bright</option>
+                <option value="1">Color</option>
+            </select>
+        </div>
+        <div class="row" id="tBrightRow">Bright <input type="range" id="tBright" min="-100" max="100" value="100"></div>
+        <div class="row hidden" id="tColorRow">Ink Color <input type="color" id="tInkCol" value="#ffffff"></div>
+        <div class="row">Space <input type="range" id="tSpace" min="2" max="16" value="6"></div>
+        <div class="row">Thick <input type="range" id="tThick" min="1" max="6" value="1" step="0.5"></div>
+        <div class="row">Blend <input type="range" id="tAlpha" min="5" max="100" value="50"></div>
+
+        <div id="bottomDitherSection">
+            <div class="title" style="color:#4ba3c9">Path Dither (Bottom)</div>
+            <div class="row">Mode
+                <select id="bMode">
+                    <option value="0">Off</option>
+                    <option value="1" selected>Noise</option>
+                    <option value="2">H-Lines</option>
+                    <option value="3">V-Lines</option>
+                    <option value="4">Crosshatch</option>
+                </select>
+            </div>
+            <div class="row">Ink Type
+                <select id="bInkMode">
+                    <option value="0" selected>Bright</option>
+                    <option value="1">Color</option>
+                </select>
+            </div>
+            <div class="row" id="bBrightRow">Bright <input type="range" id="bBright" min="-100" max="100" value="-100">
+            </div>
+            <div class="row hidden" id="bColorRow">Ink Color <input type="color" id="bInkCol" value="#000000"></div>
+            <div class="row">Space <input type="range" id="bSpace" min="2" max="16" value="4"></div>
+            <div class="row">Thick <input type="range" id="bThick" min="1" max="6" value="1" step="0.5"></div>
+            <div class="row">Blend <input type="range" id="bAlpha" min="5" max="100" value="70"></div>
+        </div>
+    </div>
+
+    <div class="hint">Left Click + Drag to Rotate • Scroll to Zoom</div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // 1. SCENE SETUP
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2('#0d0d10', 0.05);
+
+        const aspect = window.innerWidth / window.innerHeight;
+        const frustumSize = 10;
+        const camera = new THREE.OrthographicCamera(
+            frustumSize * aspect / -2, frustumSize * aspect / 2,
+            frustumSize / 2, frustumSize / -2,
+            1, 1000
+        );
+        camera.position.set(10, 10, 10);
+        camera.lookAt(scene.position);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // 2. LIGHTING
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 10, 2);
+        scene.add(directionalLight);
+
+        const grid = new THREE.GridHelper(20, 20, 0x3ecfb2, 0x1f1f28);
+        grid.position.y = -1.0;
+        scene.add(grid);
+
+        // 3. SHADER UNIFORMS
+        const customUniforms = {
+            colorA: { value: new THREE.Color('#3ecfb2') },
+            colorB: { value: new THREE.Color('#c94b6e') },
+            colorRiver: { value: new THREE.Color('#1d557a') },
+            colorBank: { value: new THREE.Color('#a3d39c') },
+            riverWidth: { value: 0.20 },
+            
+            // Path vectors relative to local geometry size (-1.0 to 1.0 bounds)
+            pStart: { value: new THREE.Vector2(0.0, -1.0) },
+            pEnd: { value: new THREE.Vector2(1.0, 0.0) },
+
+            // Ground Landscape Dither
+            tMode: { value: 4 },
+            tInkMode: { value: 0 },
+            tInkColor: { value: new THREE.Color('#ffffff') },
+            tSpace: { value: 6.0 },
+            tThick: { value: 1.0 },
+            tBright: { value: 1.0 },
+            tAlpha: { value: 0.5 },
+
+            // Inner Path Dither
+            bMode: { value: 1 },
+            bInkMode: { value: 0 },
+            bInkColor: { value: new THREE.Color('#000000') },
+            bSpace: { value: 4.0 },
+            bThick: { value: 1.0 },
+            bBright: { value: -1.0 },
+            bAlpha: { value: 0.7 }
+        };
+
+        const geometry = new THREE.BoxGeometry(2, 2, 2);
+
+        const material = new THREE.MeshStandardMaterial({
+            roughness: 0.6,
+            metalness: 0.1,
+            transparent: false,
+            opacity: 1.0
+        });
+
+        // 4. THE CUSTOM SHADER
+        material.onBeforeCompile = (shader) => {
+            for (const [key, uniform] of Object.entries(customUniforms)) {
+                shader.uniforms[key] = uniform;
+            }
+
+            shader.vertexShader = `
+                varying vec3 vLocalPos;
+                varying vec2 myUv;
+                ${shader.vertexShader}
+            `.replace(
+                `#include <begin_vertex>`,
+                `#include <begin_vertex>
+                 vLocalPos = position.xyz;
+                 myUv = uv;`
+            );
+
+            shader.fragmentShader = `
+                uniform vec3 colorA; uniform vec3 colorB; uniform vec3 colorRiver; uniform vec3 colorBank;
+                uniform float riverWidth; uniform vec2 pStart; uniform vec2 pEnd;
+                
+                uniform int tMode; uniform int tInkMode; uniform vec3 tInkColor; uniform float tSpace; uniform float tThick; uniform float tBright; uniform float tAlpha;
+                uniform int bMode; uniform int bInkMode; uniform vec3 bInkColor; uniform float bSpace; uniform float bThick; uniform float bBright; uniform float bAlpha;
+
+                varying vec3 vLocalPos;
+                varying vec2 myUv;
+                ${shader.fragmentShader}
+            `;
+
+            // Step A: Delineate Top face vs Side walls, and execute parametric line logic on Top Face
+            shader.fragmentShader = shader.fragmentShader.replace(
+                `vec4 diffuseColor = vec4( diffuse, opacity );`,
+                `
+                bool isTopFace = (vLocalPos.y > 0.99);
+                bool isPath = false;
+                vec3 splitBase = isTopFace ? colorA : colorB;
+
+                if (isTopFace) {
+                    // XZ planes match the local 2D vector boundaries
+                    vec2 p = vLocalPos.xz; 
+                    vec2 ba = pEnd - pStart;
+                    vec2 pa = p - pStart;
+                    
+                    float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+                    float distanceToPath = length(pa - ba * h);
+
+                    if (distanceToPath < riverWidth) {
+                        splitBase = colorRiver;
+                        isPath = true;
+                    } else if (distanceToPath < riverWidth + 0.08) {
+                        splitBase = colorBank;
+                    }
+                }
+                
+                vec4 diffuseColor = vec4( splitBase, opacity );
+                `
+            );
+
+            // Step B: Direct Ink Mixing Logic
+            shader.fragmentShader = shader.fragmentShader.replace(
+                `#include <dithering_fragment>`,
+                `#include <dithering_fragment>
+
+                // Route Top-Face Ground to Top Dither. Route Path/Bank AND side walls to Bottom settings.
+                bool useTopDither = (isTopFace && !isPath);
+                int dMode = useTopDither ? tMode : bMode;
+                int dInkMode = useTopDither ? tInkMode : bInkMode;
+                vec3 dInkColor = useTopDither ? tInkColor : bInkColor;
+                float dSpace = useTopDither ? tSpace : bSpace;
+                float dThick = useTopDither ? tThick : bThick;
+                float dBright = useTopDither ? tBright : bBright;
+                float dAlpha = useTopDither ? tAlpha : bAlpha;
+
+                if (dMode > 0) {
+                    bool isDither = false;
+                    
+                    vec2 scaledUv = myUv * (100.0 / dSpace);
+                    float lineThreshold = dThick / dSpace;
+
+                    if (dMode == 1) { 
+                        vec2 gridUv = floor(scaledUv);
+                        float noise = fract(sin(dot(gridUv, vec2(12.9898, 78.233))) * 43758.5453);
+                        isDither = noise > 0.5;
+                    } else if (dMode == 2) { 
+                        isDither = fract(scaledUv.y) < lineThreshold;
+                    } else if (dMode == 3) { 
+                        isDither = fract(scaledUv.x) < lineThreshold;
+                    } else if (dMode == 4) { 
+                        isDither = (fract(scaledUv.y) < lineThreshold) || (fract(scaledUv.x) < lineThreshold);
+                    }
+
+                    if (isDither) {
+                        vec3 targetCol;
+                        if (dInkMode == 1) {
+                            float baseLum = dot(splitBase, vec3(0.299, 0.587, 0.114));
+                            float fragLum = dot(gl_FragColor.rgb, vec3(0.299, 0.587, 0.114));
+                            float lightingScale = fragLum / max(baseLum, 0.001);
+                            
+                            targetCol = dInkColor * lightingScale;
+                        } else {
+                            vec3 brightShift = dBright > 0.0 ? vec3(1.0) : vec3(0.0);
+                            targetCol = mix(gl_FragColor.rgb, brightShift, abs(dBright));
+                        }
+                        gl_FragColor.rgb = mix(gl_FragColor.rgb, targetCol, dAlpha);
+                    }
+                }
+                `
+            );
+        };
+
+        const cube = new THREE.Mesh(geometry, material);
+        scene.add(cube);
+
+        // 5. EDGES OUTLINE
+        const edgesGeom = new THREE.EdgesGeometry(geometry);
+        const edgesMat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+        const cubeEdges = new THREE.LineSegments(edgesGeom, edgesMat);
+        cube.add(cubeEdges);
+
+        // 6. STEPWISE ROTATION UTILITIES
+        let currentRotationDegrees = 0;
+
+        const applyCubeRotation = (deltaAngle) => {
+            currentRotationDegrees = (currentRotationDegrees + deltaAngle) % 360;
+            if (currentRotationDegrees < 0) currentRotationDegrees += 360;
+            cube.rotation.y = THREE.MathUtils.degToRad(currentRotationDegrees);
+        };
+
+        document.getElementById('btnCW').addEventListener('click', () => applyCubeRotation(90));
+        document.getElementById('btnCCW').addEventListener('click', () => applyCubeRotation(-90));
+
+        // 7. UI EVENT LISTENERS
+        document.getElementById('colA').addEventListener('input', e => customUniforms.colorA.value.set(e.target.value));
+        document.getElementById('colB').addEventListener('input', e => customUniforms.colorB.value.set(e.target.value));
+        document.getElementById('colRiver').addEventListener('input', e => customUniforms.colorRiver.value.set(e.target.value));
+        document.getElementById('colBank').addEventListener('input', e => customUniforms.colorBank.value.set(e.target.value));
+        document.getElementById('riverWidth').addEventListener('input', e => customUniforms.riverWidth.value = parseFloat(e.target.value) / 100);
+        
+        const updatePathCoordinates = () => {
+            // BoxGeometry spans from -1.0 to 1.0 (total width 2.0)
+            const sx = parseFloat(document.getElementById('startX').value) / 100;
+            const sz = parseFloat(document.getElementById('startY').value) / 100;
+            const ex = parseFloat(document.getElementById('endX').value) / 100;
+            const ez = parseFloat(document.getElementById('endY').value) / 100;
+            customUniforms.pStart.value.set(sx, sz);
+            customUniforms.pEnd.value.set(ex, ez);
+        };
+
+        document.getElementById('startX').addEventListener('input', updatePathCoordinates);
+        document.getElementById('startY').addEventListener('input', updatePathCoordinates);
+        document.getElementById('endX').addEventListener('input', updatePathCoordinates);
+        document.getElementById('endY').addEventListener('input', updatePathCoordinates);
+
+        // Init path bounds coordinates
+        updatePathCoordinates();
+
+        // Top Listeners
+        document.getElementById('tMode').addEventListener('change', e => customUniforms.tMode.value = parseInt(e.target.value));
+        document.getElementById('tInkMode').addEventListener('change', e => {
+            const val = parseInt(e.target.value);
+            customUniforms.tInkMode.value = val;
+            document.getElementById('tBrightRow').classList.toggle('hidden', val === 1);
+            document.getElementById('tColorRow').classList.toggle('hidden', val === 0);
+        });
+        document.getElementById('tInkCol').addEventListener('input', e => customUniforms.tInkColor.value.set(e.target.value));
+        document.getElementById('tSpace').addEventListener('input', e => customUniforms.tSpace.value = parseFloat(e.target.value));
+        document.getElementById('tThick').addEventListener('input', e => customUniforms.tThick.value = parseFloat(e.target.value));
+        document.getElementById('tBright').addEventListener('input', e => customUniforms.tBright.value = parseFloat(e.target.value) / 100);
+        document.getElementById('tAlpha').addEventListener('input', e => customUniforms.tAlpha.value = parseFloat(e.target.value) / 100);
+
+        // Bottom Listeners
+        document.getElementById('bMode').addEventListener('change', e => customUniforms.bMode.value = parseInt(e.target.value));
+        document.getElementById('bInkMode').addEventListener('change', e => {
+            const val = parseInt(e.target.value);
+            customUniforms.bInkMode.value = val;
+            document.getElementById('bBrightRow').classList.toggle('hidden', val === 1);
+            document.getElementById('bColorRow').classList.toggle('hidden', val === 0);
+        });
+        document.getElementById('bInkCol').addEventListener('input', e => customUniforms.bInkColor.value.set(e.target.value));
+        document.getElementById('bSpace').addEventListener('input', e => customUniforms.bSpace.value = parseFloat(e.target.value));
+        document.getElementById('bThick').addEventListener('input', e => customUniforms.bThick.value = parseFloat(e.target.value));
+        document.getElementById('bBright').addEventListener('input', e => customUniforms.bBright.value = parseFloat(e.target.value) / 100);
+        document.getElementById('bAlpha').addEventListener('input', e => customUniforms.bAlpha.value = parseFloat(e.target.value) / 100);
+
+        window.addEventListener('resize', () => {
+            const aspect = window.innerWidth / window.innerHeight;
+            camera.left = -frustumSize * aspect / 2;
+            camera.right = frustumSize * aspect / 2;
+            camera.top = frustumSize / 2;
+            camera.bottom = -frustumSize / 2;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+    </script>
+</body>
+
+</html>

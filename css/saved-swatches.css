@@ -1,0 +1,33 @@
+.saved-swatch {
+    width: 24px; height: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all .15s;
+    position: relative;
+    flex-shrink: 0;
+}
+.saved-swatch:hover {
+    transform: scale(1.1);
+    border-color: var(--color-text-muted);
+}
+.saved-swatch.active {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 6px rgba(62, 207, 178, 0.3);
+}
+.swatch-delete {
+    position: absolute;
+    top: -6px; right: -6px;
+    width: 14px; height: 14px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border-color-strong);
+    color: var(--color-danger-light);
+    border-radius: 50%;
+    font-size: 9px;
+    line-height: 12px;
+    text-align: center;
+    cursor: pointer;
+    display: none;
+    font-family: sans-serif;
+}
+.saved-swatch:hover .swatch-delete { display: block; }

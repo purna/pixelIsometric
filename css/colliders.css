@@ -1,0 +1,18 @@
+/*
+ * colliders.css — Ghost highlight, erase highlight, collider preview
+ */
+/* ── ghost / erase overlay colours applied by JS to cloned materials ── */
+.ghost-highlight  { border-color: var(--color-secondary) !important; box-shadow: 0 0 6px rgba(78,255,145,.35); }
+.erase-highlight  { opacity: .55; border-color: var(--color-danger) !important; }
+.erase-highlight-mesh { opacity: .7; }
+
+/* ── Erase cursor cursor-class on viewport ── */
+#viewport-container.viewport-erase  { cursor: crosshair; }
+
+/* ── Collider preview plane (top / left / right faces) ── */
+.collider-preview-top    { }
+.collider-preview-left   { }
+.collider-preview-right  { }
+.collider-preview-line   { }
+
+/* ── Interact plane (invisible ground for raycasting) ── hidden via JS */

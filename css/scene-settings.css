@@ -1,0 +1,79 @@
+/*
+ * scene-settings.css — Scene settings: background colour, expandable grid size
+ */
+.scene-settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.setting-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color-med);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.setting-card-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .10em;
+  color: var(--color-primary);
+  margin-bottom: 10px;
+}
+
+.scene-prop-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.scene-prop-row:last-child { margin-bottom: 0; }
+
+.scene-prop-row label {
+  font-size: 10px;
+  color: var(--color-text-dark);
+  white-space: nowrap;
+}
+
+/* grid-size controls */
+.grid-size-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.grid-size-controls input[type="number"] {
+  background: var(--bg-inset);
+  border: 1px solid var(--border-color-strong);
+  color: var(--color-primary);
+  font-size: 10px;
+  font-family: 'Space Mono', monospace;
+  padding: 3px 6px;
+  border-radius: 3px;
+  width: 60px;
+  text-align: center;
+}
+.grid-size-controls button {
+  padding: 3px 8px;
+  font-size: 10px;
+  border: 1px solid var(--border-color-strong);
+  background: transparent;
+  color: var(--color-text-dark);
+  cursor: pointer;
+  border-radius: 3px;
+  font-family: 'Space Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.grid-size-controls button:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+/* help text */
+.setting-help {
+  font-size: 9px;
+  color: var(--color-text-help);
+  margin-top: 4px;
+  line-height: 1.4;
+}

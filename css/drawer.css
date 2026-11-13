@@ -1,0 +1,100 @@
+/*
+ * drawer.css — Material settings bottom drawer
+ */
+#viewport-bottom-drawer {
+  height: 0;
+  overflow: hidden;
+  background: var(--bg-inset);
+  border-top: 0px solid var(--border-color-med);
+  flex-shrink: 0;
+  transition: height .22s ease, border-top-width .1s ease;
+}
+#viewport-bottom-drawer.open {
+  border-top-width: 1px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+#viewport-bottom-drawer::-webkit-scrollbar { height: 4px; width: 4px; }
+#viewport-bottom-drawer::-webkit-scrollbar-thumb { background: #2a2a38; }
+
+#drawer-inner {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0;
+  padding: 10px 16px;
+  min-width: max-content;
+}
+
+.drawer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-right: 20px;
+  border-right: 1px solid var(--border-color-light);
+  margin-right: 20px;
+}
+.drawer-col:last-child { border-right: none; margin-right: 0; }
+
+.d-title {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .18em;
+  color: var(--dt-color, var(--color-text-dark));
+  border-bottom: 1px solid var(--border-color-med);
+  padding-bottom: 4px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+
+.d-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--color-text-dark);
+  min-height: 20px;
+  white-space: nowrap;
+}
+.d-row input[type="range"] { width: 80px; }
+.d-row input[type="color"] { height: 20px; width: 28px; }
+.d-row select {
+  background: var(--bg-inset); color: var(--color-text-dark);
+  border: 1px solid var(--border-color-strong); padding: 2px 4px;
+  font-family: 'Space Mono'; font-size: 9px;
+  text-transform: uppercase; width: 90px;
+}
+
+.saved-swatch {
+  width: 22px; height: 22px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all .15s;
+  position: relative;
+  flex-shrink: 0;
+}
+.saved-swatch:hover {
+  transform: scale(1.1);
+  border-color: var(--color-text-muted);
+}
+.saved-swatch.active {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 6px rgba(62, 207, 178, 0.3);
+}
+.swatch-delete {
+  position: absolute;
+  top: -6px; right: -6px;
+  width: 14px; height: 14px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color-strong);
+  color: var(--color-danger-light);
+  border-radius: 50%;
+  font-size: 9px;
+  line-height: 12px;
+  text-align: center;
+  cursor: pointer;
+  display: none;
+  font-family: sans-serif;
+}
+.saved-swatch:hover .swatch-delete { display: block; }

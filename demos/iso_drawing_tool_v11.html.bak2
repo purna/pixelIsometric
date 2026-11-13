@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iso Drawing Tool v9 - View Rotation & Multi-Layer</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div id="app">
+  <div id="toolbar">
+    <div class="tb-section">
+      <span class="tb-label">Cubes</span>
+      <button class="tool-btn active" id="btn-cube" onclick="setTool('cube')">
+        <svg width="18" height="18" viewBox="0 0 32 26" fill="none"><polygon points="16,2 30,9 16,16 2,9" fill="currentColor" opacity=".9"/><polygon points="2,9 16,16 16,26 2,19" fill="currentColor" opacity=".5"/><polygon points="30,9 16,16 16,26 30,19" fill="currentColor" opacity=".7"/></svg>Split
+      </button>
+      <button class="tool-btn" id="btn-cube-solid" onclick="setTool('cube-solid')">
+        <svg width="18" height="18" viewBox="0 0 32 26" fill="none"><polygon points="16,2 30,9 16,16 2,9" fill="currentColor"/><polygon points="2,9 16,16 16,26 2,19" fill="currentColor" opacity=".7"/><polygon points="30,9 16,16 16,26 30,19" fill="currentColor" opacity=".8"/></svg>Solid
+      </button>
+      <button class="tool-btn" id="btn-cube-water" onclick="setTool('cube-water')">
+        <svg width="18" height="18" viewBox="0 0 32 26" fill="none"><polygon points="16,2 30,9 16,16 2,9" fill="#4fa3e3" opacity=".5"/><polygon points="2,9 16,16 16,26 2,19" fill="#2d6fa3" opacity=".4"/><polygon points="30,9 16,16 16,26 30,19" fill="#3b87c4" opacity=".45"/></svg>Water
+      </button>
+    </div>
+    <div class="tb-section">
+      <span class="tb-label">Collider</span>
+      <button class="tool-btn col-btn" id="btn-col-top" onclick="setTool('col-top')">
+        <svg width="24" height="14" viewBox="0 0 30 18"><polygon points="15,1 29,9 15,17 1,9" fill="none" stroke="currentColor" stroke-width="2"/></svg>Top
+      </button>
+      <button class="tool-btn col-btn" id="btn-col-left" onclick="setTool('col-left')">
+        <svg width="16" height="24" viewBox="0 0 16 26"><polygon points="15,25 1,17 1,1 15,9" fill="none" stroke="currentColor" stroke-width="2"/></svg>Left
+      </button>
+      <button class="tool-btn col-btn" id="btn-col-right" onclick="setTool('col-right')">
+        <svg width="16" height="24" viewBox="0 0 16 26"><polygon points="1,17 15,26 15,1 1,9" fill="none" stroke="currentColor" stroke-width="2"/></svg>Right
+      </button>
+      <button class="tool-btn col-btn" id="btn-col-line" onclick="setTool('col-line')">
+        <svg width="24" height="18" viewBox="0 0 28 20" fill="none"><line x1="3" y1="17" x2="25" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="3" cy="17" r="2.5" fill="currentColor"/><circle cx="25" cy="3" r="2.5" fill="currentColor"/></svg>Line
+      </button>
+    </div>
+    <div class="tb-section">
+      <span class="tb-label">Erase</span>
+      <button class="tool-btn" id="btn-erase" onclick="setTool('erase')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M20 20H7L3 16l11-11 7 7-2.5 2.5"/><path d="M6 11l7 7"/></svg>Erase
+      </button>
+    </div>
+
+    <div class="tb-section">
+      <span class="tb-label">View</span>
+      <button class="tool-btn" onclick="rotateView(-1)" title="Rotate Counter-Clockwise">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v6h6"/><path d="M3 8a9 9 0 1 0 9-5v0"/></svg>CCW
+      </button>
+      <button class="tool-btn" onclick="rotateView(1)" title="Rotate Clockwise">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M21 8A9 9 0 1 1 12 3v0"/></svg>CW
+      </button>
+    </div>
+
+    <div class="tb-section">
+      <span class="tb-label">Level Z</span>
+      <button class="tool-btn" onclick="changeZ(-1)" title="Lower Level" style="padding:5px 8px">-</button>
+      <span id="lbl-z-level" style="font-size:10px;color:#3ecfb2;font-weight:bold;margin:0 4px;min-width:12px;text-align:center">0</span>
+      <button class="tool-btn" onclick="changeZ(1)" title="Higher Level" style="padding:5px 8px">+</button>
+    </div>
+
+    <div class="tb-section" style="flex:1;gap:5px">
+      <span class="tb-label">Color</span>
+      <div id="swatches" style="display:flex;gap:4px;align-items:center"></div>
+    </div>
+    <div class="tb-section" id="split-controls" style="gap:6px">
+      <span class="tb-label">Top</span>
+      <div id="swA" style="width:14px;height:14px;border-radius:3px;background:#3ecfb2;border:1px solid #333;cursor:pointer;position:relative;overflow:hidden;flex-shrink:0"><input type="color" id="colA" value="#3ecfb2" style="position:absolute;inset:-6px;opacity:0;cursor:pointer;width:150%;height:150%"></div>
+      <span class="tb-label" id="lbl-colB">Bot</span>
+      <div id="swB" style="width:14px;height:14px;border-radius:3px;background:#c94b6e;border:1px solid #333;cursor:pointer;position:relative;overflow:hidden;flex-shrink:0"><input type="color" id="colB" value="#c94b6e" style="position:absolute;inset:-6px;opacity:0;cursor:pointer;width:150%;height:150%"></div>
+      <span class="tb-label" id="lbl-split" style="margin-left:4px">Split</span>
+      <input type="range" id="split" min="0" max="100" value="50" step="1" style="-webkit-appearance:none;appearance:none;width:52px;height:2px;background:#1c1c1c;border-radius:2px;outline:none">
+    </div>
+    <div class="tb-section" style="gap:6px">
+      <button class="tb-mini" onclick="clearAll()">Clear</button>
+      <button class="tb-save" id="btn-save" onclick="saveToGrid()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13m0 0-4-4m4 4 4-4"/><rect x="3" y="17" width="18" height="4" rx="1"/></svg>
+        Save to Grid
+      </button>
+    </div>
+  </div>
+
+  <div id="layer-bar">
+    <div class="layer-tab active-cube" id="tab-cube" onclick="setLayer('cube')">● Cube layer</div>
+    <div class="layer-tab" id="tab-col" onclick="setLayer('collider')">◎ Collider layer</div>
+    <div id="layer-hint">painting cubes</div>
+  </div>
+
+  <div id="cvwrap">
+    <canvas id="c-grid"></canvas>
+    <canvas id="c-cube"></canvas>
+    <canvas id="c-col"></canvas>
+    <canvas id="c-hit"></canvas>
+  </div>
+  <div id="statusbar"><span id="status-msg">click a tile to place a cube</span></div>
+</div>
+
+
+<div id="mat-bar">
+  <div id="mat-bar-header">
+    <!-- icons injected by JS -->
+    <div id="mat-bar-hint">← select a material to edit its settings</div>
+  </div>
+  <div id="mat-panel">
+    <!-- content swapped by JS per selection -->
+  </div>
+</div>
+
+<div id="grid-panel">
+  <div id="grid-header">
+    <h2>● Grid System</h2>
+    <span id="grid-status">select a stamp, then click the grid to place</span>
+  </div>
+
+  <div id="grid-canvas-wrap" style="height:340px">
+    <canvas id="gc-bg"></canvas>
+    <canvas id="gc-obj"></canvas>
+    <canvas id="gc-ui"></canvas>
+  </div>
+
+  <div id="stamp-tray">
+    <div class="stamp-empty" id="stamp-empty-msg">no saved objects yet — draw something and click "Save to Grid"</div>
+  </div>
+</div>
+
+<script src="js/script.js"></script>
+</body>
+</html>
