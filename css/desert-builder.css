@@ -58,3 +58,8 @@ button:disabled{opacity:.4;cursor:default}
 .file{display:none}
 @media(max-width:1050px){.body{grid-template-columns:230px minmax(300px,1fr)}.sidebar.right{display:none}}
 @media(max-width:700px){.body{grid-template-columns:1fr}.sidebar.left{display:none}}
+
+.theme-links{display:flex;gap:4px;align-items:center;margin-left:4px}
+.theme-links a,.theme-links span{font-size:10px;letter-spacing:.03em;text-decoration:none;color:var(--muted);border:1px solid transparent;border-radius:3px;padding:3px 6px}
+.theme-links a:hover{color:#fff;border-color:var(--line)}
+.theme-links span{color:var(--accent);border-color:var(--accent);background:#342c14}
