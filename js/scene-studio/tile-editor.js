@@ -108,7 +108,7 @@ const STYLE = `
 export function createTileEditor(root, opts = {}) {
   const {
     tiles = DEFAULT_TILES, sets = DEFAULT_SETS, groups = DEFAULT_GROUPS,
-    storageKey = 'pixelIsometric.tileEditor.v1', onChange = () => {}, onSelect = () => {},
+    storageKey = 'pixelIsometric.tileEditor.v1', onChange = () => {}, onSelect = () => {}, onSetChange = () => {},
     startSet = sets[0] && sets[0].id,
   } = opts;
 
@@ -172,7 +172,7 @@ export function createTileEditor(root, opts = {}) {
   const btnResetTile = h('button', { class: 'danger', text: 'Reset tile', onclick: () => resetTile() });
   const btnResetAll = h('button', { class: 'danger', text: 'Reset all', onclick: () => resetAll() });
 
-  const setSelect = h('select', { onchange: e => { setId = e.target.value; renderPalette(); const first = tiles.find(t => setOfGroup[t.groupId] === setId); if (first) select(first.id); } },
+  const setSelect = h('select', { onchange: e => { setId = e.target.value; renderPalette(); const first = tiles.find(t => setOfGroup[t.groupId] === setId); if (first) select(first.id); onSetChange(setId); } },
     sets.map(s => h('option', { value: s.id, text: s.name })));
   const palette = h('div', { class: 'te-palscroll' });
 

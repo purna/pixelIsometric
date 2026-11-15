@@ -76,9 +76,11 @@ document.getElementById('app').innerHTML = `
           <button data-layer="decoration">Detail</button>
           <button data-layer="structure">Structure</button>
         </div>
+        <div class="row" id="decoOpacityRow" style="display:none"><label>Detail α</label><input id="decoOpacity" type="range" min="10" max="100" step="5" value="90"><span class="value" id="decoOpacityValue">90%</span></div>
+        <p class="hint">Detail layers can hold several decals per tile — paint flowers, grass, cracks and paving over each other.</p>
       </section>
       <section class="section">
-        <h2>${theme.name} Tiles</h2>
+        <h2 id="tilePaletteTitle">${theme.name} Tiles</h2>
         <div id="tilePalette" class="palette"></div>
       </section>
     </aside>
@@ -125,6 +127,7 @@ function makeTiles() {
     if (tile) Object.assign(tile, { top, bottom, split });
   });
   theme.extraTiles.forEach(tile => tiles.push(clone(tile)));
+  (theme.details || []).forEach(tile => tiles.push(clone(tile)));
   tiles.forEach(normalizeTile);
   return tiles;
 }
@@ -134,7 +137,7 @@ const tileOf = id => TILE_BY_ID.get(id) || TILES[0];
 
 /* ── state ───────────────────────────────────────────────── */
 const LAYER_RANK = { ground: 0, decoration: 1, structure: 2 };
-function defaultScene() { return { width: 30, height: 24, tiles: [] }; }
+function defaultScene() { return { width: 30, height: 24, tiles: [], decorationOpacity: 0.9 }; }
 let state = defaultScene();
 let history = [];
 let historyIndex = -1;
@@ -191,12 +194,27 @@ function tileAt(x, y, z = activeHeight, layer = activeLayer) {
   return state.tiles.find(t => t.x === x && t.y === y && t.z === z && t.layer === layer);
 }
 function setTile(x, y, z, id, shape = activeShape, layer = activeLayer, structure = activeStructure, rot = activeRot, mirror = activeMirror) {
-  const i = state.tiles.findIndex(t => t.x === x && t.y === y && t.z === z && t.layer === layer);
-  if (id) {
-    const data = { id, shape, layer, structure: structure || null, rot: rot || 0, mirror: !!mirror };
-    if (i < 0) state.tiles.push({ x, y, z, ...data });
-    else Object.assign(state.tiles[i], data);
-  } else if (i >= 0) state.tiles.splice(i, 1);
+  const sameCell = t => t.x === x && t.y === y && t.z === z && t.layer === layer;
+  if (!id) {
+    if (layer === 'decoration') {
+      const list = state.tiles.filter(sameCell);
+      if (list.length) state.tiles.splice(state.tiles.indexOf(list[list.length - 1]), 1);
+      return;
+    }
+    const i = state.tiles.findIndex(sameCell);
+    if (i >= 0) state.tiles.splice(i, 1);
+    return;
+  }
+  const def = tileOf(id);
+  if (layer === 'decoration' && def && def.decal) {
+    if (state.tiles.some(t => sameCell(t) && t.id === id)) return;
+    state.tiles.push({ x, y, z, id, shape: 'plane', layer });
+    return;
+  }
+  const i = state.tiles.findIndex(sameCell);
+  const data = { id, shape, layer, structure: structure || null, rot: rot || 0, mirror: !!mirror };
+  if (i < 0) state.tiles.push({ x, y, z, ...data });
+  else Object.assign(state.tiles[i], data);
 }
 function paint(cell, erase = false) {
   if (cell.x < 0 || cell.y < 0 || cell.x >= state.width || cell.y >= state.height) return;
@@ -269,8 +287,123 @@ function fillPoly(points, fill, alpha = 1) {
   ctx.stroke();
   ctx.restore();
 }
+function seedAt(n) {
+  const x = Math.sin(n * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+}
+function decalPoint(p, s, seed, i) {
+  let u = seedAt(seed + i * 2.13), v = seedAt(seed + i * 3.71 + 5);
+  if (u + v > 1) { u = 1 - u; v = 1 - v; }
+  return [p.x + (u - v) * s, p.y + (u + v) * s * 0.5 - s * 0.5];
+}
+function drawDecal(g, def, p, s, alpha = 1) {
+  const seed = (p.x * 0.017 + p.y * 0.031) % 97;
+  g.save();
+  g.globalAlpha = alpha;
+  g.beginPath();
+  g.moveTo(p.x, p.y - s * 0.5);
+  g.lineTo(p.x + s, p.y);
+  g.lineTo(p.x, p.y + s * 0.5);
+  g.lineTo(p.x - s, p.y);
+  g.closePath();
+  g.clip();
+  const ink = def.ink || '#ffffff';
+  const accent = def.accent || ink;
+  if (def.decal === 'flowers') {
+    for (let i = 0; i < 6; i++) {
+      const [x, y] = decalPoint(p, s, seed, i);
+      const r = Math.max(1, s * 0.06);
+      g.fillStyle = accent;
+      for (let k = 0; k < 4; k++) {
+        const a = k * Math.PI / 2 + seedAt(seed + i + k) * 0.4;
+        g.beginPath(); g.arc(x + Math.cos(a) * r, y + Math.sin(a) * r, r * 0.8, 0, Math.PI * 2); g.fill();
+      }
+      g.fillStyle = ink;
+      g.beginPath(); g.arc(x, y, r * 0.65, 0, Math.PI * 2); g.fill();
+    }
+  } else if (def.decal === 'grass') {
+    g.strokeStyle = ink; g.lineWidth = Math.max(1, s * 0.045);
+    for (let i = 0; i < 8; i++) {
+      const [x, y] = decalPoint(p, s, seed, i);
+      const h = s * (0.12 + seedAt(seed + i + 9) * 0.12);
+      g.beginPath(); g.moveTo(x, y); g.lineTo(x + (seedAt(seed + i + 3) - 0.5) * s * 0.14, y - h); g.stroke();
+    }
+  } else if (def.decal === 'leaves') {
+    for (let i = 0; i < 7; i++) {
+      const [x, y] = decalPoint(p, s, seed, i);
+      g.save(); g.translate(x, y); g.rotate(seedAt(seed + i) * Math.PI * 2);
+      g.fillStyle = i % 2 ? ink : accent;
+      g.beginPath(); g.ellipse(0, 0, s * 0.1, s * 0.045, 0, 0, Math.PI * 2); g.fill();
+      g.restore();
+    }
+  } else if (def.decal === 'cracks' || def.decal === 'icecracks') {
+    g.strokeStyle = ink; g.lineWidth = Math.max(1, s * 0.035);
+    for (let i = 0; i < 3; i++) {
+      let [x, y] = decalPoint(p, s, seed, i + 2);
+      g.beginPath(); g.moveTo(x, y);
+      for (let k = 0; k < 4; k++) {
+        x += (seedAt(seed + i * 7 + k) - 0.5) * s * 0.34;
+        y += (seedAt(seed + i * 5 + k + 4) - 0.5) * s * 0.2;
+        g.lineTo(x, y);
+      }
+      g.stroke();
+    }
+  } else if (def.decal === 'moss' || def.decal === 'snowdrift') {
+    g.fillStyle = ink;
+    for (let i = 0; i < 7; i++) {
+      const [x, y] = decalPoint(p, s, seed, i);
+      g.globalAlpha = alpha * (def.decal === 'snowdrift' ? 0.55 : 0.7);
+      g.beginPath(); g.ellipse(x, y, s * 0.15, s * 0.07, seedAt(seed + i) * 0.8, 0, Math.PI * 2); g.fill();
+    }
+    g.globalAlpha = alpha;
+  } else if (def.decal === 'puddle') {
+    const x = p.x, y = p.y;
+    g.fillStyle = ink; g.globalAlpha = alpha * 0.38;
+    g.beginPath(); g.ellipse(x, y, s * 0.48, s * 0.24, 0, 0, Math.PI * 2); g.fill();
+    g.globalAlpha = alpha * 0.55;
+    g.strokeStyle = accent; g.lineWidth = Math.max(1, s * 0.03);
+    g.beginPath(); g.ellipse(x - s * 0.08, y - s * 0.04, s * 0.25, s * 0.1, -0.2, 0, Math.PI * 2); g.stroke();
+    g.globalAlpha = alpha;
+  } else if (def.decal === 'pebbles') {
+    for (let i = 0; i < 9; i++) {
+      const [x, y] = decalPoint(p, s, seed, i);
+      g.fillStyle = i % 3 === 0 ? accent : ink;
+      g.beginPath(); g.ellipse(x, y, s * 0.07, s * 0.045, seedAt(seed + i) * 3, 0, Math.PI * 2); g.fill();
+    }
+  } else if (def.decal === 'paving') {
+    g.strokeStyle = ink; g.lineWidth = Math.max(1, s * 0.03);
+    for (let k = -1; k <= 1; k++) {
+      g.beginPath();
+      g.moveTo(p.x - s, p.y + k * s * 0.28);
+      g.lineTo(p.x, p.y + s * 0.5 + k * s * 0.28);
+      g.lineTo(p.x + s, p.y + k * s * 0.28);
+      g.stroke();
+    }
+    for (let k = -1; k <= 1; k++) {
+      g.beginPath();
+      g.moveTo(p.x + k * s * 0.45, p.y - s * 0.5 + Math.abs(k) * s * 0.2);
+      g.lineTo(p.x + k * s * 0.45, p.y + s * 0.5 - Math.abs(k) * s * 0.2);
+      g.stroke();
+    }
+  } else if (def.decal === 'footprints') {
+    g.fillStyle = ink;
+    for (let i = 0; i < 4; i++) {
+      const [x, y] = decalPoint(p, s, seed, i);
+      const side = i % 2 ? 1 : -1;
+      g.globalAlpha = alpha * 0.7;
+      g.beginPath(); g.ellipse(x + side * s * 0.06, y, s * 0.055, s * 0.095, 0, 0, Math.PI * 2); g.fill();
+    }
+    g.globalAlpha = alpha;
+  }
+  g.restore();
+}
 function drawTile(tile, alpha = 1) {
   const data = tileOf(tile.id);
+  if (data && data.decal) {
+    const p = iso(tile.x, tile.y, tile.z);
+    drawDecal(ctx, data, p, p.scale, alpha * (state.decorationOpacity ?? 0.9));
+    return;
+  }
   const p = iso(tile.x, tile.y, tile.z);
   const s = p.scale;
   const shape = tile.shape || 'plane';
@@ -381,9 +514,45 @@ function draw() {
 }
 
 /* ── palettes ────────────────────────────────────────────── */
+const decalPreviewCache = new Map();
+function decalPreviewURL(def) {
+  const hit = decalPreviewCache.get(def.id);
+  if (hit) return hit;
+  const c = document.createElement('canvas');
+  c.width = 80; c.height = 64;
+  const g = c.getContext('2d');
+  g.fillStyle = '#0b0b0f'; g.fillRect(0, 0, 80, 64);
+  g.strokeStyle = '#2a2a38'; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(40, 12); g.lineTo(72, 32); g.lineTo(40, 52); g.lineTo(8, 32); g.closePath(); g.stroke();
+  drawDecal(g, def, { x: 40, y: 32, scale: 28 }, 28, 0.9);
+  const url = c.toDataURL();
+  decalPreviewCache.set(def.id, url);
+  return url;
+}
 function renderTilePalette() {
   const holder = $('tilePalette');
   holder.innerHTML = '';
+  const detailMode = activeLayer === 'decoration';
+  const title = $('tilePaletteTitle');
+  if (title) title.textContent = detailMode ? 'Detail Tiles' : `${theme.name} Tiles`;
+  if (detailMode) {
+    (theme.details || []).forEach(def => {
+      const b = document.createElement('button');
+      b.className = 'tile' + (activeTile === def.id ? ' active' : '');
+      b.dataset.tile = def.id;
+      b.title = def.name;
+      b.innerHTML = `<i style="background-image:url(${decalPreviewURL(def)});background-size:cover"></i>${def.name}`;
+      b.onclick = () => {
+        activeTile = def.id;
+        activeStructure = null;
+        activeShape = 'plane';
+        syncUI(); draw();
+        say(`Selected detail <b>${def.name}</b>. Stack several details on one tile.`);
+      };
+      holder.appendChild(b);
+    });
+    return;
+  }
   theme.palette.forEach(id => {
     const tile = tileOf(id);
     if (!tile) return;
@@ -397,6 +566,7 @@ function renderTilePalette() {
       activeStructure = null;
       activeShape = ['plane', 'cube', 'ramp'].includes(activeShape) ? activeShape : 'plane';
       activeLayer = 'ground';
+      renderTilePalette();
       syncUI(); draw();
       say(`Selected <b>${tile.name}</b>.`);
     };
@@ -436,6 +606,7 @@ function renderStructurePalette() {
         activeStructure = structure.id;
         activeShape = 'structure';
         activeLayer = 'structure';
+        renderTilePalette();
         syncUI(); draw();
         say(`Selected <b>${structure.name}</b>. Paint with it, or press Rotate first.`);
       };
@@ -453,6 +624,8 @@ function syncUI() {
   document.querySelectorAll('[data-layer]').forEach(b => b.classList.toggle('active', b.dataset.layer === activeLayer));
   document.querySelectorAll('[data-tile]').forEach(b => b.classList.toggle('active', !activeStructure && b.dataset.tile === activeTile));
   document.querySelectorAll('[data-structure]').forEach(b => b.classList.toggle('active', b.dataset.structure === activeStructure));
+  const decoRow = $('decoOpacityRow');
+  if (decoRow) decoRow.style.display = activeLayer === 'decoration' ? 'flex' : 'none';
   canvas.style.cursor = tool === 'fill' ? 'cell' : tool === 'erase' ? 'not-allowed' : 'crosshair';
 }
 function syncInputs() {
@@ -464,6 +637,9 @@ function syncInputs() {
   const fillBtn = $('terrainFill');
   fillBtn.textContent = terrainFill ? 'Columns on' : 'Columns off';
   fillBtn.classList.toggle('active', terrainFill);
+  const alpha = Math.round((state.decorationOpacity ?? 0.9) * 100);
+  if ($('decoOpacity')) $('decoOpacity').value = alpha;
+  if ($('decoOpacityValue')) $('decoOpacityValue').textContent = alpha + '%';
 }
 function renderLevels() {
   const holder = $('levelList');
@@ -775,6 +951,15 @@ $('terrainShapes').addEventListener('click', e => {
 $('layers').addEventListener('click', e => {
   const b = e.target.closest('[data-layer]'); if (!b) return;
   activeLayer = b.dataset.layer;
+  if (activeLayer === 'decoration') {
+    activeStructure = null;
+    if (!tileOf(activeTile).decal) activeTile = (theme.details && theme.details[0] && theme.details[0].id) || activeTile;
+    activeShape = 'plane';
+  } else if (tileOf(activeTile).decal) {
+    activeTile = theme.palette[0];
+    activeShape = 'plane';
+  }
+  renderTilePalette();
   syncUI(); draw();
 });
 $('exampleButtons').addEventListener('click', e => {
@@ -783,6 +968,12 @@ $('exampleButtons').addEventListener('click', e => {
 });
 $('rotateBtn').onclick = () => { activeRot = (activeRot + 1) % 4; syncInputs(); draw(); };
 $('mirrorBtn').onclick = () => { activeMirror = !activeMirror; $('mirrorBtn').classList.toggle('active', activeMirror); draw(); };
+$('decoOpacity').oninput = () => {
+  state.decorationOpacity = Number($('decoOpacity').value) / 100;
+  $('decoOpacityValue').textContent = Math.round(state.decorationOpacity * 100) + '%';
+  draw();
+};
+$('decoOpacity').onchange = () => commit();
 $('brush').oninput = () => { brushSize = Number($('brush').value); $('brushValue').textContent = brushSize + '×' + brushSize; draw(); };
 $('levelDown').onclick = () => { activeHeight = Math.max(0, activeHeight - 1); syncInputs(); renderLevels(); draw(); };
 $('levelUp').onclick = () => { activeHeight = Math.min(MAX_LEVEL, activeHeight + 1); syncInputs(); renderLevels(); draw(); };

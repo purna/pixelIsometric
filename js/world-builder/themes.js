@@ -4,6 +4,13 @@ const t = (id, name, groupId, top, bottom, split, topDither, bottomDither) => ({
   id, name, groupId, top, bottom, split, topDither, bottomDither
 });
 
+const decal = (id, name, kind, ink, accent = '#ffffff') => ({
+  id, name, groupId: 'details', decal: kind, ink, accent,
+  top: '#2a2a2a', bottom: '#151515', split: 100,
+  topDither: dither('solid'), bottomDither: dither('solid')
+});
+
+
 /* ── Jungle ───────────────────────────────────────────────── */
 const JUNGLE = {
   id: 'jungle',
@@ -66,6 +73,15 @@ const JUNGLE = {
     'sandstone': ['#7d8f6b', '#3f4d36', 55],
     'desert-roof': ['#6f8a4a', '#3f5429', 52]
   },
+  details: [
+    decal('flowers', 'Flowers', 'flowers', '#ffd35c', '#ff7aa8'),
+    decal('grass-tufts', 'Grass Tufts', 'grass', '#6fbf5a'),
+    decal('leaves', 'Fallen Leaves', 'leaves', '#3f7a34', '#7fbf5a'),
+    decal('cracks', 'Cracks', 'cracks', '#4a351f'),
+    decal('moss', 'Moss', 'moss', '#4f8a4a'),
+    decal('puddle', 'Puddle', 'puddle', '#4fb3c4'),
+    decal('pebbles', 'Pebbles', 'pebbles', '#9a9482')
+  ],
   examples: [
     ['rainforest', 'Rainforest'], ['river', 'Jungle river'],
     ['ruins', 'Temple ruins'], ['highlands', 'Cloud forest'], ['empty', 'Empty']
@@ -133,6 +149,14 @@ const SNOW = {
     'grass': ['#e8f2f7', '#9fb6c4', 62],
     'dirt': ['#8a8f92', '#4a5155', 55]
   },
+  details: [
+    decal('snow-drift', 'Snow Drift', 'snowdrift', '#ffffff', '#d8eef8'),
+    decal('ice-cracks', 'Ice Cracks', 'icecracks', '#8fd8f0'),
+    decal('pebbles', 'Pebbles', 'pebbles', '#9aa7ae'),
+    decal('frozen-grass', 'Frozen Grass', 'grass', '#9fb8a0'),
+    decal('footprints', 'Footprints', 'footprints', '#7d99ad'),
+    decal('frost', 'Frost', 'moss', '#e8f7ff', '#ffffff')
+  ],
   examples: [
     ['snowfield', 'Snowfield'], ['river', 'Frozen river'],
     ['ruins', 'Frozen ruins'], ['highlands', 'Ice peaks'], ['empty', 'Empty']
@@ -198,6 +222,15 @@ const TEMPERATE = {
     'sandstone': ['#a7adb3', '#5b646b', 55],
     'desert-roof': ['#9f4150', '#53242f', 52]
   },
+  details: [
+    decal('flowers', 'Flowers', 'flowers', '#ffd35c', '#e85c6a'),
+    decal('grass-tufts', 'Grass Tufts', 'grass', '#5f9e4c'),
+    decal('leaves', 'Fallen Leaves', 'leaves', '#4f8a4a', '#8fbf63'),
+    decal('cracks', 'Cracks', 'cracks', '#5a4428'),
+    decal('moss', 'Moss', 'moss', '#6f9e4a'),
+    decal('pebbles', 'Pebbles', 'pebbles', '#9a9482'),
+    decal('paving-detail', 'Paving Lines', 'paving', '#b0a68f')
+  ],
   examples: [
     ['meadow', 'Meadow'], ['river', 'River valley'],
     ['ruins', 'Village ruins'], ['highlands', 'Rolling hills'], ['empty', 'Empty']

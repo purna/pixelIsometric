@@ -1065,7 +1065,7 @@ const STYLE = `
 function createTileEditor(root, opts = {}) {
   const {
     tiles = DEFAULT_TILES, sets = DEFAULT_SETS, groups = DEFAULT_GROUPS,
-    storageKey = 'pixelIsometric.tileEditor.v1', onChange = () => {}, onSelect = () => {},
+    storageKey = 'pixelIsometric.tileEditor.v1', onChange = () => {}, onSelect = () => {}, onSetChange = () => {},
     startSet = sets[0] && sets[0].id,
   } = opts;
 
@@ -1129,7 +1129,7 @@ function createTileEditor(root, opts = {}) {
   const btnResetTile = h('button', { class: 'danger', text: 'Reset tile', onclick: () => resetTile() });
   const btnResetAll = h('button', { class: 'danger', text: 'Reset all', onclick: () => resetAll() });
 
-  const setSelect = h('select', { onchange: e => { setId = e.target.value; renderPalette(); const first = tiles.find(t => setOfGroup[t.groupId] === setId); if (first) select(first.id); } },
+  const setSelect = h('select', { onchange: e => { setId = e.target.value; renderPalette(); const first = tiles.find(t => setOfGroup[t.groupId] === setId); if (first) select(first.id); onSetChange(setId); } },
     sets.map(s => h('option', { value: s.id, text: s.name })));
   const palette = h('div', { class: 'te-palscroll' });
 
@@ -1400,9 +1400,47 @@ let selTile = null, selStruct = null, lastList = [];
 
 const tileName = id => (editor.getTile(id) || { name: id }).name;
 
+/* Example sheet palettes: structure material ids borrow the colours of the
+   selected tile set, so each set gets its own example rendering. */
+let currentSetId = 'town';
+const SET_TARGETS = {
+  classic: { stone: 'stone', wall: 'wall-plaster', wood: 'wood', roof: 'roof', water: 'water', soil: 'dirt', grass: 'grass' },
+  desert: { stone: 'sandstone', wall: 'sandstone', wood: 'wood', roof: 'desert-roof', water: 'water', soil: 'dirt', grass: 'sand' },
+  snow: { stone: 'ice-brick', wall: 'snow-pack', wood: 'wood', roof: 'snow-roof', water: 'water', soil: 'snow-pack', grass: 'snow-pack' },
+  jungle: { stone: 'jungle-stone', wall: 'jungle-moss', wood: 'jungle-wood', roof: 'jungle-wood', water: 'water', soil: 'dirt', grass: 'jungle-moss' }
+};
+function targetForStructureTile(id, targets) {
+  if (!targets) return null;
+  if (id === 'doorway-dark') return null;
+  if (/water/.test(id)) return targets.water;
+  if (/roof|ridge/.test(id)) return targets.roof;
+  if (/soil|planter/.test(id)) return targets.soil;
+  if (/timber|table|stool|plank|lattice|door-wood/.test(id)) return targets.wood;
+  if (/plaster|wall|gable-end/.test(id)) return targets.wall;
+  if (/grass/.test(id)) return targets.grass;
+  if (/block|stone|well|pillar|steps|flagstone|keep/.test(id)) return targets.stone;
+  return null;
+}
+function structureTilesForSet(setId) {
+  const targets = SET_TARGETS[setId];
+  if (!targets) return DEFAULT_TILES;
+  const byId = Object.fromEntries(DEFAULT_TILES.map(t => [t.id, t]));
+  const lookup = { ...byId };
+  DEFAULT_TILES.forEach(tile => {
+    const targetId = targetForStructureTile(tile.id, targets);
+    if (targetId && byId[targetId]) lookup[tile.id] = byId[targetId];
+  });
+  return lookup;
+}
+
+function structureTileIdsForSet(structure, setId) {
+  const targets = SET_TARGETS[setId];
+  const ids = structureTiles(structure).map(id => targetForStructureTile(id, targets) || id);
+  return [...new Set(ids)];
+}
 function currentList() {
   let list = with90 ? STRUCTURES_WITH_90 : STRUCTURES;
-  if (onlyUsing && selTile) list = list.filter(s => structureTiles(s).includes(selTile));
+  if (onlyUsing && selTile) list = list.filter(s => structureTileIdsForSet(s, currentSetId).includes(selTile));
   return list;
 }
 
@@ -1412,7 +1450,7 @@ function updateInfo() {
   const nameEl = document.getElementById('structName');
   if (!selStruct) { nameEl.textContent = 'Click a structure in the sheet'; return; }
   nameEl.textContent = selStruct.name;
-  structureTiles(selStruct).forEach(id => {
+  structureTileIdsForSet(selStruct, currentSetId).forEach(id => {
     const b = document.createElement('button');
     b.className = 'chip' + (id === selTile ? ' active' : '');
     b.textContent = tileName(id);
@@ -1428,15 +1466,15 @@ function draw() {
   canvas.width = cols * cellW;
   canvas.height = rows * cellH;
   const g = canvas.getContext('2d');
-  drawStructureSheet(g, lastList, DEFAULT_TILES, { S, cols, cellW, cellH, rot, mirror });
+  drawStructureSheet(g, lastList, structureTilesForSet(currentSetId), { S, cols, cellW, cellH, rot, mirror });
   const idx = selStruct ? lastList.findIndex(s => s.id === selStruct.id) : -1;
   if (idx >= 0) {
     g.strokeStyle = '#3ecfb2'; g.lineWidth = 2;
     g.strokeRect((idx % cols) * cellW + 3, Math.floor(idx / cols) * cellH + 3, cellW - 6, cellH - 6);
   }
-  document.getElementById('state').textContent = lastList.length + ' pieces \u00b7 rot ' + (rot * 90) + '\u00b0 \u00b7 ' + (mirror ? 'mirrored' : 'no mirror');
+  document.getElementById('state').textContent = lastList.length + ' pieces \u00b7 ' + (SET_TARGETS[currentSetId] ? currentSetId : 'town') + ' palette \u00b7 rot ' + (rot * 90) + '\u00b0 \u00b7 ' + (mirror ? 'mirrored' : 'no mirror');
   if (selTile) {
-    const n = (with90 ? STRUCTURES_WITH_90 : STRUCTURES).filter(s => structureTiles(s).includes(selTile)).length;
+    const n = (with90 ? STRUCTURES_WITH_90 : STRUCTURES).filter(s => structureTileIdsForSet(s, currentSetId).includes(selTile)).length;
     document.getElementById('usedBy').textContent = 'Used by ' + n + ' structure' + (n === 1 ? '' : 's');
   }
 }
@@ -1446,6 +1484,7 @@ const editor = createTileEditor(document.getElementById('editor'), {
   storageKey: 'pixelIsometric.sceneStudio.tileEdits.v1',
   onChange: () => draw(),
   onSelect: id => { selTile = id; updateInfo(); draw(); },
+  onSetChange: id => { currentSetId = id; updateInfo(); draw(); },
 });
 
 canvas.addEventListener('click', e => {
