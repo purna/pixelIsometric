@@ -32,7 +32,6 @@
           <button data-tool="fill">Fill</button>
         </div>
         <div class="row"><label>Brush</label><input id="brush" type="range" min="1" max="5" step="2" value="1"><span class="value" id="brushValue">1×1</span></div>
-        <div class="row"><label>Height</label><button id="heightDown">−</button><span class="value" id="heightValue">0</span><button id="heightUp">+</button></div>
         <div class="row"><label>Facing</label><button id="rotateBtn" title="Rotate (R)">Rotate ↻ <span id="rotVal">0°</span></button><button id="mirrorBtn" title="Mirror (M)">Mirror</button></div>
       </section>
 
@@ -47,12 +46,21 @@
       </section>
 
       <section class="section">
-        <h2>Layers</h2>
+        <h2>Elevation Layers</h2>
+        <div class="row"><label>Level</label><button id="levelDown">−</button><span class="value" id="levelValue">0</span><button id="levelUp">+</button></div>
+        <div id="levelList" class="level-list"></div>
+        <div class="row"><label>Terrain</label><button id="terrainFill" class="active" title="Fill sides under raised floors">Columns on</button></div>
+        <p class="hint">Paint a floor at level 1, 2, 3… to raise real terrain. High ground around lower ground makes valleys. Turn columns off for floating decoration.</p>
+      </section>
+
+      <section class="section">
+        <h2>Paint Layers</h2>
         <div class="button-grid three" id="layers">
           <button data-layer="ground" class="active">Ground</button>
           <button data-layer="decoration">Detail</button>
           <button data-layer="structure">Structure</button>
         </div>
+        <p class="hint">Elevation and paint layers are independent: build height first, then add detail and structures.</p>
       </section>
 
       <section class="section">
@@ -83,6 +91,8 @@
           <button id="exOasis">Oasis</button>
           <button id="exRuins">Desert ruins</button>
           <button id="exDunes">Dune sea</button>
+          <button id="exCanyon">Canyon</button>
+          <button id="exHighlands">Highlands</button>
           <button id="exEmpty">Empty sand</button>
         </div>
         <p class="hint">Loading an example is undoable. Paint over it to make it yours.</p>

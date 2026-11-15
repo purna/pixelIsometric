@@ -28,6 +28,12 @@ button:disabled{opacity:.4;cursor:default}
 .row input[type=range]{flex:1;accent-color:var(--accent);padding:0}
 .row input[type=number]{width:64px;padding:5px}
 .value{width:35px;color:var(--accent);text-align:right;font-size:11px}
+.level-list{display:flex;flex-direction:column;gap:4px;margin:8px 0;max-height:168px;overflow:auto}
+.level-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 7px;font-size:10px;text-align:left;background:#0f0f14;border:1px solid var(--line);border-radius:4px;color:var(--ink)}
+.level-btn:hover{border-color:var(--accent);color:#fff}
+.level-btn.active{border-color:var(--accent);background:#342c14;color:var(--accent)}
+.level-btn .level-count{color:var(--muted);font-size:9px}
+.level-btn.active .level-count{color:var(--accent)}
 .button-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
 .button-grid.three{grid-template-columns:repeat(3,1fr)}
 .button-grid button{padding:7px 4px;font-size:10px}

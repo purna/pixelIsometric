@@ -109,7 +109,10 @@ let activeRot = 0;
 let activeMirror = false;
 let activeLayer = 'ground';
 let activeHeight = 0;
+let terrainFill = true;
+let peakZ = 0;
 let brushSize = 1;
+const MAX_LEVEL = 10;
 let pointer = null;
 let drawing = false;
 let lastPaint = '';
@@ -130,8 +133,9 @@ function commit() {
   historyIndex = history.length - 1;
   saveLocal();
   updateHistory();
+  renderLevels();
 }
-function restore(raw) { state = JSON.parse(raw); syncInputs(); draw(); saveLocal(); }
+function restore(raw) { state = JSON.parse(raw); syncInputs(); renderLevels(); draw(); saveLocal(); }
 function undo() { if (historyIndex > 0) { restore(history[--historyIndex]); updateHistory(); say('Undid last change.'); } }
 function redo() { if (historyIndex < history.length - 1) { restore(history[++historyIndex]); updateHistory(); say('Redid change.'); } }
 function loadLocal() {
@@ -193,12 +197,16 @@ function fill(cell) {
 }
 
 /* ── rendering ───────────────────────────────────────────── */
+function refreshPeak() {
+  peakZ = state.tiles.reduce((m, t) => Math.max(m, t.z || 0), 0);
+}
+function viewLift(s) { return Math.max(0, peakZ - 2) * s * 0.22; }
 function iso(x, y, z) {
   const base = Math.max(10, Math.min(30, Math.min(canvas.width / (state.width + state.height + 4), canvas.height / (state.width + state.height + 5)) * 1.35));
   const scale = base;
   return {
     x: canvas.width / 2 + (x - y) * scale,
-    y: canvas.height * 0.56 + (x + y - state.width * 0.52) * scale * 0.5 - z * scale,
+    y: canvas.height * 0.56 + (x + y - state.width * 0.52) * scale * 0.5 - z * scale + viewLift(scale),
     scale
   };
 }
@@ -216,6 +224,18 @@ function groundSprite(data, s) {
   drawTextureQuad(g, [[W / 2, 0], [W, H / 2], [W / 2, H], [0, H / 2]], faceTexture(data, 'top'));
   groundSpriteCache.set(key, c);
   return c;
+}
+function fillPoly(points, fill, alpha = 1) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.beginPath();
+  points.forEach((pt, i) => (i ? ctx.lineTo(pt[0], pt[1]) : ctx.moveTo(pt[0], pt[1])));
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,.34)';
+  ctx.stroke();
+  ctx.restore();
 }
 function drawTile(tile, alpha = 1) {
   const data = tileOf(tile.id);
@@ -236,6 +256,25 @@ function drawTile(tile, alpha = 1) {
   }
   const top = [[p.x, p.y - s * 0.5], [p.x + s, p.y], [p.x, p.y + s * 0.5], [p.x - s, p.y]];
   if (shape === 'plane') {
+    if (alpha >= 1 && terrainFill && tile.z > 0) {
+      const H = tile.z * s;
+      const left = [[p.x - s, p.y], [p.x, p.y + s * 0.5], [p.x, p.y + s * 0.5 + H], [p.x - s, p.y + H]];
+      const right = [[p.x, p.y + s * 0.5], [p.x + s, p.y], [p.x + s, p.y + H], [p.x, p.y + s * 0.5 + H]];
+      fillPoly(left, shade(data.top, -0.2), alpha);
+      fillPoly(right, shade(data.top, -0.06), alpha);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = 'rgba(0,0,0,.22)';
+      for (let k = 1; k < tile.z; k++) {
+        const y = p.y + k * s;
+        ctx.beginPath();
+        ctx.moveTo(p.x - s, y);
+        ctx.lineTo(p.x, y + s * 0.5);
+        ctx.lineTo(p.x + s, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
     if (alpha < 1) {
       ctx.save();
       ctx.globalAlpha = alpha;
@@ -269,7 +308,7 @@ function drawTile(tile, alpha = 1) {
     q([B, C, F, E], 'top');
     return;
   }
-  const h = s * 0.56;
+  const h = s * (terrainFill ? 1 : 0.56);
   const left = [[p.x - s, p.y], [p.x, p.y + s * 0.5], [p.x, p.y + s * 0.5 + h], [p.x - s, p.y + h]];
   const right = [[p.x, p.y + s * 0.5], [p.x + s, p.y], [p.x + s, p.y + h], [p.x, p.y + s * 0.5 + h]];
   drawTextureQuad(ctx, left, faceTexture(data, 'left'), alpha);
@@ -301,9 +340,10 @@ function draw() {
     }
   }
 
+  refreshPeak();
   state.tiles
     .slice()
-    .sort((a, b) => (LAYER_RANK[a.layer] - LAYER_RANK[b.layer]) || ((a.x + a.y + a.z * 0.5) - (b.x + b.y + b.z * 0.5)))
+    .sort((a, b) => (LAYER_RANK[a.layer] - LAYER_RANK[b.layer]) || ((a.x + a.y) - (b.x + b.y)) || ((a.z || 0) - (b.z || 0)))
     .forEach(t => drawTile(t));
 
   if (pointer) {
@@ -391,9 +431,35 @@ function syncUI() {
 function syncInputs() {
   $('width').value = state.width;
   $('height').value = state.height;
-  $('heightValue').textContent = activeHeight;
+  $('levelValue').textContent = activeHeight;
   $('brushValue').textContent = brushSize + '×' + brushSize;
   $('rotVal').textContent = activeRot * 90 + '°';
+  const fillBtn = $('terrainFill');
+  if (fillBtn) {
+    fillBtn.textContent = terrainFill ? 'Columns on' : 'Columns off';
+    fillBtn.classList.toggle('active', terrainFill);
+  }
+}
+function renderLevels() {
+  const holder = $('levelList');
+  if (!holder) return;
+  const counts = new Map();
+  state.tiles.forEach(t => {
+    const z = Math.round(t.z || 0);
+    if (Math.abs((t.z || 0) - z) < 0.01) counts.set(z, (counts.get(z) || 0) + 1);
+  });
+  const usedTop = Math.max(0, ...counts.keys());
+  const top = Math.max(3, Math.min(MAX_LEVEL, usedTop + 1));
+  holder.innerHTML = '';
+  for (let z = top; z >= 0; z--) {
+    const b = document.createElement('button');
+    b.className = 'level-btn' + (z === activeHeight ? ' active' : '');
+    b.dataset.level = z;
+    const count = counts.get(z) || 0;
+    b.innerHTML = `<span>Level ${z}${z === 0 ? ' · base' : ''}</span><span class="level-count">${count} tile${count === 1 ? '' : 's'}</span>`;
+    b.onclick = () => { activeHeight = z; syncInputs(); renderLevels(); draw(); };
+    holder.appendChild(b);
+  }
 }
 function updateHud() {
   $('coords').textContent = pointer ? `x ${pointer.x} · y ${pointer.y}` : 'x — · y —';
@@ -405,7 +471,7 @@ function cellFromEvent(event) {
   const mx = event.clientX - r.left, my = event.clientY - r.top;
   const zero = iso(0, 0, activeHeight), s = zero.scale;
   const sx = mx - canvas.width / 2;
-  const sy = my - (canvas.height * 0.56 - state.width * 0.52 * s * 0.5) + activeHeight * s;
+  const sy = my - (canvas.height * 0.56 - state.width * 0.52 * s * 0.5) - viewLift(s) + activeHeight * s;
   return {
     x: Math.floor((sy / (s * 0.5) + sx / s) / 2),
     y: Math.floor((sy / (s * 0.5) - sx / s) / 2)
@@ -422,9 +488,21 @@ function addT(list, x, y, z, id, shape = 'plane', layer = 'ground', extra = null
 function addStructure(list, x, y, z, id, rot = 0, mirror = false) {
   return addT(list, x, y, z, 'sandstone', 'structure', 'structure', { structure: id, rot, mirror });
 }
-function addPalm(list, x, y) {
-  addT(list, x, y, 1.3, 'palm-wood', 'pillar', 'decoration');
-  addT(list, x, y, 1.35, 'palm-leaf', 'roof', 'decoration');
+function addPalm(list, x, y, base = 0) {
+  addT(list, x, y, base + 1.3, 'palm-wood', 'pillar', 'decoration');
+  addT(list, x, y, base + 1.35, 'palm-leaf', 'roof', 'decoration');
+}
+function setGround(list, x, y, id) {
+  const t = list.find(tile => tile.x === x && tile.y === y && tile.z === 0 && tile.layer === 'ground');
+  if (t) t.id = id;
+}
+function heightField(list, w, h, fn, tileFor) {
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const z = Math.max(0, Math.min(MAX_LEVEL, Math.round(fn(x, y))));
+      if (z > 0) addT(list, x, y, z, tileFor ? tileFor(z, x, y) : 'dune-sand', 'plane', 'ground');
+    }
+  }
 }
 function baseSand(w, h, variant) {
   const tiles = [];
@@ -499,28 +577,79 @@ function ruinsScene() {
 function dunesScene() {
   const w = 30, h = 22;
   const tiles = baseSand(w, h, 'dunes');
-  const mounds = [[8, 7, 3], [17, 6, 2], [23, 11, 3], [11, 16, 2], [20, 18, 1], [5, 14, 1]];
-  mounds.forEach(([cx, cy, peak]) => {
-    for (let level = peak; level >= 1; level--) {
-      const r = peak - level + 1;
-      for (let dy = -r; dy <= r; dy++) {
-        for (let dx = -r; dx <= r; dx++) {
-          if (Math.abs(dx) + Math.abs(dy) > r) continue;
-          const x = cx + dx, y = cy + dy;
-          if (x < 0 || y < 0 || x >= w || y >= h) continue;
-          if (tileAtIn(tiles, x, y, level)) continue;
-          addT(tiles, x, y, level, 'dune-sand', 'cube', 'decoration');
-        }
-      }
-    }
-  });
-  addStructure(tiles, 14, 11, 0, 'steps', 0);
-  addStructure(tiles, 13, 9, 0, 'pillar-short', 0);
-  addStructure(tiles, 15, 13, 0, 'block-light', 0);
-  addStructure(tiles, 6, 19, 0, 'well', 0);
-  addStructure(tiles, 24, 4, 0, 'block-moss', 0);
-  addPalm(tiles, 6, 10);
-  addPalm(tiles, 26, 18);
+  const mounds = [[7, 7, 5], [17, 5, 4], [24, 11, 5], [11, 16, 3], [21, 18, 2], [4, 14, 2]];
+  const heightAt = (x, y) => {
+    let z = 0;
+    mounds.forEach(([cx, cy, peak]) => {
+      const d = Math.hypot(x - cx, (y - cy) * 1.1);
+      z = Math.max(z, Math.round(peak - d * 0.95));
+    });
+    return z;
+  };
+  heightField(tiles, w, h, heightAt, z => z >= 3 ? 'desert-sand' : 'dune-sand');
+  const hAt = (x, y) => Math.max(0, Math.min(MAX_LEVEL, Math.round(heightAt(x, y))));
+  addStructure(tiles, 14, 11, hAt(14, 11), 'steps', 0);
+  addStructure(tiles, 13, 9, hAt(13, 9), 'pillar-short', 0);
+  addStructure(tiles, 15, 13, hAt(15, 13), 'block-light', 0);
+  addStructure(tiles, 6, 19, hAt(6, 19), 'well', 0);
+  addStructure(tiles, 24, 4, hAt(24, 4), 'block-moss', 0);
+  addPalm(tiles, 6, 10, hAt(6, 10));
+  addPalm(tiles, 26, 18, hAt(26, 18));
+  return { width: w, height: h, tiles };
+}
+function canyonScene() {
+  const w = 30, h = 24;
+  const tiles = baseSand(w, h, 'ruins');
+  const centre = x => 12 + Math.sin(x * 0.34) * 5;
+  const heightAt = (x, y) => {
+    const d = Math.abs(y - centre(x));
+    if (d < 2.2) return 0;
+    return Math.min(6, Math.floor((d - 2.2) / 1.4) + 1);
+  };
+  heightField(tiles, w, h, heightAt, z => z >= 3 ? 'sandstone' : 'dune-sand');
+  const hAt = (x, y) => Math.max(0, Math.min(MAX_LEVEL, Math.round(heightAt(x, y))));
+  for (let x = 3; x < w - 3; x += 4) {
+    const y = Math.round(centre(x));
+    setGround(tiles, x, y, 'oasis-water');
+    setGround(tiles, x + 1, y, 'oasis-water');
+  }
+  addPalm(tiles, 5, Math.round(centre(5)), 0);
+  addPalm(tiles, 18, Math.round(centre(18)), 0);
+  addPalm(tiles, 26, Math.round(centre(26)), 0);
+  addStructure(tiles, 9, Math.round(centre(9)) - 1, 0, 'well', 0);
+  addStructure(tiles, 21, Math.round(centre(21)) + 1, 0, 'steps', 0);
+  addStructure(tiles, 13, 4, hAt(13, 4), 'pillar-tall', 0);
+  addStructure(tiles, 18, 20, hAt(18, 20), 'pillar-short', 0);
+  addStructure(tiles, 8, 4, hAt(8, 4), 'block-moss', 0);
+  addStructure(tiles, 24, 19, hAt(24, 19), 'block-light', 0);
+  addStructure(tiles, 15, 2, hAt(15, 2), 'keep-doorway', 0);
+  return { width: w, height: h, tiles };
+}
+function highlandsScene() {
+  const w = 30, h = 24;
+  const tiles = baseSand(w, h, 'dunes');
+  const hills = [[8, 8, 7], [20, 6, 8], [16, 17, 5], [26, 18, 4], [4, 18, 3]];
+  const heightAt = (x, y) => {
+    let z = 0;
+    hills.forEach(([cx, cy, peak]) => {
+      const d2 = (x - cx) * (x - cx) + (y - cy) * (y - cy) * 1.15;
+      z = Math.max(z, Math.round(peak * Math.exp(-d2 / 42)));
+    });
+    return z;
+  };
+  heightField(tiles, w, h, heightAt, (z, x, y) => z >= 5 ? 'sandstone' : z >= 3 ? 'dune-sand' : 'cracked-earth');
+  const hAt = (x, y) => Math.max(0, Math.min(MAX_LEVEL, Math.round(heightAt(x, y))));
+  // a sheltered valley between the two big hills
+  [[14, 11], [15, 11], [14, 12], [15, 12]].forEach(([x, y]) => setGround(tiles, x, y, 'oasis-water'));
+  addPalm(tiles, 13, 13, 0);
+  addPalm(tiles, 16, 10, 0);
+  addStructure(tiles, 12, 10, 0, 'well', 0);
+  addStructure(tiles, 17, 13, hAt(17, 13), 'steps', 0);
+  addStructure(tiles, 7, 6, hAt(7, 6), 'pillar-tall', 0);
+  addStructure(tiles, 9, 5, hAt(9, 5), 'block-moss', 0);
+  addStructure(tiles, 20, 5, hAt(20, 5), 'keep-doorway', 0);
+  addStructure(tiles, 21, 7, hAt(21, 7), 'pillar-short', 0);
+  addStructure(tiles, 25, 17, hAt(25, 17), 'block-light', 0);
   return { width: w, height: h, tiles };
 }
 function tileAtIn(list, x, y, z) { return list.find(t => t.x === x && t.y === y && t.z === z); }
@@ -528,12 +657,22 @@ function emptyScene() {
   const w = 30, h = 24;
   return { width: w, height: h, tiles: baseSand(w, h, 'empty') };
 }
+const EXAMPLES = {
+  oasis: { build: oasisScene, label: 'oasis' },
+  ruins: { build: ruinsScene, label: 'desert ruins' },
+  dunes: { build: dunesScene, label: 'dune sea' },
+  canyon: { build: canyonScene, label: 'canyon' },
+  highlands: { build: highlandsScene, label: 'highlands' },
+  empty: { build: emptyScene, label: 'empty sand' }
+};
 function loadExample(kind) {
-  state = kind === 'ruins' ? ruinsScene() : kind === 'dunes' ? dunesScene() : kind === 'empty' ? emptyScene() : oasisScene();
+  const example = EXAMPLES[kind] || EXAMPLES.oasis;
+  state = example.build();
+  activeHeight = 0;
   syncInputs();
   commit();
   draw();
-  say(`Loaded the <b>${kind === 'ruins' ? 'desert ruins' : kind === 'dunes' ? 'dune sea' : kind === 'empty' ? 'empty sand' : 'oasis'}</b> scene. Undo restores your previous scene.`);
+  say(`Loaded the <b>${example.label}</b> scene. Undo restores your previous scene.`);
 }
 
 /* ── persistence ─────────────────────────────────────────── */
@@ -594,8 +733,9 @@ $('layers').addEventListener('click', e => {
 $('rotateBtn').onclick = () => { activeRot = (activeRot + 1) % 4; syncInputs(); draw(); };
 $('mirrorBtn').onclick = () => { activeMirror = !activeMirror; $('mirrorBtn').classList.toggle('active', activeMirror); draw(); };
 $('brush').oninput = () => { brushSize = Number($('brush').value); $('brushValue').textContent = brushSize + '×' + brushSize; draw(); };
-$('heightDown').onclick = () => { activeHeight = Math.max(0, activeHeight - 1); syncInputs(); draw(); };
-$('heightUp').onclick = () => { activeHeight = Math.min(10, activeHeight + 1); syncInputs(); draw(); };
+$('levelDown').onclick = () => { activeHeight = Math.max(0, activeHeight - 1); syncInputs(); renderLevels(); draw(); };
+$('levelUp').onclick = () => { activeHeight = Math.min(MAX_LEVEL, activeHeight + 1); syncInputs(); renderLevels(); draw(); };
+$('terrainFill').onclick = () => { terrainFill = !terrainFill; syncInputs(); draw(); };
 $('resize').onclick = () => {
   state.width = Math.max(8, Math.min(80, Number($('width').value) || state.width));
   state.height = Math.max(8, Math.min(80, Number($('height').value) || state.height));
@@ -626,6 +766,8 @@ $('file').onchange = async e => {
 $('exOasis').onclick = () => loadExample('oasis');
 $('exRuins').onclick = () => loadExample('ruins');
 $('exDunes').onclick = () => loadExample('dunes');
+$('exCanyon').onclick = () => loadExample('canyon');
+$('exHighlands').onclick = () => loadExample('highlands');
 $('exEmpty').onclick = () => loadExample('empty');
 document.querySelector('.file') && ($('chooseFile')?.addEventListener('click', () => $('file').click()));
 
@@ -637,6 +779,10 @@ addEventListener('keydown', e => {
   if ({ b: 'brush', e: 'erase', f: 'fill' }[key]) { tool = { b: 'brush', e: 'erase', f: 'fill' }[key]; syncUI(); draw(); return; }
   if (key === 'r' && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); $('rotateBtn').click(); }
   if (key === 'm' && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); $('mirrorBtn').click(); }
+  if (/^[0-9]$/.test(e.key) && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    activeHeight = Math.min(MAX_LEVEL, Number(e.key));
+    syncInputs(); renderLevels(); draw();
+  }
 });
 addEventListener('resize', draw);
 
@@ -645,5 +791,6 @@ renderTilePalette();
 renderStructurePalette();
 syncInputs();
 syncUI();
+renderLevels();
 commit();
 draw();
