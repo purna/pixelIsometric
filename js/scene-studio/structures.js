@@ -263,6 +263,13 @@ export const STRUCTURES = [
 
 export const getStructure = id => STRUCTURES_WITH_90.find(s => s.id === id) || STRUCTURES.find(s => s.id === id);
 
+/** Ids of every tile a structure uses (sides and tops). */
+export function structureTiles(structure) {
+  const ids = new Set();
+  structure.build().forEach(p => { if (p.tile) ids.add(p.tile); if (p.tT) ids.add(p.tT); });
+  return [...ids];
+}
+
 /* ───────────────────────── 90° variants ───────────────────────── */
 
 // Pieces that look identical when turned a quarter-turn get no separate variant.

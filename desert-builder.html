@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pixel Isometric — Desert World Builder</title>
+  <link rel="stylesheet" href="css/desert-builder.css">
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">DESERT WORLD BUILDER</div>
+    <div class="sub">isometric sandbox · dunes · oasis · ruins</div>
+    <div class="spacer"></div>
+    <button id="undo" title="Undo (Ctrl/Cmd+Z)">Undo</button>
+    <button id="redo" title="Redo (Ctrl/Cmd+Shift+Z)">Redo</button>
+    <button id="save">Save</button>
+    <button id="load">Load</button>
+    <button id="export">Export JSON</button>
+    <button id="png">Export PNG</button>
+    <button id="openEditor" title="Open the example 3 tile editor">Tile editor ↗</button>
+    <input class="file" id="file" type="file" accept="application/json,.json">
+  </header>
+
+  <main class="body">
+    <aside class="sidebar left">
+      <section class="section">
+        <h2>Tools</h2>
+        <div class="button-grid three" id="tools">
+          <button data-tool="brush" class="active">Paint</button>
+          <button data-tool="erase">Erase</button>
+          <button data-tool="fill">Fill</button>
+        </div>
+        <div class="row"><label>Brush</label><input id="brush" type="range" min="1" max="5" step="2" value="1"><span class="value" id="brushValue">1×1</span></div>
+        <div class="row"><label>Height</label><button id="heightDown">−</button><span class="value" id="heightValue">0</span><button id="heightUp">+</button></div>
+        <div class="row"><label>Facing</label><button id="rotateBtn" title="Rotate (R)">Rotate ↻ <span id="rotVal">0°</span></button><button id="mirrorBtn" title="Mirror (M)">Mirror</button></div>
+      </section>
+
+      <section class="section">
+        <h2>Terrain Shape</h2>
+        <div class="button-grid three" id="terrainShapes">
+          <button data-shape="plane" class="active">Floor</button>
+          <button data-shape="cube">Block</button>
+          <button data-shape="ramp">Ramp</button>
+        </div>
+        <p class="hint">Floor is the ground sheet. Block raises one level. Ramp makes a slope.</p>
+      </section>
+
+      <section class="section">
+        <h2>Layers</h2>
+        <div class="button-grid three" id="layers">
+          <button data-layer="ground" class="active">Ground</button>
+          <button data-layer="decoration">Detail</button>
+          <button data-layer="structure">Structure</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Desert Tiles</h2>
+        <div id="tilePalette" class="palette"></div>
+      </section>
+    </aside>
+
+    <section class="canvas-wrap">
+      <canvas id="scene"></canvas>
+      <div class="hud"><b id="coords">x 0 · y 0</b><br><span id="hudText">Paint · Desert Sand · z 0</span></div>
+    </section>
+
+    <aside class="sidebar right">
+      <section class="section">
+        <h2>Desert Structures</h2>
+        <div id="structurePalette"></div>
+      </section>
+      <section class="section">
+        <h2>Scene</h2>
+        <div class="row"><label>Width</label><input id="width" type="number" min="8" max="80" value="30"></div>
+        <div class="row"><label>Height</label><input id="height" type="number" min="8" max="80" value="24"></div>
+        <div class="button-grid"><button id="resize">Resize</button><button class="danger" id="clear">Clear</button></div>
+      </section>
+      <section class="section">
+        <h2>Example Scenes</h2>
+        <div class="button-grid">
+          <button id="exOasis">Oasis</button>
+          <button id="exRuins">Desert ruins</button>
+          <button id="exDunes">Dune sea</button>
+          <button id="exEmpty">Empty sand</button>
+        </div>
+        <p class="hint">Loading an example is undoable. Paint over it to make it yours.</p>
+      </section>
+      <section class="section">
+        <h2>How to build</h2>
+        <p class="hint">Paint sand first, then choose a terrain shape or a structure. Use <b>Rotate</b> before placing walls, steps and roofs. Raise the height to stack blocks and terraces.</p>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="status" id="status">Ready. <b>Autosaves in this browser.</b></footer>
+</div>
+<script type="module" src="js/desert-builder/app.js"></script>
+</body>
+</html>
