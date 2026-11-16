@@ -972,7 +972,11 @@ $('save').onclick = () => { saveScene(); saveLibrary(); say('Scene and tile libr
 $('load').onclick = () => { state = loadScene(); library = loadLibrary(); selectedTileId = library.tiles[0]?.id; selectedGroupId = library.groups[0]?.id; history = []; historyIndex = -1; commit(); renderInputs(); renderGroups(); renderPalette(); if (selectedTileId) selectTile(selectedTileId); draw(); };
 $('export').onclick = () => download('pixel-isometric-scene.json', new Blob([JSON.stringify(projectExport(), null, 2)], { type: 'application/json' }));
 $('png').onclick = () => canvas.toBlob(blob => download('pixel-isometric-scene.png', blob));
-$('tileEditor')?.addEventListener('click', () => window.open('demos/example3/structures-demo.html', '_blank', 'noopener'));
+$('tileEditor')?.addEventListener('click', () => window.open('tile-editor.html', '_blank', 'noopener'));
+$('worldDesert')?.addEventListener('click', () => window.open('desert-builder.html', '_blank', 'noopener'));
+$('worldJungle')?.addEventListener('click', () => window.open('jungle-builder.html', '_blank', 'noopener'));
+$('worldSnow')?.addEventListener('click', () => window.open('snow-builder.html', '_blank', 'noopener'));
+$('worldTemperate')?.addEventListener('click', () => window.open('temperate-builder.html', '_blank', 'noopener'));
 $('desertBuilder')?.addEventListener('click', () => window.open('desert-builder.html', '_blank', 'noopener'));
 $('chooseFile').onclick = () => $('file').click();
 $('file').onchange = async e => {

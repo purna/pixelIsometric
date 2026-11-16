@@ -57,7 +57,7 @@
     <button id="load">Load</button>
     <button id="export">Export JSON</button>
     <button id="png">Export PNG</button>
-    <button id="tileEditor" title="Open the example 3 tile editor">Tile editor ↗</button>
+    <button id="tileEditor" title="Open the full tile editor">Tile editor ↗</button>
     <button id="desertBuilder" title="Open the Desert World Builder">Desert builder ↗</button>
     <input class="file" id="file" type="file" accept="application/json,.json">
   </header>
@@ -104,6 +104,16 @@
         <div class="button-grid three"><button id="newSet">New set</button><button id="duplicateSet">Duplicate set</button><button id="deleteSet">Delete set</button></div>
         <div id="palette" class="palette"></div>
         <p class="hint">Sets contain groups; groups contain tiles. Select a tile to load it into the designer.</p>
+      </section>
+      <section class="section">
+        <h2>World Builders</h2>
+        <div class="button-grid">
+          <button id="worldDesert">Desert</button>
+          <button id="worldJungle">Jungle</button>
+          <button id="worldSnow">Snow</button>
+          <button id="worldTemperate">Temperate</button>
+        </div>
+        <p class="hint">Open a themed isometric world builder with its own tile editor.</p>
       </section>
       <section class="section">
         <h2>Scene</h2>
@@ -1570,7 +1580,11 @@ $('save').onclick = () => { saveScene(); saveLibrary(); say('Scene and tile libr
 $('load').onclick = () => { state = loadScene(); library = loadLibrary(); selectedTileId = library.tiles[0]?.id; selectedGroupId = library.groups[0]?.id; history = []; historyIndex = -1; commit(); renderInputs(); renderGroups(); renderPalette(); if (selectedTileId) selectTile(selectedTileId); draw(); };
 $('export').onclick = () => download('pixel-isometric-scene.json', new Blob([JSON.stringify(projectExport(), null, 2)], { type: 'application/json' }));
 $('png').onclick = () => canvas.toBlob(blob => download('pixel-isometric-scene.png', blob));
-$('tileEditor')?.addEventListener('click', () => window.open('../../demos/example3/structures-demo.html', '_blank', 'noopener'));
+$('tileEditor')?.addEventListener('click', () => window.open('../../tile-editor.html', '_blank', 'noopener'));
+$('worldDesert')?.addEventListener('click', () => window.open('../../desert-builder.html', '_blank', 'noopener'));
+$('worldJungle')?.addEventListener('click', () => window.open('../../jungle-builder.html', '_blank', 'noopener'));
+$('worldSnow')?.addEventListener('click', () => window.open('../../snow-builder.html', '_blank', 'noopener'));
+$('worldTemperate')?.addEventListener('click', () => window.open('../../temperate-builder.html', '_blank', 'noopener'));
 $('desertBuilder')?.addEventListener('click', () => window.open('../../desert-builder.html', '_blank', 'noopener'));
 $('chooseFile').onclick = () => $('file').click();
 $('file').onchange = async e => {

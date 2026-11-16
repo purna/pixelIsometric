@@ -18,7 +18,7 @@
     <button id="load">Load</button>
     <button id="export">Export JSON</button>
     <button id="png">Export PNG</button>
-    <button id="tileEditor" title="Open the example 3 tile editor">Tile editor ↗</button>
+    <button id="tileEditor" title="Open the full tile editor">Tile editor ↗</button>
     <button id="desertBuilder" title="Open the Desert World Builder">Desert builder ↗</button>
     <input class="file" id="file" type="file" accept="application/json,.json">
   </header>
@@ -65,6 +65,16 @@
         <div class="button-grid three"><button id="newSet">New set</button><button id="duplicateSet">Duplicate set</button><button id="deleteSet">Delete set</button></div>
         <div id="palette" class="palette"></div>
         <p class="hint">Sets contain groups; groups contain tiles. Select a tile to load it into the designer.</p>
+      </section>
+      <section class="section">
+        <h2>World Builders</h2>
+        <div class="button-grid">
+          <button id="worldDesert">Desert</button>
+          <button id="worldJungle">Jungle</button>
+          <button id="worldSnow">Snow</button>
+          <button id="worldTemperate">Temperate</button>
+        </div>
+        <p class="hint">Open a themed isometric world builder with its own tile editor.</p>
       </section>
       <section class="section">
         <h2>Scene</h2>
