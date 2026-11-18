@@ -63,3 +63,10 @@ button:disabled{opacity:.4;cursor:default}
 .theme-links a,.theme-links span{font-size:10px;letter-spacing:.03em;text-decoration:none;color:var(--muted);border:1px solid transparent;border-radius:3px;padding:3px 6px}
 .theme-links a:hover{color:#fff;border-color:var(--line)}
 .theme-links span{color:var(--accent);border-color:var(--accent);background:#342c14}
+
+/* ── floating view controls ─────────────────────────────── */
+.floating-menu{position:fixed;left:50%;bottom:48px;transform:translateX(-50%);display:flex;gap:6px;align-items:center;background:#111115e8;border:1px solid var(--line);border-radius:8px;padding:7px 9px;z-index:50;box-shadow:0 8px 24px #0007;backdrop-filter:blur(8px)}
+.floating-menu button{padding:6px 9px;font-size:10px;letter-spacing:.06em}
+.floating-menu button.active{border-color:var(--accent);color:var(--accent);background:#342c14}
+#btn-pan{cursor:grab}
+#btn-pan.active{cursor:grabbing}

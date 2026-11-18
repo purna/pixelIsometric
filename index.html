@@ -19,7 +19,15 @@
     <button id="export">Export JSON</button>
     <button id="png">Export PNG</button>
     <button id="tileEditor" title="Open the full tile editor">Tile editor ↗</button>
-    <button id="desertBuilder" title="Open the Desert World Builder">Desert builder ↗</button>
+    <details class="menu-dropdown" id="builderMenu">
+      <summary title="Open a world builder">World builders ▾</summary>
+      <div class="menu-dropdown-list">
+        <a href="desert-builder.html" target="_blank" rel="noopener">Desert builder ↗</a>
+        <a href="jungle-builder.html" target="_blank" rel="noopener">Jungle builder ↗</a>
+        <a href="snow-builder.html" target="_blank" rel="noopener">Snow builder ↗</a>
+        <a href="temperate-builder.html" target="_blank" rel="noopener">Temperate builder ↗</a>
+      </div>
+    </details>
     <input class="file" id="file" type="file" accept="application/json,.json">
   </header>
 
@@ -80,8 +88,9 @@
         <h2>Scene</h2>
         <div class="row"><label>Width</label><input id="width" type="number" min="4" max="120" value="20"></div>
         <div class="row"><label>Height</label><input id="height" type="number" min="4" max="120" value="16"></div>
+        <div class="button-grid"><button id="sampleScene">Sample scene</button><button class="danger" id="resetScene">Reset</button></div>
         <div class="button-grid"><button id="resize">Resize canvas</button><button class="danger" id="clear">Clear tiles</button></div>
-        <p class="hint">Canvas grows when painting past its edges.</p>
+        <p class="hint">Canvas grows when painting past its edges. Sample and Reset are undoable.</p>
       </section>
     </aside>
 

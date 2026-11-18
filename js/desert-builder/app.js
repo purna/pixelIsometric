@@ -116,6 +116,14 @@ const MAX_LEVEL = 10;
 let pointer = null;
 let drawing = false;
 let lastPaint = '';
+let zoom = 1;
+let panX = 0;
+let panY = 0;
+let panMode = false;
+let panning = false;
+let panStart = null;
+const MIN_ZOOM = 0.35;
+const MAX_ZOOM = 3;
 
 function say(message) { $('status').innerHTML = message; }
 function snapshot() { return JSON.stringify(state); }
@@ -203,10 +211,10 @@ function refreshPeak() {
 function viewLift(s) { return Math.max(0, peakZ - 2) * s * 0.22; }
 function iso(x, y, z) {
   const base = Math.max(10, Math.min(30, Math.min(canvas.width / (state.width + state.height + 4), canvas.height / (state.width + state.height + 5)) * 1.35));
-  const scale = base;
+  const scale = base * zoom;
   return {
-    x: canvas.width / 2 + (x - y) * scale,
-    y: canvas.height * 0.56 + (x + y - state.width * 0.52) * scale * 0.5 - z * scale + viewLift(scale),
+    x: canvas.width / 2 + (x - y) * scale + panX,
+    y: canvas.height * 0.56 + (x + y - state.width * 0.52) * scale * 0.5 - z * scale + viewLift(scale) + panY,
     scale
   };
 }
@@ -420,13 +428,16 @@ function renderStructurePalette() {
 }
 
 /* ── UI sync + events ────────────────────────────────────── */
+function updateCursor() {
+  canvas.style.cursor = panMode ? (panning ? 'grabbing' : 'grab') : tool === 'fill' ? 'cell' : tool === 'erase' ? 'not-allowed' : 'crosshair';
+}
 function syncUI() {
   document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
   document.querySelectorAll('[data-shape]').forEach(b => b.classList.toggle('active', !activeStructure && b.dataset.shape === activeShape));
   document.querySelectorAll('[data-layer]').forEach(b => b.classList.toggle('active', b.dataset.layer === activeLayer));
   document.querySelectorAll('[data-tile]').forEach(b => b.classList.toggle('active', !activeStructure && b.dataset.tile === activeTile));
   document.querySelectorAll('[data-structure]').forEach(b => b.classList.toggle('active', b.dataset.structure === activeStructure));
-  canvas.style.cursor = tool === 'fill' ? 'cell' : tool === 'erase' ? 'not-allowed' : 'crosshair';
+  updateCursor();
 }
 function syncInputs() {
   $('width').value = state.width;
@@ -470,8 +481,8 @@ function cellFromEvent(event) {
   const r = canvas.getBoundingClientRect();
   const mx = event.clientX - r.left, my = event.clientY - r.top;
   const zero = iso(0, 0, activeHeight), s = zero.scale;
-  const sx = mx - canvas.width / 2;
-  const sy = my - (canvas.height * 0.56 - state.width * 0.52 * s * 0.5) - viewLift(s) + activeHeight * s;
+  const sx = mx - canvas.width / 2 - panX;
+  const sy = my - (canvas.height * 0.56 + panY - state.width * 0.52 * s * 0.5) - viewLift(s) + activeHeight * s;
   return {
     x: Math.floor((sy / (s * 0.5) + sx / s) / 2),
     y: Math.floor((sy / (s * 0.5) - sx / s) / 2)
@@ -699,6 +710,12 @@ function importScene(raw) {
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 canvas.addEventListener('pointerdown', e => {
   canvas.setPointerCapture(e.pointerId);
+  if (panMode || e.button === 1) {
+    panning = true;
+    panStart = { x: e.clientX, y: e.clientY, px: panX, py: panY };
+    updateCursor();
+    return;
+  }
   pointer = cellFromEvent(e);
   drawing = true;
   lastPaint = '';
@@ -708,12 +725,51 @@ canvas.addEventListener('pointerdown', e => {
   draw();
 });
 canvas.addEventListener('pointermove', e => {
+  if (panning && panStart) {
+    panX = panStart.px + (e.clientX - panStart.x);
+    panY = panStart.py + (e.clientY - panStart.y);
+    draw();
+    return;
+  }
   pointer = cellFromEvent(e);
   if (drawing && (e.buttons & 1 || e.buttons & 2)) paint(pointer, (e.buttons & 2) || tool === 'erase');
   draw();
 });
-canvas.addEventListener('pointerup', () => { if (drawing) { drawing = false; commit(); } });
+canvas.addEventListener('pointerup', () => {
+  if (panning) { panning = false; panStart = null; updateCursor(); return; }
+  if (drawing) { drawing = false; commit(); }
+});
 canvas.addEventListener('pointerleave', () => { pointer = null; draw(); });
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const r = canvas.getBoundingClientRect();
+  const mx = e.clientX - r.left, my = e.clientY - r.top;
+  const next = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12)));
+  if (next === zoom) return;
+  const ratio = next / zoom;
+  panX = mx - canvas.width / 2 - (mx - canvas.width / 2 - panX) * ratio;
+  panY = my - canvas.height * 0.56 - (my - canvas.height * 0.56 - panY) * ratio;
+  zoom = next;
+  draw();
+}, { passive: false });
+
+function zoomBy(factor) {
+  const next = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom * factor));
+  if (next === zoom) return;
+  const ratio = next / zoom;
+  zoom = next;
+  panX *= ratio;
+  panY *= ratio;
+  draw();
+}
+$('btn-pan').onclick = () => {
+  panMode = !panMode;
+  $('btn-pan').classList.toggle('active', panMode);
+  updateCursor();
+};
+$('btn-zoom-in').onclick = () => zoomBy(1.15);
+$('btn-zoom-out').onclick = () => zoomBy(1 / 1.15);
+$('btn-zoom-reset').onclick = () => { zoom = 1; panX = 0; panY = 0; draw(); };
 
 $('tools').addEventListener('click', e => {
   const b = e.target.closest('[data-tool]'); if (!b) return;

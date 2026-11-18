@@ -35,3 +35,13 @@
 .group-set-select{width:76px;padding:3px 4px;font-size:9px;background:#0f0f14;color:var(--muted);border:1px solid var(--line);border-radius:3px}
 .group-set-select:hover{border-color:var(--accent);color:var(--accent)}
 #setSelect{min-width:0;flex:1}
+
+/* top-bar world builder dropdown */
+.menu-dropdown{position:relative}
+.menu-dropdown summary{list-style:none;cursor:pointer;background:#0f0f14;color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:6px 9px;font-size:11px;user-select:none}
+.menu-dropdown summary::-webkit-details-marker{display:none}
+.menu-dropdown summary:hover,.menu-dropdown[open] summary{border-color:var(--accent);color:#fff}
+.menu-dropdown[open] summary{background:#14342f;color:var(--accent)}
+.menu-dropdown-list{position:absolute;right:0;top:calc(100% + 6px);min-width:170px;display:flex;flex-direction:column;gap:2px;padding:5px;background:#111115f2;border:1px solid var(--line);border-radius:6px;box-shadow:0 12px 30px #0009;z-index:60;backdrop-filter:blur(8px)}
+.menu-dropdown-list a{padding:7px 9px;border-radius:4px;color:var(--ink);text-decoration:none;font-size:11px;white-space:nowrap}
+.menu-dropdown-list a:hover,.menu-dropdown-list a:focus{background:#14342f;color:var(--accent);outline:none}

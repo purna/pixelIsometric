@@ -94,6 +94,78 @@ function defaultScene() {
   return { width: 20, height: 16, tiles: [], colliders: [] };
 }
 
+function sampleScene() {
+  const width = 20, height = 16, tiles = [];
+  const add = (x, y, z, id, shape = 'plane', layer = 'ground', extra = null) => {
+    const tile = { x, y, z, id, shape, layer };
+    if (extra) Object.assign(tile, extra);
+    tiles.push(tile);
+    return tile;
+  };
+  const structure = (x, y, id, rot = 0, mirror = false, z = 0) =>
+    add(x, y, z, 'stone', 'structure', 'structure', { structure: id, rot, mirror });
+  const groundAt = (x, y) => tiles.find(t => t.x === x && t.y === y && t.z === 0 && t.layer === 'ground');
+  const setGround = (x, y, id) => { const t = groundAt(x, y); if (t) t.id = id; };
+
+  // Grassy clearing with a few natural sand and dirt patches.
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const n = (x * 13 + y * 7 + x * y) % 31;
+      add(x, y, 0, n < 3 ? 'dirt' : n === 3 ? 'sand' : 'grass');
+    }
+  }
+
+  // Pond with a sandy shoreline.
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const d = Math.hypot(x - 4.5, (y - 11.5) * 1.15);
+      if (d < 2.1) setGround(x, y, 'water');
+      else if (d < 2.9) setGround(x, y, 'sand');
+    }
+  }
+
+  // Stone path leading from the pond to a cobbled plaza.
+  for (let x = 7; x <= 17; x++) {
+    setGround(x, 7, 'paving');
+    setGround(x, 8, 'paving');
+  }
+  for (let y = 2; y <= 6; y++) {
+    for (let x = 11; x <= 16; x++) setGround(x, y, 'cobble');
+  }
+
+  // A small plaza with a keep, steps, and garden furniture.
+  structure(13, 4, 'keep-doorway', 0);
+  structure(13, 6, 'steps', 0);
+  structure(16, 4, 'pillar-tall', 0);
+  structure(11, 4, 'pillar-short', 0);
+  structure(12, 2, 'wall-window', 0);
+  structure(15, 2, 'wall-plain', 0);
+  structure(9, 5, 'well', 0);
+  structure(10, 8, 'table', 0);
+  structure(10, 9, 'stool', 0);
+  structure(11, 8, 'stool', 0);
+  structure(15, 9, 'planter', 0);
+  structure(17, 6, 'planter', 0);
+  structure(8, 2, 'block-moss', 0);
+  structure(17, 3, 'block-light', 0);
+  add(12, 7, 0, 'wood', 'cube', 'decoration', { rot: 0, mirror: false });
+  add(16, 8, 0, 'metal', 'cube', 'decoration', { rot: 0, mirror: false });
+
+  return { width, height, tiles, colliders: [] };
+}
+
+function resetToBlankScene() {
+  state = defaultScene();
+  activeHeight = 0;
+  zoom = 1;
+  panX = 0;
+  panY = 0;
+  renderInputs();
+  commit();
+  draw();
+  say('Reset to a blank scene. <b>Undo restores the previous scene.</b>');
+}
+
 function loadScene() {
   try {
     const saved = JSON.parse(localStorage.getItem(SCENE_STORAGE) || 'null');
@@ -963,6 +1035,18 @@ $('resize').onclick = () => {
   state.tiles = state.tiles.filter(t => t.x < state.width && t.y < state.height);
   renderInputs(); commit(); draw(); say(`Resized scene to <b>${state.width} × ${state.height}</b>.`);
 };
+$('sampleScene').onclick = () => {
+  state = sampleScene();
+  activeHeight = 0;
+  zoom = 1;
+  panX = 0;
+  panY = 0;
+  renderInputs();
+  commit();
+  draw();
+  say('Loaded a sample scene. <b>Undo restores your previous scene.</b>');
+};
+$('resetScene').onclick = resetToBlankScene;
 $('clear').onclick = () => {
   if (confirm('Clear every painted tile?')) { state.tiles = []; state.colliders = []; commit(); draw(); say('Cleared all layers.'); }
 };
